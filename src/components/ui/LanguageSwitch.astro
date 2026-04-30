@@ -13,8 +13,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const targetLang = lang === 'en' ? 'zh' : 'en';
 const pathname = currentUrl.pathname;
 const stripped = base ? pathname.replace(base, '') : pathname;
-// Replace /en/... with /zh/... or vice versa
-const newPath = stripped.replace(new RegExp(`^/${lang}(/|$)`), `/${targetLang}$1`);
+// Build target path: en has no prefix, zh has /zh/ prefix
+let newPath: string;
+if (lang === 'en') {
+  // Currently English (no prefix) → add /zh prefix
+  newPath = `/zh${stripped === '/' ? '/' : stripped}`;
+} else {
+  // Currently Chinese (/zh/...) → remove /zh prefix
+  newPath = stripped.replace(/^\/zh(\/|$)/, '/$1');
+  if (newPath === '') newPath = '/';
+}
 const targetUrl = `${base}${newPath}`;
 
 const displayLang = lang === 'en' ? 'EN' : '中';

@@ -19,11 +19,11 @@ export function getLangFromUrl(url: URL): string {
   // Remove base path prefix if present
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const stripped = base ? pathname.replace(base, '') : pathname;
-  const segments = stripped.split('/').filter(Boolean);
-  if (segments[0] && segments[0] in languages) {
-    return segments[0];
+  // Default locale (en) has no prefix; zh is under /zh/
+  if (stripped === '/zh' || stripped.startsWith('/zh/')) {
+    return 'zh';
   }
-  return defaultLang;
+  return 'en';
 }
 
 /**
@@ -43,5 +43,9 @@ export function useTranslations(lang: string) {
 export function getLocalizedPath(path: string, lang: string): string {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${base}/${lang}${cleanPath === '/' ? '/' : cleanPath}`;
+  if (lang === 'zh') {
+    return `${base}/zh${cleanPath === '/' ? '/' : cleanPath}`;
+  }
+  // Default locale (en) — no prefix
+  return `${base}${cleanPath === '/' ? '/' : cleanPath}`;
 }
