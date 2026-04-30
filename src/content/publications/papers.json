@@ -1,0 +1,67 @@
+[
+  {
+    "title": "A Comprehensive Catalog of Variable Stars in the Galactic Bulge from Multi-epoch Spectroscopy",
+    "authors": ["Placeholder, A.", "Smith, B.", "Johnson, C.", "Williams, D."],
+    "journal": "ApJ",
+    "year": 2024,
+    "volume": "965",
+    "pages": "112",
+    "doi": "10.3847/1538-4357/xxxx",
+    "arxiv": "2024.12345",
+    "ads": "2024ApJ...965..112P",
+    "highlight": true,
+    "type": "first-author"
+  },
+  {
+    "title": "The Metal-poor Stellar Halo of the Milky Way: Kinematic Substructures and Chemical Abundances",
+    "authors": ["Placeholder, A.", "Chen, L.", "García, M."],
+    "journal": "MNRAS",
+    "year": 2023,
+    "volume": "521",
+    "pages": "3458-3475",
+    "doi": "10.1093/mnras/xxxx",
+    "arxiv": "2023.09876",
+    "ads": "2023MNRAS.521.3458P",
+    "highlight": true,
+    "type": "first-author"
+  },
+  {
+    "title": "Chemical Evolution of the Galactic Disk Traced by Open Clusters: New Insights from LAMOST DR9",
+    "authors": ["Zhang, Y.", "Placeholder, A.", "Li, H.", "Wang, J.", "Davis, R."],
+    "journal": "A&A",
+    "year": 2023,
+    "volume": "674",
+    "pages": "A89",
+    "doi": "10.1051/0004-6361/xxxx",
+    "arxiv": "2023.05432",
+    "ads": "2023A&A...674A..89Z",
+    "highlight": false,
+    "type": "co-author"
+  },
+  {
+    "title": "Spectroscopic Survey of RR Lyrae Stars in the Sagittarius Dwarf Spheroidal Galaxy",
+    "authors": ["Brown, T.", "Placeholder, A.", "Anderson, K.", "Taylor, S."],
+    "journal": "ApJS",
+    "year": 2022,
+    "volume": "258",
+    "pages": "34",
+    "doi": "10.3847/1538-4365/xxxx",
+    "arxiv": "2022.07654",
+    "ads": "2022ApJS..258...34B",
+    "highlight": false,
+    "type": "corresponding"
+  },
+  {
+    "title": "Stellar Parameter Estimation from Low-Resolution Spectra Using Machine Learning Techniques",
+    "authors": ["Liu, X.", "Wang, F.", "Placeholder, A.", "Martinez, P.", "Lee, S."],
+    "journal": "ApJ",
+    "year": 2021,
+    "volume": "912",
+    "pages": "78",
+    "doi": "10.3847/1538-4357/xxxx",
+    "arxiv": "2021.03210",
+    "ads": "2021ApJ...912...78L",
+    "highlight": false,
+    "type": "co-author"
+  }
+]

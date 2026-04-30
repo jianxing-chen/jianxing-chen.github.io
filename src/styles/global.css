@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-light: #2563EB;
+  --color-primary-dark: #60A5FA;
+  --color-accent-light: #D97706;
+  --color-accent-dark: #FBBF24;
+  --color-background-light: #FAFAFA;
+  --color-background-dark: #0F172A;
+  --color-text-light: #334155;
+  --color-text-dark: #E2E8F0;
+  --color-heading-light: #0F172A;
+  --color-heading-dark: #F8FAFC;
+
+  --font-sans: 'Inter', 'Noto Sans SC', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: 'Space Grotesk', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Heading font family */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Selection style */
+::selection {
+  background-color: #2563EB33;
+}
+
+.dark ::selection {
+  background-color: #60A5FA33;
+}
+
+/* ── Blog prose typography ── */
+.prose {
+  line-height: 1.75;
+  color: var(--color-text-light);
+  max-width: 48rem;
+}
+
+.dark .prose {
+  color: var(--color-text-dark);
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  font-family: var(--font-heading);
+  color: var(--color-heading-light);
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+  font-weight: 600;
+}
+.dark .prose h1, .dark .prose h2, .dark .prose h3, .dark .prose h4 {
+  color: var(--color-heading-dark);
+}
+.prose h1 { font-size: 2rem; }
+.prose h2 { font-size: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
+.dark .prose h2 { border-bottom-color: #334155; }
+.prose h3 { font-size: 1.25rem; }
+
+.prose p {
+  margin-bottom: 1.25em;
+}
+
+.prose a {
+  color: var(--color-primary-light);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dark .prose a {
+  color: var(--color-primary-dark);
+}
+
+.prose strong {
+  font-weight: 600;
+  color: var(--color-heading-light);
+}
+.dark .prose strong {
+  color: var(--color-heading-dark);
+}
+
+.prose ul, .prose ol {
+  padding-left: 1.5em;
+  margin-bottom: 1.25em;
+}
+.prose ul { list-style-type: disc; }
+.prose ol { list-style-type: decimal; }
+.prose li { margin-bottom: 0.35em; }
+.prose li > p { margin-bottom: 0.5em; }
+
+.prose blockquote {
+  border-left: 3px solid var(--color-primary-light);
+  padding-left: 1em;
+  margin: 1.5em 0;
+  color: #64748b;
+  font-style: italic;
+}
+.dark .prose blockquote {
+  border-left-color: var(--color-primary-dark);
+  color: #94a3b8;
+}
+
+/* Code blocks */
+.prose pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin: 1.5em 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.dark .prose pre {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+}
+
+.prose :not(pre) > code {
+  background: #f1f5f9;
+  color: #dc2626;
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: var(--font-mono);
+}
+.dark .prose :not(pre) > code {
+  background: #1e293b;
+  color: #f87171;
+}
+
+/* KaTeX overrides for dark mode */
+.dark .katex {
+  color: var(--color-text-dark);
+}
+.dark .katex .katex-html {
+  color: var(--color-text-dark);
+}
+
+.prose .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 2em 0;
+}
+.dark .prose hr {
+  border-top-color: #334155;
+}
+
+.prose img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 1.5em 0;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+}
+.prose th, .prose td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.dark .prose th, .dark .prose td {
+  border-color: #334155;
+}
+.prose th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+.dark .prose th {
+  background: #1e293b;
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "orion-nebula",
+    "src": "/images/gallery/placeholder-1.svg",
+    "thumbnail": "/images/gallery/placeholder-1.svg",
+    "title": { "en": "Orion Nebula (M42)", "zh": "猎户座星云 (M42)" },
+    "description": { "en": "Deep exposure of the Orion Nebula revealing intricate gas and dust structures", "zh": "猎户座星云的深度曝光，展现复杂的气体和尘埃结构" },
+    "date": "2024-01-15",
+    "tags": ["nebula", "deep-sky"],
+    "width": 1200,
+    "height": 800,
+    "featured": true
+  },
+  {
+    "id": "andromeda-galaxy",
+    "src": "/images/gallery/placeholder-2.svg",
+    "thumbnail": "/images/gallery/placeholder-2.svg",
+    "title": { "en": "Andromeda Galaxy (M31)", "zh": "仙女座星系 (M31)" },
+    "description": { "en": "Our nearest large galactic neighbor, 2.5 million light-years away", "zh": "距我们最近的大型星系邻居，距离250万光年" },
+    "date": "2024-03-22",
+    "tags": ["galaxy", "deep-sky"],
+    "width": 1200,
+    "height": 800,
+    "featured": true
+  },
+  {
+    "id": "milky-way-panorama",
+    "src": "/images/gallery/placeholder-3.svg",
+    "thumbnail": "/images/gallery/placeholder-3.svg",
+    "title": { "en": "Milky Way Panorama", "zh": "银河全景" },
+    "description": { "en": "Wide-field panorama of the Milky Way core captured under dark skies", "zh": "在暗夜天空下拍摄的银河核心广角全景" },
+    "date": "2024-05-10",
+    "tags": ["milky-way", "landscape"],
+    "width": 1200,
+    "height": 800,
+    "featured": false
+  },
+  {
+    "id": "solar-eclipse",
+    "src": "/images/gallery/placeholder-4.svg",
+    "thumbnail": "/images/gallery/placeholder-4.svg",
+    "title": { "en": "Total Solar Eclipse", "zh": "日全食" },
+    "description": { "en": "The solar corona revealed during totality with visible prominences", "zh": "日全食期间展现的日冕及可见日珥" },
+    "date": "2024-04-08",
+    "tags": ["solar", "eclipse"],
+    "width": 1200,
+    "height": 800,
+    "featured": true
+  },
+  {
+    "id": "star-trails",
+    "src": "/images/gallery/placeholder-5.svg",
+    "thumbnail": "/images/gallery/placeholder-5.svg",
+    "title": { "en": "Star Trails Over Mountain", "zh": "山顶星轨" },
+    "description": { "en": "4-hour exposure capturing the apparent rotation of stars around the celestial pole", "zh": "4小时曝光捕捉恒星围绕天极的视运动轨迹" },
+    "date": "2024-02-28",
+    "tags": ["star-trails", "landscape"],
+    "width": 1200,
+    "height": 800,
+    "featured": false
+  },
+  {
+    "id": "observatory-dome",
+    "src": "/images/gallery/placeholder-6.svg",
+    "thumbnail": "/images/gallery/placeholder-6.svg",
+    "title": { "en": "Observatory at Dusk", "zh": "黄昏中的天文台" },
+    "description": { "en": "The observatory dome silhouetted against the twilight sky before a night of observation", "zh": "观测之夜前，天文台圆顶在暮光天空下的剪影" },
+    "date": "2024-06-15",
+    "tags": ["observatory", "landscape"],
+    "width": 1200,
+    "height": 800,
+    "featured": false
+  }
+]

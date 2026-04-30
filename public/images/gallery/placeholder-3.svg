@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#0c1445"/>
+      <stop offset="50%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#020617"/>
+    </linearGradient>
+    <linearGradient id="mw3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:transparent"/>
+      <stop offset="30%" style="stop-color:#fef3c7;stop-opacity:0.15"/>
+      <stop offset="50%" style="stop-color:#fef9c3;stop-opacity:0.25"/>
+      <stop offset="70%" style="stop-color:#fef3c7;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:transparent"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg3)"/>
+  <rect x="0" y="250" width="1200" height="300" fill="url(#mw3)"/>
+  <circle cx="100" cy="100" r="1.5" fill="white" opacity="0.8"/>
+  <circle cx="300" cy="50" r="1" fill="white" opacity="0.6"/>
+  <circle cx="600" cy="80" r="2" fill="white" opacity="0.7"/>
+  <circle cx="900" cy="120" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="1100" cy="60" r="1" fill="white" opacity="0.8"/>
+  <circle cx="200" cy="700" r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="800" cy="680" r="1" fill="white" opacity="0.7"/>
+  <text x="600" y="750" text-anchor="middle" fill="white" opacity="0.4" font-family="sans-serif" font-size="24">Milky Way Panorama</text>
+</svg>

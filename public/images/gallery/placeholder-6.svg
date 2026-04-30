@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bg6" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e293b"/>
+      <stop offset="60%" style="stop-color:#334155"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg6)"/>
+  <!-- Observatory dome -->
+  <rect x="450" y="500" width="300" height="200" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <path d="M 450 500 Q 600 350 750 500" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <!-- Dome slit -->
+  <rect x="585" y="380" width="30" height="120" fill="#0f172a"/>
+  <!-- Ground -->
+  <rect x="0" y="700" width="1200" height="100" fill="#0f172a"/>
+  <!-- Stars -->
+  <circle cx="100" cy="100" r="1.5" fill="white" opacity="0.7"/>
+  <circle cx="300" cy="150" r="1" fill="white" opacity="0.5"/>
+  <circle cx="900" cy="80" r="2" fill="white" opacity="0.6"/>
+  <circle cx="1050" cy="200" r="1" fill="white" opacity="0.8"/>
+  <circle cx="750" cy="120" r="1.5" fill="white" opacity="0.5"/>
+  <text x="600" y="760" text-anchor="middle" fill="white" opacity="0.4" font-family="sans-serif" font-size="24">Observatory at Dusk</text>
+</svg>

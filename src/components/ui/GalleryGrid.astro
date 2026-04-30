@@ -1,0 +1,107 @@
+---
+interface Photo {
+  id: string;
+  src: string;
+  thumbnail: string;
+  title: { en: string; zh: string };
+  description: { en: string; zh: string };
+  date: string;
+  tags: string[];
+  width: number;
+  height: number;
+  featured: boolean;
+}
+
+interface Props {
+  photos: Photo[];
+  lang: string;
+}
+
+const { photos, lang } = Astro.props;
+---
+
+<div id="gallery-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+  {photos.map((photo) => (
+    <a
+      href={photo.src}
+      data-pswp-width={photo.width}
+      data-pswp-height={photo.height}
+      data-cropped="true"
+      class="gallery-item group relative block overflow-hidden rounded-lg
+             border border-slate-200 dark:border-slate-700/50
+             shadow-sm hover:shadow-md dark:shadow-none dark:hover:shadow-lg dark:hover:shadow-black/20
+             transition-all duration-300"
+    >
+      <img
+        src={photo.thumbnail}
+        alt={photo.title[lang as keyof typeof photo.title] || photo.title.en}
+        width={photo.width}
+        height={photo.height}
+        loading="lazy"
+        class="w-full aspect-[3/2] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+      />
+      <!-- Hover overlay -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                  flex flex-col justify-end p-4">
+        <h3 class="text-white font-medium text-sm sm:text-base leading-tight">
+          {photo.title[lang as keyof typeof photo.title] || photo.title.en}
+        </h3>
+        <p class="text-white/75 text-xs sm:text-sm mt-1 line-clamp-2">
+          {photo.description[lang as keyof typeof photo.description] || photo.description.en}
+        </p>
+      </div>
+    </a>
+  ))}
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css" />
+
+<script>
+  import PhotoSwipeLightbox from 'photoswipe/lightbox';
+
+  const lightbox = new PhotoSwipeLightbox({
+    gallery: '#gallery-grid',
+    children: 'a.gallery-item',
+    pswpModule: () => import('photoswipe'),
+    bgOpacity: 1,
+    padding: { top: 20, bottom: 20, left: 20, right: 20 },
+  });
+
+  lightbox.on('uiRegister', function () {
+    lightbox.pswp!.ui!.registerElement({
+      name: 'caption',
+      order: 9,
+      isButton: false,
+      appendTo: 'root',
+      html: '',
+      onInit: (el) => {
+        el.style.cssText = `
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 16px 20px;
+          background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+          color: white;
+          font-size: 14px;
+          text-align: center;
+          pointer-events: none;
+        `;
+
+        lightbox.pswp!.on('change', () => {
+          const slide = lightbox.pswp!.currSlide;
+          if (slide && slide.data.element) {
+            const titleEl = (slide.data.element as HTMLElement).querySelector('h3');
+            const descEl = (slide.data.element as HTMLElement).querySelector('p');
+            const title = titleEl?.textContent || '';
+            const desc = descEl?.textContent || '';
+            el.innerHTML = `<strong>${title}</strong>${desc ? '<br><span style="opacity:0.8;font-size:12px">' + desc + '</span>' : ''}`;
+          }
+        });
+      },
+    });
+  });
+
+  lightbox.init();
+</script>

@@ -1,0 +1,114 @@
+---
+import BaseLayout from '@/components/layout/BaseLayout.astro';
+import BlogPostCard from '@/components/ui/BlogPostCard.astro';
+import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { getCollection } from 'astro:content';
+
+const lang = 'zh';
+const t = useTranslations(lang);
+
+const allPosts = await getCollection('blog', ({ data }) => {
+  return data.lang === lang && !data.draft;
+});
+
+// Sort by date descending
+const posts = allPosts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+// Collect all tags
+const allTags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
+---
+
+<BaseLayout title={`${t('blog.title')} - ${t('site.title')}`} lang={lang}>
+  <div class="space-y-8">
+    <!-- Page header -->
+    <div>
+      <h1
+        class="text-3xl sm:text-4xl font-bold text-heading-light dark:text-heading-dark"
+        style="font-family: 'Space Grotesk', sans-serif;"
+      >
+        {t('blog.title')}
+      </h1>
+      <p class="mt-2 text-text-light/60 dark:text-text-dark/60">
+        {posts.length} {t('blog.all_posts')}
+      </p>
+    </div>
+
+    <!-- Tag filter -->
+    <div class="flex flex-wrap gap-2" id="tag-filter">
+      <button
+        data-tag="all"
+        class="tag-btn active px-3 py-1 text-sm rounded-full font-medium cursor-pointer
+               transition-colors duration-200"
+      >
+        {t('blog.all_posts')}
+      </button>
+      {allTags.map((tag) => (
+        <button
+          data-tag={tag}
+          class="tag-btn px-3 py-1 text-sm rounded-full font-medium cursor-pointer
+                 transition-colors duration-200"
+        >
+          {tag}
+        </button>
+      ))}
+    </div>
+
+    <!-- Post grid -->
+    <div class="grid gap-5 sm:grid-cols-2" id="posts-grid">
+      {posts.map((post) => (
+        <div data-tags={JSON.stringify(post.data.tags)}>
+          <BlogPostCard post={post} lang={lang} />
+        </div>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .tag-btn {
+    background: transparent;
+    color: var(--color-text-light);
+    border: 1px solid rgba(0,0,0,0.1);
+  }
+  :global(.dark) .tag-btn {
+    color: var(--color-text-dark);
+    border-color: rgba(255,255,255,0.1);
+  }
+  .tag-btn:hover, .tag-btn.active {
+    background: var(--color-primary-light);
+    color: white;
+    border-color: var(--color-primary-light);
+  }
+  :global(.dark) .tag-btn:hover, :global(.dark) .tag-btn.active {
+    background: var(--color-primary-dark);
+    color: #0F172A;
+    border-color: var(--color-primary-dark);
+  }
+</style>
+
+<script>
+  function initTagFilter() {
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.tag-btn');
+    const cards = document.querySelectorAll<HTMLElement>('#posts-grid > div');
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        buttons.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const tag = btn.dataset.tag;
+        cards.forEach((card) => {
+          if (tag === 'all') {
+            card.style.display = '';
+          } else {
+            const tags: string[] = JSON.parse(card.dataset.tags || '[]');
+            card.style.display = tags.includes(tag!) ? '' : 'none';
+          }
+        });
+      });
+    });
+  }
+
+  initTagFilter();
+  document.addEventListener('astro:after-swap', initTagFilter);
+</script>

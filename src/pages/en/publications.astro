@@ -1,0 +1,131 @@
+---
+import BaseLayout from '@/components/layout/BaseLayout.astro';
+import PublicationCard from '@/components/ui/PublicationCard.astro';
+import { useTranslations } from '@/i18n/ui';
+import papers from '@/content/publications/papers.json';
+
+const lang = 'en';
+const t = useTranslations(lang);
+
+// Stats
+const totalPapers = papers.length;
+const firstAuthorCount = papers.filter((p) => p.type === 'first-author').length;
+
+// Group by year, descending
+const papersByYear = papers.reduce<Record<number, typeof papers>>((acc, paper) => {
+  (acc[paper.year] ??= []).push(paper);
+  return acc;
+}, {});
+const years = Object.keys(papersByYear).map(Number).sort((a, b) => b - a);
+---
+
+<BaseLayout title={`${t('publications.title')} - ${t('site.title')}`} description={t('site.description')} lang={lang}>
+  <div class="space-y-8">
+    {/* Header */}
+    <div>
+      <h1 class="text-3xl sm:text-4xl font-bold text-heading-light dark:text-heading-dark mb-4">
+        {t('publications.title')}
+      </h1>
+
+      {/* Stats */}
+      <div class="flex items-center gap-6 text-sm text-text-light/60 dark:text-text-dark/60">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-light/10 dark:bg-primary-dark/10 text-primary-light dark:text-primary-dark font-semibold text-sm">
+            {totalPapers}
+          </span>
+          <span>{t('publications.total')}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-accent-light/10 dark:bg-accent-dark/10 text-accent-light dark:text-accent-dark font-semibold text-sm">
+            {firstAuthorCount}
+          </span>
+          <span>{t('publications.first_author')}</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Filter buttons */}
+    <div class="flex gap-2" id="pub-filters">
+      <button
+        data-filter="all"
+        class="pub-filter-btn active px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200
+               border-primary-light dark:border-primary-dark
+               bg-primary-light dark:bg-primary-dark
+               text-white dark:text-slate-900"
+      >
+        {t('publications.all')}
+      </button>
+      <button
+        data-filter="first-author"
+        class="pub-filter-btn px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200
+               border-slate-200 dark:border-white/10
+               text-text-light/70 dark:text-text-dark/60
+               hover:border-primary-light dark:hover:border-primary-dark"
+      >
+        {t('publications.filter_first_author')}
+      </button>
+    </div>
+
+    {/* Papers grouped by year */}
+    <div class="space-y-8">
+      {years.map((year) => (
+        <section class="pub-year-section" data-year={year}>
+          <div class="flex items-center gap-4 mb-4">
+            <h2 class="text-xl font-bold text-heading-light dark:text-heading-dark font-[family-name:var(--font-heading)]">
+              {year}
+            </h2>
+            <div class="flex-1 h-px bg-slate-200 dark:bg-white/10" />
+          </div>
+
+          <div class="space-y-3">
+            {papersByYear[year].map((paper) => (
+              <div class="pub-card" data-type={paper.type}>
+                <PublicationCard paper={paper} lang={lang} />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const buttons = document.querySelectorAll<HTMLButtonElement>('.pub-filter-btn');
+      const cards = document.querySelectorAll<HTMLElement>('.pub-card');
+      const sections = document.querySelectorAll<HTMLElement>('.pub-year-section');
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const filter = btn.dataset.filter!;
+
+          // Update button styles
+          buttons.forEach((b) => {
+            if (b === btn) {
+              b.classList.add('border-primary-light', 'dark:border-primary-dark', 'bg-primary-light', 'dark:bg-primary-dark', 'text-white', 'dark:text-slate-900');
+              b.classList.remove('border-slate-200', 'dark:border-white/10', 'text-text-light/70', 'dark:text-text-dark/60');
+            } else {
+              b.classList.remove('border-primary-light', 'dark:border-primary-dark', 'bg-primary-light', 'dark:bg-primary-dark', 'text-white', 'dark:text-slate-900');
+              b.classList.add('border-slate-200', 'dark:border-white/10', 'text-text-light/70', 'dark:text-text-dark/60');
+            }
+          });
+
+          // Filter cards
+          cards.forEach((card) => {
+            if (filter === 'all' || card.dataset.type === filter) {
+              card.style.display = '';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+
+          // Hide empty year sections
+          sections.forEach((section) => {
+            const visibleCards = section.querySelectorAll<HTMLElement>('.pub-card:not([style*="display: none"])');
+            section.style.display = visibleCards.length === 0 ? 'none' : '';
+          });
+        });
+      });
+    });
+  </script>
+</BaseLayout>

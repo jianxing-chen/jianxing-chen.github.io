@@ -1,0 +1,110 @@
+---
+import BaseLayout from '@/components/layout/BaseLayout.astro';
+import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { getCollection, render } from 'astro:content';
+import CatalogTable from '@/components/interactive/CatalogTable.tsx';
+
+export async function getStaticPaths() {
+  const allCatalogs = await getCollection('catalogs');
+  const zhCatalogs = allCatalogs.filter((c) => c.id.startsWith('zh/'));
+  return zhCatalogs.map((catalog) => ({
+    params: { slug: catalog.id.replace('zh/', '') },
+    props: { catalog },
+  }));
+}
+
+const lang = 'zh';
+const t = useTranslations(lang);
+const { catalog } = Astro.props;
+const { Content } = await render(catalog);
+
+// Fetch catalog data at build time
+const dataUrl = catalog.data.dataFile;
+let catalogData: Record<string, any>[] = [];
+try {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const publicDir = path.join(process.cwd(), 'public');
+  const filePath = dataUrl.replace(import.meta.env.BASE_URL, '').replace(/^\//, '');
+  const fullPath = path.join(publicDir, filePath);
+  const raw = fs.readFileSync(fullPath, 'utf-8');
+  catalogData = JSON.parse(raw);
+} catch (e) {
+  console.warn('Failed to load catalog data:', e);
+}
+---
+
+<BaseLayout title={catalog.data.title} description={catalog.data.description} lang={lang}>
+  <div class="max-w-6xl mx-auto">
+    <!-- Back link -->
+    <a
+      href={getLocalizedPath('/catalogs', lang)}
+      class="inline-flex items-center gap-1 text-sm text-text-light/60 dark:text-text-dark/60
+             hover:text-primary-light dark:hover:text-primary-dark transition-colors mb-6"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      {t('common.back')}
+    </a>
+
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-3xl sm:text-4xl font-bold text-heading-light dark:text-heading-dark mb-3">
+        {catalog.data.title}
+      </h1>
+      <p class="text-lg text-text-light/70 dark:text-text-dark/70 mb-4">
+        {catalog.data.description}
+      </p>
+      <div class="flex flex-wrap gap-4 text-sm text-text-light/60 dark:text-text-dark/60">
+        {catalog.data.version && (
+          <span>{t('catalogs.version')}: {catalog.data.version}</span>
+        )}
+        {catalog.data.rows && (
+          <span>{catalog.data.rows} {t('catalogs.rows')}</span>
+        )}
+      </div>
+    </header>
+
+    <!-- Citation -->
+    {(catalog.data.citation || catalog.data.doi) && (
+      <div class="border-l-4 border-primary-light dark:border-primary-dark
+                  bg-primary-light/5 dark:bg-primary-dark/5
+                  px-5 py-4 rounded-r-lg mb-8">
+        {catalog.data.citation && (
+          <p class="text-sm text-text-light/80 dark:text-text-dark/80 mb-1">
+            <span class="font-semibold">{t('catalogs.citation')}:</span> {catalog.data.citation}
+          </p>
+        )}
+        {catalog.data.doi && (
+          <p class="text-sm">
+            <span class="font-semibold">{t('catalogs.doi')}:</span>{' '}
+            <a
+              href={`https://doi.org/${catalog.data.doi}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary-light dark:text-primary-dark hover:underline"
+            >
+              {catalog.data.doi}
+            </a>
+          </p>
+        )}
+      </div>
+    )}
+
+    <!-- Interactive Table -->
+    <section class="mb-12">
+      <CatalogTable
+        client:load
+        data={catalogData}
+        columns={catalog.data.columns}
+        lang={lang}
+      />
+    </section>
+
+    <!-- Markdown Content -->
+    <article class="prose prose-slate dark:prose-invert max-w-none
+                    prose-headings:font-heading prose-headings:text-heading-light dark:prose-headings:text-heading-dark
+                    prose-a:text-primary-light dark:prose-a:text-primary-dark">
+      <Content />
+    </article>
+  </div>
+</BaseLayout>

@@ -1,0 +1,190 @@
+---
+import BaseLayout from '@/components/layout/BaseLayout.astro';
+import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { getCollection, render } from 'astro:content';
+
+const lang = 'en';
+const t = useTranslations(lang);
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => {
+    return data.lang === 'en' && !data.draft;
+  });
+
+  const sorted = posts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+  return sorted.map((post, idx) => {
+    const slug = post.id.includes('/') ? post.id.split('/').slice(1).join('/') : post.id;
+    return {
+      params: { slug },
+      props: {
+        post,
+        prev: idx < sorted.length - 1 ? sorted[idx + 1] : null,
+        next: idx > 0 ? sorted[idx - 1] : null,
+      },
+    };
+  });
+}
+
+const { post, prev, next } = Astro.props;
+const { Content, headings } = await render(post);
+
+const formattedDate = new Date(post.data.date).toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
+// Reading time estimate
+const wordCount = post.body ? post.body.split(/\s+/).length : 0;
+const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+function getSlug(p: typeof post) {
+  return p.id.includes('/') ? p.id.split('/').slice(1).join('/') : p.id;
+}
+---
+
+<BaseLayout title={`${post.data.title} - ${t('site.title')}`} description={post.data.description} lang={lang}>
+  <div class="lg:grid lg:grid-cols-[1fr_220px] lg:gap-8">
+    <!-- Main content -->
+    <article class="min-w-0">
+      <!-- Header -->
+      <header class="mb-8">
+        <div class="flex items-center gap-3 text-sm text-text-light/60 dark:text-text-dark/60 mb-3">
+          <time datetime={post.data.date.toISOString()}>{formattedDate}</time>
+          <span class="text-text-light/30 dark:text-text-dark/30">·</span>
+          <span>{readingTime} {t('blog.minutes_read')}</span>
+        </div>
+
+        <h1
+          class="text-3xl sm:text-4xl font-bold text-heading-light dark:text-heading-dark leading-tight mb-4"
+          style="font-family: 'Space Grotesk', sans-serif;"
+        >
+          {post.data.title}
+        </h1>
+
+        <div class="flex flex-wrap gap-1.5">
+          {post.data.tags.map((tag: string) => (
+            <span
+              class="inline-block px-2.5 py-0.5 text-xs rounded-full
+                     bg-primary-light/8 dark:bg-primary-dark/10
+                     text-primary-light dark:text-primary-dark font-medium"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      </header>
+
+      <!-- Article body -->
+      <div class="prose">
+        <Content />
+      </div>
+
+      <!-- Prev / Next navigation -->
+      <nav class="mt-12 pt-8 border-t border-black/[0.06] dark:border-white/[0.06]
+                  grid grid-cols-2 gap-4">
+        {prev ? (
+          <a
+            href={getLocalizedPath(`/blog/${getSlug(prev)}/`, lang)}
+            class="group flex flex-col items-start p-4 rounded-lg
+                   hover:bg-black/[0.03] dark:hover:bg-white/[0.03]
+                   transition-colors duration-200"
+          >
+            <span class="text-xs text-text-light/50 dark:text-text-dark/50 mb-1">
+              ← {t('blog.prev_post')}
+            </span>
+            <span class="text-sm font-medium text-heading-light dark:text-heading-dark
+                         group-hover:text-primary-light dark:group-hover:text-primary-dark
+                         transition-colors line-clamp-2">
+              {prev.data.title}
+            </span>
+          </a>
+        ) : <div />}
+
+        {next ? (
+          <a
+            href={getLocalizedPath(`/blog/${getSlug(next)}/`, lang)}
+            class="group flex flex-col items-end text-right p-4 rounded-lg
+                   hover:bg-black/[0.03] dark:hover:bg-white/[0.03]
+                   transition-colors duration-200"
+          >
+            <span class="text-xs text-text-light/50 dark:text-text-dark/50 mb-1">
+              {t('blog.next_post')} →
+            </span>
+            <span class="text-sm font-medium text-heading-light dark:text-heading-dark
+                         group-hover:text-primary-light dark:group-hover:text-primary-dark
+                         transition-colors line-clamp-2">
+              {next.data.title}
+            </span>
+          </a>
+        ) : <div />}
+      </nav>
+    </article>
+
+    <!-- TOC sidebar (desktop) -->
+    {headings.length > 0 && (
+      <aside class="hidden lg:block">
+        <div class="sticky top-24">
+          <h3 class="text-xs font-semibold uppercase tracking-wider
+                     text-text-light/50 dark:text-text-dark/50 mb-3">
+            {t('blog.toc')}
+          </h3>
+          <nav class="space-y-1 text-sm border-l border-black/[0.06] dark:border-white/[0.06]">
+            {headings
+              .filter((h) => h.depth <= 3)
+              .map((h) => (
+                <a
+                  href={`#${h.slug}`}
+                  class:list={[
+                    'block py-1 text-text-light/60 dark:text-text-dark/60 hover:text-primary-light dark:hover:text-primary-dark transition-colors duration-200 border-l-2 border-transparent hover:border-primary-light dark:hover:border-primary-dark -ml-px',
+                    h.depth === 2 ? 'pl-3' : 'pl-6',
+                  ]}
+                >
+                  {h.text}
+                </a>
+              ))}
+          </nav>
+        </div>
+      </aside>
+    )}
+  </div>
+
+  <!-- Mobile TOC (collapsible) -->
+  {headings.length > 0 && (
+    <details class="lg:hidden mt-0 mb-6 -order-1">
+      <summary
+        class="cursor-pointer text-sm font-medium
+               text-text-light/70 dark:text-text-dark/70
+               hover:text-primary-light dark:hover:text-primary-dark
+               transition-colors list-none flex items-center gap-1.5"
+      >
+        <svg class="w-4 h-4 transition-transform details-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+        {t('blog.toc')}
+      </summary>
+      <nav class="mt-2 pl-4 space-y-1 text-sm border-l border-black/[0.06] dark:border-white/[0.06]">
+        {headings
+          .filter((h) => h.depth <= 3)
+          .map((h) => (
+            <a
+              href={`#${h.slug}`}
+              class:list={[
+                'block py-0.5 text-text-light/60 dark:text-text-dark/60 hover:text-primary-light dark:hover:text-primary-dark transition-colors',
+                h.depth === 3 ? 'pl-4' : '',
+              ]}
+            >
+              {h.text}
+            </a>
+          ))}
+      </nav>
+    </details>
+  )}
+</BaseLayout>
+
+<style>
+  details[open] .details-arrow {
+    transform: rotate(180deg);
+  }
+</style>

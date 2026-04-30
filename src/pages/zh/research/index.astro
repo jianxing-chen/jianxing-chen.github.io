@@ -1,0 +1,100 @@
+---
+import BaseLayout from '@/components/layout/BaseLayout.astro';
+import ProjectCard from '@/components/ui/ProjectCard.astro';
+import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { getCollection } from 'astro:content';
+
+const lang = 'zh';
+const t = useTranslations(lang);
+
+const allResearch = await getCollection('research');
+const projects = allResearch
+  .filter((p) => p.id.startsWith('zh/'))
+  .sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0));
+---
+
+<BaseLayout title={`${t('research.title')} - ${t('site.title')}`} description={t('research.description')} lang={lang}>
+  <div class="mb-10">
+    <h1 class="text-3xl sm:text-4xl font-bold text-heading-light dark:text-heading-dark mb-3">
+      {t('research.title')}
+    </h1>
+    <p class="text-lg text-text-light/70 dark:text-text-dark/70 max-w-2xl">
+      {t('research.description')}
+    </p>
+  </div>
+
+  {/* Filter buttons */}
+  <div class="flex gap-2 mb-8" id="filter-bar">
+    <button data-filter="all"
+      class="filter-btn active px-4 py-1.5 text-sm font-medium rounded-full transition-colors duration-200
+             bg-primary-light text-white dark:bg-primary-dark dark:text-slate-900">
+      {t('research.all')}
+    </button>
+    <button data-filter="ongoing"
+      class="filter-btn px-4 py-1.5 text-sm font-medium rounded-full transition-colors duration-200
+             bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300
+             hover:bg-slate-200 dark:hover:bg-slate-600">
+      {t('research.ongoing')}
+    </button>
+    <button data-filter="completed"
+      class="filter-btn px-4 py-1.5 text-sm font-medium rounded-full transition-colors duration-200
+             bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300
+             hover:bg-slate-200 dark:hover:bg-slate-600">
+      {t('research.completed')}
+    </button>
+  </div>
+
+  {/* Project grid */}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="project-grid">
+    {projects.map((project) => {
+      const slug = project.id.replace('zh/', '');
+      return (
+        <div class="project-item" data-status={project.data.status}>
+          <ProjectCard
+            title={project.data.title}
+            description={project.data.description}
+            cover={project.data.cover}
+            status={project.data.status}
+            tags={project.data.tags}
+            href={getLocalizedPath(`/research/${slug}`, lang)}
+            statusLabel={project.data.status === 'ongoing' ? t('research.ongoing') : t('research.completed')}
+          />
+        </div>
+      );
+    })}
+  </div>
+</BaseLayout>
+
+<script>
+  function initFilter() {
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
+    const items = document.querySelectorAll<HTMLElement>('.project-item');
+
+    const activeClasses = ['bg-primary-light', 'text-white', 'dark:bg-primary-dark', 'dark:text-slate-900'];
+    const inactiveClasses = ['bg-slate-100', 'text-slate-600', 'dark:bg-slate-700', 'dark:text-slate-300', 'hover:bg-slate-200', 'dark:hover:bg-slate-600'];
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+
+        buttons.forEach((b) => {
+          b.classList.remove(...activeClasses, 'active');
+          b.classList.add(...inactiveClasses);
+        });
+        btn.classList.remove(...inactiveClasses);
+        btn.classList.add(...activeClasses, 'active');
+
+        items.forEach((item) => {
+          if (filter === 'all' || item.dataset.status === filter) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    });
+  }
+
+  initFilter();
+  document.addEventListener('astro:after-swap', initFilter);
+</script>
