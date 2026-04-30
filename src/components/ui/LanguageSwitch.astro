@@ -20,8 +20,7 @@ if (lang === 'en') {
   newPath = `/zh${stripped === '/' ? '/' : stripped}`;
 } else {
   // Currently Chinese (/zh/...) → remove /zh prefix
-  newPath = stripped.replace(/^\/zh(\/|$)/, '/$1');
-  if (newPath === '') newPath = '/';
+  newPath = stripped.replace(/^\/zh/, '') || '/';
 }
 const targetUrl = `${base}${newPath}`;
 
