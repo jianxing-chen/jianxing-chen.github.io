@@ -12,8 +12,7 @@ const pathname = currentUrl.pathname;
 const pathWithoutLocale = lang === 'zh'
   ? pathname.replace(/^\/zh(?=\/|$)/, '') || '/'
   : pathname;
-const normalizedPath = pathWithoutLocale.startsWith('/') ? pathWithoutLocale : `/${pathWithoutLocale}`;
-const targetUrl = getLocalizedPath(normalizedPath, targetLang);
+const targetUrl = getLocalizedPath(pathWithoutLocale, targetLang);
 
 const displayLang = lang === 'en' ? 'EN' : '中';
 const targetDisplayLang = targetLang === 'en' ? 'EN' : '中';
