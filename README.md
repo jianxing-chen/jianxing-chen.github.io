@@ -1,36 +1,35 @@
 <div align="center">
 
-# Do Not Go Gentle Into That Good Night
+# The Road Not Taken
 
-<sub><em>— Dylan Thomas</em></sub>
+<sub><em>— Robert Frost</em></sub>
 
 <br />
 
 <em>
-Do not go gentle into that good night,<br/>
-Old age should burn and rave at close of day;<br/>
-Rage, rage against the dying of the light.<br/>
+Two roads diverged in a yellow wood,<br/>
+And sorry I could not travel both<br/>
+And be one traveler, long I stood<br/>
+And looked down one as far as I could<br/>
+To where it bent in the undergrowth;<br/>
 <br/>
-Though wise men at their end know dark is right,<br/>
-Because their words had forked no lightning they<br/>
-Do not go gentle into that good night.<br/>
+Then took the other, as just as fair,<br/>
+And having perhaps the better claim,<br/>
+Because it was grassy and wanted wear;<br/>
+Though as for that the passing there<br/>
+Had worn them really about the same,<br/>
 <br/>
-Good men, the last wave by, crying how bright<br/>
-Their frail deeds might have danced in a green bay,<br/>
-Rage, rage against the dying of the light.<br/>
+And both that morning equally lay<br/>
+In leaves no step had trodden black.<br/>
+Oh, I kept the first for another day!<br/>
+Yet knowing how way leads on to way,<br/>
+I doubted if I should ever come back.<br/>
 <br/>
-Wild men who caught and sang the sun in flight,<br/>
-And learn, too late, they grieved it on its way,<br/>
-Do not go gentle into that good night.<br/>
-<br/>
-Grave men, near death, who see with blinding sight<br/>
-Blind eyes could blaze like meteors and be gay,<br/>
-Rage, rage against the dying of the light.<br/>
-<br/>
-And you, my father, there on the sad height,<br/>
-Curse, bless, me now with your fierce tears, I pray.<br/>
-Do not go gentle into that good night.<br/>
-Rage, rage against the dying of the light.
+I shall be telling this with a sigh<br/>
+Somewhere ages and ages hence:<br/>
+Two roads diverged in a wood, and I—<br/>
+I took the one less travelled by,<br/>
+And that has made all the difference.
 </em>
 
 </div>
