@@ -87,5 +87,8 @@
   "catalogs.showing": "Showing",
   "catalogs.of": "of",
   "catalogs.citation": "Citation",
-  "catalogs.doi": "DOI"
+  "catalogs.doi": "DOI",
+  "catalogs.search": "Search all columns…",
+  "catalogs.noResults": "No matching results",
+  "catalogs.emptyData": "No data available"
 }

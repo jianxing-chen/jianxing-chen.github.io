@@ -1,5 +1,6 @@
 ---
 import { getLocalizedPath, useTranslations } from '@/i18n/ui';
+import { extractSlug } from '@/utils/slug';
 
 interface Props {
   post: {
@@ -21,7 +22,7 @@ const { title, date, description, tags, cover } = post.data;
 const t = useTranslations(lang);
 
 // Extract slug from id: "en/hello-world" → "hello-world"
-const slug = post.id.includes('/') ? post.id.split('/').slice(1).join('/') : post.id;
+const slug = extractSlug(post.id);
 
 const formattedDate = new Date(date).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
   year: 'numeric',

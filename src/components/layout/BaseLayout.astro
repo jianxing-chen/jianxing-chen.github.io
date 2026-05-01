@@ -3,6 +3,7 @@ import '@/styles/global.css';
 import Header from '@/components/layout/Header.astro';
 import Footer from '@/components/layout/Footer.astro';
 import { defaultLang } from '@/i18n/ui';
+import { SITE_CONFIG } from '@/config/site';
 
 interface Props {
   title: string;
@@ -23,6 +24,14 @@ const defaultOgImage = new URL(`${import.meta.env.BASE_URL}images/og-default.svg
 const resolvedOgImage = ogImage || defaultOgImage;
 const ogLocale = lang === 'zh' ? 'zh_CN' : 'en_US';
 
+const alternateUrl = lang === 'en'
+  ? new URL('/zh' + Astro.url.pathname, Astro.site)
+  : new URL(Astro.url.pathname.replace(/^\/zh/, '') || '/', Astro.site);
+
+const socialLinks = Object.values(SITE_CONFIG.social).filter(
+  (v) => v !== '#' && !v.startsWith('mailto:')
+);
+
 const umamiWebsiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID || '';
 const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud.umami.is/script.js';
 ---
@@ -37,7 +46,11 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     <!-- SEO -->
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="author" content={SITE_CONFIG.author.en} />
     <link rel="canonical" href={canonicalUrl.href} />
+    <link rel="alternate" hreflang={lang === 'en' ? 'zh' : 'en'} href={alternateUrl.href} />
+    <link rel="alternate" hreflang="x-default" href={new URL('/', Astro.site).href} />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -54,6 +67,7 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     <meta name="twitter:image" content={resolvedOgImage} />
 
     <!-- Fonts -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -65,6 +79,7 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.css"
+      integrity="sha384-UA8juhPf75SzzAMA/4fo3yOU7sBJ0om7SCD2GHq0fZqZco6tr1UCV7nUbk9J90JM"
       crossorigin="anonymous"
     />
 
@@ -83,6 +98,20 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     {umamiWebsiteId && (
       <script is:inline defer src={umamiScriptUrl} data-website-id={umamiWebsiteId}></script>
     )}
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": SITE_CONFIG.author.en,
+      "url": Astro.site?.href,
+      "jobTitle": SITE_CONFIG.position.en,
+      "affiliation": {
+        "@type": "Organization",
+        "name": SITE_CONFIG.affiliation.en
+      },
+      ...(socialLinks.length > 0 ? { "sameAs": socialLinks } : {})
+    })} />
   </head>
 
   <body

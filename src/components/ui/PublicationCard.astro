@@ -19,12 +19,13 @@ interface Props {
 }
 
 import { useTranslations } from '@/i18n/ui';
+import { SITE_CONFIG } from '@/config/site';
 
 const { paper, lang } = Astro.props;
 const t = useTranslations(lang);
 
 const isHighlighted = paper.type === 'first-author' || paper.type === 'corresponding';
-const selfPattern = 'Placeholder, A.';
+const selfPattern = SITE_CONFIG.selfPattern;
 
 function formatAuthors(authors: string[]): { name: string; isSelf: boolean }[] {
   return authors.map((a) => ({ name: a, isSelf: a === selfPattern }));

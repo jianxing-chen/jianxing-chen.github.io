@@ -1,6 +1,8 @@
 import en from './en.json';
 import zh from './zh.json';
 
+export type TranslationKey = keyof typeof en;
+
 export const languages: Record<string, string> = {
   en: 'English',
   zh: '中文',
@@ -30,9 +32,13 @@ export function getLangFromUrl(url: URL): string {
  * Returns a translation function for the given language.
  */
 export function useTranslations(lang: string) {
-  return function t(key: string): string {
+  return function t(key: TranslationKey): string {
     const dict = translations[lang] || translations[defaultLang];
-    return dict[key] || translations[defaultLang][key] || key;
+    const value = dict[key] || translations[defaultLang][key];
+    if (!value && import.meta.env.DEV) {
+      console.warn(`[i18n] Missing translation key "${key}" for lang "${lang}"`);
+    }
+    return value || key;
   };
 }
 

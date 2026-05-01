@@ -87,5 +87,8 @@
   "catalogs.showing": "显示",
   "catalogs.of": "/",
   "catalogs.citation": "引用",
-  "catalogs.doi": "DOI"
+  "catalogs.doi": "DOI",
+  "catalogs.search": "搜索所有列…",
+  "catalogs.noResults": "无匹配结果",
+  "catalogs.emptyData": "暂无数据"
 }

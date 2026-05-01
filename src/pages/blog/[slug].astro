@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '@/components/layout/BaseLayout.astro';
 import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { extractSlug } from '@/utils/slug';
 import { getCollection, render } from 'astro:content';
 
 const lang = 'en';
@@ -14,7 +15,7 @@ export async function getStaticPaths() {
   const sorted = posts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
   return sorted.map((post, idx) => {
-    const slug = post.id.includes('/') ? post.id.split('/').slice(1).join('/') : post.id;
+    const slug = extractSlug(post.id);
     return {
       params: { slug },
       props: {
@@ -40,7 +41,7 @@ const wordCount = post.body ? post.body.split(/\s+/).length : 0;
 const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
 function getSlug(p: typeof post) {
-  return p.id.includes('/') ? p.id.split('/').slice(1).join('/') : p.id;
+  return extractSlug(p.id);
 }
 ---
 

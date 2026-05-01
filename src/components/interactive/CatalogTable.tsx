@@ -16,15 +16,31 @@ interface ColumnConfig {
   type: string;
 }
 
+export interface CatalogTableTranslations {
+  search?: string;
+  showing?: string;
+  of?: string;
+  rows?: string;
+  download?: string;
+  perPage?: string;
+  first?: string;
+  prev?: string;
+  next?: string;
+  last?: string;
+  noResults?: string;
+  emptyData?: string;
+}
+
 interface CatalogTableProps {
   data: Record<string, any>[];
   columns: ColumnConfig[];
   downloadUrl?: string;
   downloadFileName?: string;
   lang?: string;
+  translations?: CatalogTableTranslations;
 }
 
-const i18n: Record<string, Record<string, string>> = {
+const i18nDefaults: Record<string, Record<string, string>> = {
   en: {
     search: 'Search all columns…',
     showing: 'Showing',
@@ -37,6 +53,7 @@ const i18n: Record<string, Record<string, string>> = {
     next: '›',
     last: '»',
     noResults: 'No matching results',
+    emptyData: 'No data available',
   },
   zh: {
     search: '搜索所有列…',
@@ -50,6 +67,7 @@ const i18n: Record<string, Record<string, string>> = {
     next: '›',
     last: '»',
     noResults: '无匹配结果',
+    emptyData: '暂无数据',
   },
 };
 
@@ -59,8 +77,46 @@ export default function CatalogTable({
   downloadUrl,
   downloadFileName,
   lang = 'en',
+  translations,
 }: CatalogTableProps) {
-  const t = i18n[lang] || i18n.en;
+  const defaults = i18nDefaults[lang] || i18nDefaults.en;
+  const t = { ...defaults, ...translations };
+
+  // Empty data state
+  if (!data || data.length === 0) {
+    return (
+      <div className="catalog-table-wrapper">
+        <div className="catalog-empty-state">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+          <p>{t.emptyData}</p>
+        </div>
+        <style>{`
+          .catalog-table-wrapper { width: 100%; margin: 2rem 0; }
+          .catalog-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 3rem 1rem;
+            color: #64748b;
+            border: 1px dashed #d1d5db;
+            border-radius: 0.5rem;
+          }
+          .dark .catalog-empty-state {
+            color: #94a3b8;
+            border-color: #374151;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');

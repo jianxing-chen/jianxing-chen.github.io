@@ -1,5 +1,6 @@
 ---
 import { useTranslations } from '@/i18n/ui';
+import { SITE_CONFIG } from '@/config/site';
 
 interface Props {
   lang: string;
@@ -21,7 +22,7 @@ const t = useTranslations(lang);
       <div class="flex items-center gap-3">
         <!-- GitHub -->
         <a
-          href="https://github.com/jianxing-chen"
+          href={SITE_CONFIG.social.github}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="GitHub"
@@ -35,7 +36,7 @@ const t = useTranslations(lang);
         </a>
         <!-- ORCID -->
         <a
-          href="#"
+          href={SITE_CONFIG.social.orcid}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="ORCID"
@@ -49,7 +50,7 @@ const t = useTranslations(lang);
         </a>
         <!-- ADS -->
         <a
-          href="#"
+          href={SITE_CONFIG.social.ads}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="ADS"
@@ -63,7 +64,7 @@ const t = useTranslations(lang);
         </a>
         <!-- Email -->
         <a
-          href="mailto:placeholder@example.com"
+          href={SITE_CONFIG.social.email}
           aria-label="Email"
           class="text-text-light/40 dark:text-text-dark/40
                  hover:text-text-light dark:hover:text-text-dark

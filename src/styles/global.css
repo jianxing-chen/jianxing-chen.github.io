@@ -11,6 +11,18 @@
   --color-text-dark: #E2E8F0;
   --color-heading-light: #0F172A;
   --color-heading-dark: #F8FAFC;
+  --color-selection-light: #2563EB33;
+  --color-selection-dark: #60A5FA33;
+  --color-muted-light: #64748b;
+  --color-muted-dark: #94a3b8;
+  --color-border-light: #e2e8f0;
+  --color-border-dark: #334155;
+  --color-surface-light: #f8fafc;
+  --color-surface-dark: #1e293b;
+  --color-code-bg-light: #f1f5f9;
+  --color-code-bg-dark: #1e293b;
+  --color-code-text-light: #dc2626;
+  --color-code-text-dark: #f87171;
 
   --font-sans: 'Inter', 'Noto Sans SC', ui-sans-serif, system-ui, sans-serif;
   --font-heading: 'Space Grotesk', 'Inter', sans-serif;
@@ -31,11 +43,11 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Selection style */
 ::selection {
-  background-color: #2563EB33;
+  background-color: var(--color-selection-light);
 }
 
 .dark ::selection {
-  background-color: #60A5FA33;
+  background-color: var(--color-selection-dark);
 }
 
 /* ── Blog prose typography ── */
@@ -60,8 +72,8 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-heading-dark);
 }
 .prose h1 { font-size: 2rem; }
-.prose h2 { font-size: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
-.dark .prose h2 { border-bottom-color: #334155; }
+.prose h2 { font-size: 1.5rem; border-bottom: 1px solid var(--color-border-light); padding-bottom: 0.3em; }
+.dark .prose h2 { border-bottom-color: var(--color-border-dark); }
 .prose h3 { font-size: 1.25rem; }
 
 .prose p {
@@ -98,18 +110,18 @@ h1, h2, h3, h4, h5, h6 {
   border-left: 3px solid var(--color-primary-light);
   padding-left: 1em;
   margin: 1.5em 0;
-  color: #64748b;
+  color: var(--color-muted-light);
   font-style: italic;
 }
 .dark .prose blockquote {
   border-left-color: var(--color-primary-dark);
-  color: #94a3b8;
+  color: var(--color-muted-dark);
 }
 
 /* Code blocks */
 .prose pre {
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--color-surface-dark);
+  color: var(--color-text-dark);
   border-radius: 0.5rem;
   padding: 1rem 1.25rem;
   margin: 1.5em 0;
@@ -119,21 +131,21 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.7;
 }
 .dark .prose pre {
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--color-background-dark);
+  border: 1px solid var(--color-surface-dark);
 }
 
 .prose :not(pre) > code {
-  background: #f1f5f9;
-  color: #dc2626;
+  background: var(--color-code-bg-light);
+  color: var(--color-code-text-light);
   padding: 0.15em 0.35em;
   border-radius: 0.25rem;
   font-size: 0.875em;
   font-family: var(--font-mono);
 }
 .dark .prose :not(pre) > code {
-  background: #1e293b;
-  color: #f87171;
+  background: var(--color-code-bg-dark);
+  color: var(--color-code-text-dark);
 }
 
 /* KaTeX overrides for dark mode */
@@ -152,11 +164,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .prose hr {
   border: none;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--color-border-light);
   margin: 2em 0;
 }
 .dark .prose hr {
-  border-top-color: #334155;
+  border-top-color: var(--color-border-dark);
 }
 
 .prose img {
@@ -171,17 +183,72 @@ h1, h2, h3, h4, h5, h6 {
   margin: 1.5em 0;
 }
 .prose th, .prose td {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--color-border-light);
   padding: 0.5em 0.75em;
   text-align: left;
 }
 .dark .prose th, .dark .prose td {
-  border-color: #334155;
+  border-color: var(--color-border-dark);
 }
 .prose th {
-  background: #f8fafc;
+  background: var(--color-surface-light);
   font-weight: 600;
 }
 .dark .prose th {
-  background: #1e293b;
+  background: var(--color-surface-dark);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Print styles ── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+  }
+
+  nav, footer, .catalog-pagination, .catalog-toolbar,
+  button, [role="navigation"] {
+    display: none !important;
+  }
+
+  a {
+    color: black !important;
+    text-decoration: underline;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #555;
+  }
+
+  a[href^="#"]::after,
+  a[href^="javascript:"]::after {
+    content: "";
+  }
+
+  .prose pre {
+    white-space: pre-wrap;
+    border: 1px solid #ccc;
+    background: #f9f9f9 !important;
+    color: black !important;
+  }
+
+  img {
+    max-width: 100% !important;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
 }

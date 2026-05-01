@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '@/components/layout/BaseLayout.astro';
 import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { extractSlug } from '@/utils/slug';
 import { getCollection, render } from 'astro:content';
 import CatalogTable from '@/components/interactive/CatalogTable.tsx';
 
@@ -8,7 +9,7 @@ export async function getStaticPaths() {
   const allCatalogs = await getCollection('catalogs');
   const zhCatalogs = allCatalogs.filter((c) => c.id.startsWith('zh/'));
   return zhCatalogs.map((catalog) => ({
-    params: { slug: catalog.id.replace('zh/', '') },
+    params: { slug: extractSlug(catalog.id) },
     props: { catalog },
   }));
 }
@@ -93,10 +94,18 @@ try {
     <!-- Interactive Table -->
     <section class="mb-12">
       <CatalogTable
-        client:load
+        client:visible
         data={catalogData}
         columns={catalog.data.columns}
         lang={lang}
+        translations={{
+          search: t('catalogs.search'),
+          showing: t('catalogs.showing'),
+          of: t('catalogs.of'),
+          rows: t('catalogs.rows'),
+          noResults: t('catalogs.noResults'),
+          emptyData: t('catalogs.emptyData'),
+        }}
       />
     </section>
 

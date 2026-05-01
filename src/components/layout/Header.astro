@@ -17,6 +17,19 @@ const navItems = [
   { key: 'nav.blog', path: '/blog/' },
   { key: 'nav.gallery', path: '/gallery/' },
 ];
+
+const currentPath = Astro.url.pathname;
+
+function isActive(itemPath: string): boolean {
+  const localizedPath = getLocalizedPath(itemPath, lang);
+  if (itemPath === '/') {
+    return currentPath === localizedPath || currentPath === localizedPath.replace(/\/$/, '');
+  }
+  return currentPath === localizedPath || currentPath.startsWith(localizedPath);
+}
+
+const activeClass = 'bg-primary-light/10 text-primary-light dark:bg-primary-dark/10 dark:text-primary-dark font-medium';
+const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-light dark:hover:text-primary-dark hover:bg-black/5 dark:hover:bg-white/5';
 ---
 
 <header
@@ -32,11 +45,11 @@ const navItems = [
       {navItems.map((item) => (
         <a
           href={getLocalizedPath(item.path, lang)}
-          class="px-3 py-1.5 rounded-md text-sm
-                 text-text-light dark:text-text-dark
-                 hover:text-primary-light dark:hover:text-primary-dark
-                 hover:bg-black/5 dark:hover:bg-white/5
-                 transition-colors duration-200"
+          class:list={[
+            'px-3 py-1.5 rounded-md text-sm transition-colors duration-200',
+            isActive(item.path) ? activeClass : inactiveClass,
+          ]}
+          {...(isActive(item.path) ? { 'aria-current': 'page' } : {})}
         >
           {t(item.key)}
         </a>
@@ -76,11 +89,11 @@ const navItems = [
       {navItems.map((item) => (
         <a
           href={getLocalizedPath(item.path, lang)}
-          class="block px-3 py-2.5 rounded-md text-sm
-                 text-text-light dark:text-text-dark
-                 hover:text-primary-light dark:hover:text-primary-dark
-                 hover:bg-black/5 dark:hover:bg-white/5
-                 transition-colors duration-200"
+          class:list={[
+            'block px-3 py-2.5 rounded-md text-sm transition-colors duration-200',
+            isActive(item.path) ? activeClass : inactiveClass,
+          ]}
+          {...(isActive(item.path) ? { 'aria-current': 'page' } : {})}
         >
           {t(item.key)}
         </a>
