@@ -11,6 +11,9 @@ const allResearch = await getCollection('research');
 const projects = allResearch
   .filter((p) => p.id.startsWith('en/'))
   .sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0));
+
+const allCatalogs = await getCollection('catalogs');
+const catalogs = allCatalogs.filter((c) => c.id.startsWith('en/'));
 ---
 
 <BaseLayout title={`${t('research.title')} - ${t('site.title')}`} description={t('research.description')} lang={lang}>
@@ -63,6 +66,63 @@ const projects = allResearch
       );
     })}
   </div>
+
+  {/* Catalogs section */}
+  <hr class="my-12 border-gray-200 dark:border-gray-700/50" />
+
+  <section id="catalogs">
+    <h2 class="text-2xl sm:text-3xl font-bold text-heading-light dark:text-heading-dark mb-6">
+      {t('research.data_catalogs')}
+    </h2>
+
+    <div class="grid gap-6">
+      {catalogs.map((catalog) => {
+        const slug = catalog.id.replace('en/', '');
+        return (
+          <a
+            href={getLocalizedPath(`/catalogs/${slug}`, lang)}
+            class="block group border border-gray-200 dark:border-gray-700/50 rounded-xl p-6
+                   hover:border-primary-light dark:hover:border-primary-dark
+                   hover:shadow-md transition-all duration-200
+                   bg-white/50 dark:bg-white/[0.02]"
+          >
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <h3 class="text-xl font-semibold text-heading-light dark:text-heading-dark
+                           group-hover:text-primary-light dark:group-hover:text-primary-dark
+                           transition-colors mb-2">
+                  {catalog.data.title}
+                </h3>
+                <p class="text-text-light/70 dark:text-text-dark/70 text-sm leading-relaxed">
+                  {catalog.data.description}
+                </p>
+                <div class="flex flex-wrap gap-4 mt-3 text-xs text-text-light/50 dark:text-text-dark/50">
+                  {catalog.data.rows && (
+                    <span class="inline-flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M3 12h18"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                      {catalog.data.rows} {t('catalogs.rows')}
+                    </span>
+                  )}
+                  {catalog.data.version && (
+                    <span class="inline-flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+                      v{catalog.data.version}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+
+    {catalogs.length === 0 && (
+      <p class="text-center text-text-light/50 dark:text-text-dark/50 py-12">
+        No catalogs available yet.
+      </p>
+    )}
+  </section>
 </BaseLayout>
 
 <script>

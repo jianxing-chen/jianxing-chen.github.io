@@ -13,11 +13,9 @@ const t = useTranslations(lang);
 const navItems = [
   { key: 'nav.home', path: '/' },
   { key: 'nav.about', path: '/about/' },
-  { key: 'nav.publications', path: '/publications/' },
+  { key: 'nav.research', path: '/research/' },
   { key: 'nav.blog', path: '/blog/' },
   { key: 'nav.gallery', path: '/gallery/' },
-  { key: 'nav.research', path: '/research/' },
-  { key: 'nav.catalogs', path: '/catalogs/' },
 ];
 ---
 
@@ -28,21 +26,9 @@ const navItems = [
          border-b border-black/5 dark:border-white/10
          transition-colors duration-300"
 >
-  <nav aria-label="Main navigation" class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-    <!-- Logo -->
-    <a
-      href={getLocalizedPath('/', lang)}
-      class="text-lg font-semibold tracking-tight
-             text-heading-light dark:text-heading-dark
-             hover:text-primary-light dark:hover:text-primary-dark
-             transition-colors duration-200"
-      style="font-family: 'Space Grotesk', sans-serif;"
-    >
-      {t('site.title')}
-    </a>
-
-    <!-- Desktop nav -->
-    <div class="hidden md:flex items-center gap-1">
+  <nav aria-label="Main navigation" class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center">
+    <!-- Desktop nav links (evenly distributed) -->
+    <div class="hidden md:flex items-center flex-1 justify-evenly">
       {navItems.map((item) => (
         <a
           href={getLocalizedPath(item.path, lang)}
@@ -55,9 +41,10 @@ const navItems = [
           {t(item.key)}
         </a>
       ))}
+    </div>
 
-      <div class="w-px h-5 bg-black/10 dark:bg-white/10 mx-1"></div>
-
+    <!-- Desktop utilities -->
+    <div class="hidden md:flex items-center gap-1 ml-4">
       <LanguageSwitch lang={lang} />
       <ThemeToggle />
     </div>
