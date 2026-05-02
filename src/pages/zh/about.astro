@@ -28,11 +28,6 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 // Publications data
 const totalPapers = typedPapers.length;
 const firstAuthorCount = typedPapers.filter((p) => p.type === 'first-author').length;
-const papersByYear = typedPapers.reduce<Record<number, Paper[]>>((acc, paper) => {
-  (acc[paper.year] ??= []).push(paper);
-  return acc;
-}, {});
-const years = Object.keys(papersByYear).map(Number).sort((a, b) => b - a);
 
 const sortedNews = [...newsData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -118,6 +113,14 @@ const awards = [
         <p class="text-text-light/70 dark:text-text-dark/70">
           {SITE_CONFIG.affiliation.zh}
         </p>
+        {/* Research Interests in Hero */}
+        <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
+          {researchInterests.map((tag) => (
+            <span class="px-3 py-1 rounded-full text-xs font-medium bg-primary-light/10 text-primary-light dark:bg-primary-dark/15 dark:text-primary-dark border border-primary-light/20 dark:border-primary-dark/25">
+              {tag}
+            </span>
+          ))}
+        </div>
         <!-- Contact icons -->
         <div class="flex items-center justify-center sm:justify-start gap-4 pt-2 text-text-light/60 dark:text-text-dark/60">
           <!-- Email -->
@@ -136,22 +139,12 @@ const awards = [
       </div>
     </section>
 
-    <!-- ====== Research Interests ====== -->
-    <section>
-      <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
-        {t('about.research_interests')}
+    <!-- ====== 第一部分：个人简历 ====== -->
+    <section id="cv" style="scroll-margin-top: 5rem;">
+      <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">
+        {t('about.section.cv')}
       </h2>
-      <div class="flex flex-wrap gap-3">
-        {researchInterests.map((tag) => (
-          <span class="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-light/10 text-primary-light dark:bg-primary-dark/15 dark:text-primary-dark border border-primary-light/20 dark:border-primary-dark/25">
-            {tag}
-          </span>
-        ))}
-      </div>
-    </section>
-
-    <!-- ====== CV ====== -->
-    <div id="cv" style="scroll-margin-top: 5rem;" class="space-y-16">
+      <div class="h-px bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
 
     <!-- ====== Education ====== -->
     <section>
@@ -204,16 +197,17 @@ const awards = [
       </ul>
     </section>
 
-    </div><!-- end CV -->
+    </section><!-- end CV -->
 
-    <!-- ====== Publications ====== -->
+    <!-- ====== 第二部分：发表论文 ====== -->
     <section id="publications" style="scroll-margin-top: 5rem;">
-      <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
-        {t('about.publications')}
+      <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">
+        {t('about.section.publications')}
       </h2>
+      <div class="h-px bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
 
       {/* Stats */}
-      <div class="flex items-center gap-6 text-sm text-text-light/60 dark:text-text-dark/60 mb-6">
+      <div class="flex items-center gap-6 text-sm text-text-light/60 dark:text-text-dark/60 mb-8">
         <div class="flex items-center gap-2">
           <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-light/10 dark:bg-primary-dark/10 text-primary-light dark:text-primary-dark font-semibold text-sm">
             {totalPapers}
@@ -228,54 +222,52 @@ const awards = [
         </div>
       </div>
 
-      {/* Filter buttons */}
-      <div class="flex gap-2 mb-8" id="pub-filters">
-        <button
-          data-filter="all"
-          class="pub-filter-btn active px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200
-                 border-primary-light dark:border-primary-dark
-                 bg-primary-light dark:bg-primary-dark
-                 text-white dark:text-slate-900"
-        >
-          {t('publications.all')}
-        </button>
-        <button
-          data-filter="first-author"
-          class="pub-filter-btn px-3.5 py-1.5 text-sm font-medium rounded-full border transition-all duration-200
-                 border-slate-200 dark:border-white/10
-                 text-text-light/70 dark:text-text-dark/60
-                 hover:border-primary-light dark:hover:border-primary-dark"
-        >
-          {t('publications.filter_first_author')}
-        </button>
-      </div>
-
-      {/* Papers grouped by year */}
-      <div class="space-y-8">
-        {years.map((year) => (
-          <section class="pub-year-section" data-year={year}>
-            <div class="flex items-center gap-4 mb-4">
-              <h3 class="text-xl font-bold text-heading-light dark:text-heading-dark font-[family-name:var(--font-heading)]">
-                {year}
+      {/* Three collapsible sub-sections */}
+      <div class="space-y-6">
+        {[
+          {
+            label: t('about.publications.first_corresponding'),
+            papers: typedPapers.filter((p) => p.type === 'first-author' || p.type === 'corresponding').sort((a, b) => b.year - a.year),
+          },
+          {
+            label: t('about.publications.significant'),
+            papers: typedPapers.filter((p) => p.type === 'co-author' && p.highlight).sort((a, b) => b.year - a.year),
+          },
+          {
+            label: t('about.publications.participating'),
+            papers: typedPapers.filter((p) => p.type === 'co-author' && !p.highlight).sort((a, b) => b.year - a.year),
+          },
+        ].map((category) => (
+          <details open class="group border border-slate-200/80 dark:border-white/[0.06] rounded-xl bg-white/40 dark:bg-white/[0.02] transition-all duration-200">
+            <summary class="flex items-center justify-between px-5 py-3.5 cursor-pointer select-none hover:bg-black/[0.02] dark:hover:bg-white/[0.02] rounded-xl transition-colors">
+              <h3 class="text-lg font-semibold text-heading-light dark:text-heading-dark">
+                {category.label}
+                <span class="ml-2.5 text-sm font-normal text-text-light/50 dark:text-text-dark/50">
+                  ({category.papers.length})
+                </span>
               </h3>
-              <div class="flex-1 h-px bg-slate-200 dark:bg-white/10" />
-            </div>
-
-            <div class="space-y-3">
-              {papersByYear[year].map((paper) => (
-                <div class="pub-card" data-type={paper.type}>
+              <svg class="w-4 h-4 text-text-light/40 dark:text-text-dark/40 transition-transform duration-200 group-open:rotate-180 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="px-5 pb-5 space-y-3">
+              {category.papers.length === 0 ? (
+                <p class="text-sm text-text-light/40 dark:text-text-dark/40 py-4 text-center">{t('catalogs.emptyData')}</p>
+              ) : (
+                category.papers.map((paper) => (
                   <PublicationCard paper={paper} lang={lang} />
-                </div>
-              ))}
+                ))
+              )}
             </div>
-          </section>
+          </details>
         ))}
       </div>
     </section>
 
-    <!-- ====== News ====== -->
+    <!-- ====== 第三部分：新闻报道 ====== -->
     <section id="news" style="scroll-margin-top: 5rem;">
-      <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">{t('about.news')}</h2>
+      <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">{t('about.section.news')}</h2>
+      <div class="h-px bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
       <div class="space-y-4">
         {sortedNews.map((item) => (
           <a href={item.url} target="_blank" rel="noopener noreferrer"
@@ -300,11 +292,12 @@ const awards = [
       </div>
     </section>
 
-    <!-- ====== Contact ====== -->
+    <!-- ====== 第四部分：联系方式 ====== -->
     <section id="contact" style="scroll-margin-top: 5rem;">
-      <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
-        {t('about.contact')}
+      <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">
+        {t('about.section.contact')}
       </h2>
+      <div class="h-px bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
       <div class="grid sm:grid-cols-2 gap-4 text-sm">
         <div class="flex items-start gap-3">
           <svg class="w-5 h-5 mt-0.5 shrink-0 text-primary-light dark:text-primary-dark" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
@@ -351,44 +344,4 @@ const awards = [
     -->
 
   </article>
-
-  <script>
-    document.addEventListener('astro:page-load', () => {
-      const buttons = document.querySelectorAll<HTMLButtonElement>('.pub-filter-btn');
-      const cards = document.querySelectorAll<HTMLElement>('.pub-card');
-      const sections = document.querySelectorAll<HTMLElement>('.pub-year-section');
-
-      buttons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const filter = btn.dataset.filter!;
-
-          // Update button styles
-          buttons.forEach((b) => {
-            if (b === btn) {
-              b.classList.add('border-primary-light', 'dark:border-primary-dark', 'bg-primary-light', 'dark:bg-primary-dark', 'text-white', 'dark:text-slate-900');
-              b.classList.remove('border-slate-200', 'dark:border-white/10', 'text-text-light/70', 'dark:text-text-dark/60');
-            } else {
-              b.classList.remove('border-primary-light', 'dark:border-primary-dark', 'bg-primary-light', 'dark:bg-primary-dark', 'text-white', 'dark:text-slate-900');
-              b.classList.add('border-slate-200', 'dark:border-white/10', 'text-text-light/70', 'dark:text-text-dark/60');
-            }
-          });
-
-          // Filter cards
-          cards.forEach((card) => {
-            if (filter === 'all' || card.dataset.type === filter) {
-              card.style.display = '';
-            } else {
-              card.style.display = 'none';
-            }
-          });
-
-          // Hide empty year sections
-          sections.forEach((section) => {
-            const visibleCards = section.querySelectorAll<HTMLElement>('.pub-card:not([style*="display: none"])');
-            section.style.display = visibleCards.length === 0 ? 'none' : '';
-          });
-        });
-      });
-    });
-  </script>
 </BaseLayout>
