@@ -8,7 +8,7 @@ interface Photo {
   description: { en: string; zh: string };
   date: string;
   tags: string[];
-  location: string;
+  location: { en: string; zh: string };
   width: number;
   height: number;
   featured: boolean;
@@ -21,22 +21,26 @@ interface Props {
 
 const { photos, lang } = Astro.props;
 
-// Group photos by location
+// Group photos by location (keyed by English name for stable grouping)
 const grouped = photos.reduce<Record<string, Photo[]>>((acc, photo) => {
-  (acc[photo.location] ??= []).push(photo);
+  (acc[photo.location.en] ??= []).push(photo);
   return acc;
 }, {});
-const locations = Object.keys(grouped);
+const locationGroups = Object.entries(grouped).map(([key, items]) => ({
+  key,
+  display: items[0].location[lang as 'en' | 'zh'] || items[0].location.en,
+  items,
+}));
 ---
 
 <div id="gallery-grid" class="space-y-16">
-  {locations.map((location) => (
+  {locationGroups.map((group) => (
     <section>
       <h3 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
-        {location}
+        {group.display}
       </h3>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {grouped[location].map((photo) => (
+        {group.items.map((photo) => (
           <a
             href={getGalleryFullSize(photo.cloudinaryId)}
             data-pswp-width={photo.width}

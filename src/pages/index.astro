@@ -5,7 +5,7 @@ import { SITE_CONFIG } from '@/config/site';
 import PublicationCard from '@/components/ui/PublicationCard.astro';
 import BlogPostCard from '@/components/ui/BlogPostCard.astro';
 import { getCollection } from 'astro:content';
-import { getGalleryThumbnail } from '@/utils/cloudinary';
+import { getGallerySlide, getGalleryFullscreen } from '@/utils/cloudinary';
 
 const lang = 'en';
 const t = useTranslations(lang);
@@ -149,7 +149,8 @@ const featuredPhotos = galleryData;
              class="photo-slide absolute inset-0 transition-opacity duration-2000 ease-in-out"
              style={`opacity: ${i === 0 ? 1 : 0}`}>
             <img
-              src={getGalleryThumbnail(photo.cloudinaryId)}
+              src={getGallerySlide(photo.cloudinaryId)}
+              data-fullscreen-src={getGalleryFullscreen(photo.cloudinaryId)}
               alt={photo.title[lang as keyof typeof photo.title]}
               class="w-full h-full object-cover"
               loading={i === 0 ? 'eager' : 'lazy'}
@@ -208,7 +209,6 @@ function initSlideshow() {
   if (!container || container.dataset.slideshowInit) return;
   container.dataset.slideshowInit = 'true';
   const slides = container.querySelectorAll('.photo-slide');
-  if (slides.length <= 1) return;
 
   let current = 0;
   let isAuto = true;
@@ -293,6 +293,21 @@ function initSlideshow() {
   document.addEventListener('fullscreenchange', () => {
     const isFS = document.fullscreenElement === container;
     container.classList.toggle('is-fullscreen', isFS);
+    // Swap image resolution
+    slides.forEach((slide) => {
+      const img = slide.querySelector('img') as HTMLImageElement | null;
+      if (!img) return;
+      if (isFS) {
+        const fsSrc = img.dataset.fullscreenSrc;
+        if (fsSrc) {
+          img.dataset.originalSrc = img.src;
+          img.src = fsSrc;
+        }
+      } else {
+        const origSrc = img.dataset.originalSrc;
+        if (origSrc) img.src = origSrc;
+      }
+    });
     if (isFS) {
       startHideTimer();
       container.addEventListener('mousemove', onMouseMove);
