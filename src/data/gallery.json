@@ -70,5 +70,17 @@
     "width": 1200,
     "height": 800,
     "featured": false
+  },
+  {
+    "id": "cinque-terre",
+    "cloudinaryId": "gallery/DSC06691_vshrpg",
+    "title": { "en": "Cinque Terre at Dusk", "zh": "五渔村" },
+    "description": { "en": "Evening in Cinque Terre, Italy", "zh": "五渔村的傍晚" },
+    "date": "2023-06-01",
+    "tags": ["Italy", "coast", "sunset"],
+    "location": "Italy",
+    "width": 6000,
+    "height": 4000,
+    "featured": true
   }
 ]
