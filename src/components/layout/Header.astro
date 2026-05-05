@@ -2,6 +2,7 @@
 import { useTranslations, getLocalizedPath, type TranslationKey } from '@/i18n/ui';
 import ThemeToggle from '@/components/ui/ThemeToggle.astro';
 import LanguageSwitch from '@/components/ui/LanguageSwitch.astro';
+import galleryData from '@/data/gallery.json';
 
 interface Props {
   lang: string;
@@ -10,10 +11,19 @@ interface Props {
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 
+// Extract unique countries from gallery for nav dropdown
+const galleryCountries = Array.from(
+  new Map(galleryData.map((p) => [p.location.en, p.location])).values()
+).map((loc) => ({
+  label: loc[lang as 'en' | 'zh'] || loc.en,
+  hash: `#country-${loc.en.toLowerCase().replace(/\s+/g, '-')}`,
+}));
+
 const navItems: Array<{
-  key: TranslationKey;
+  key?: TranslationKey;
   path: string;
-  children?: Array<{ key: TranslationKey; hash: string }>;
+  label?: string;
+  children?: Array<{ key?: TranslationKey; hash: string; label?: string }>;
 }> = [
   { key: 'nav.home', path: '/' },
   { key: 'nav.about', path: '/about/', children: [
@@ -27,7 +37,7 @@ const navItems: Array<{
     { key: 'nav.research.data_products', hash: '#data-products' },
   ]},
   { key: 'nav.blog', path: '/blog/' },
-  { key: 'nav.gallery', path: '/gallery/' },
+  { key: 'nav.gallery', path: '/gallery/', children: galleryCountries },
 ];
 
 const currentPath = Astro.url.pathname;
@@ -89,7 +99,7 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
                            hover:bg-black/5 dark:hover:bg-white/5
                            transition-colors duration-150"
                   >
-                    {t(child.key)}
+                    {child.label || (child.key && t(child.key))}
                   </a>
                 ))}
               </div>
@@ -176,7 +186,7 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
                          hover:bg-black/5 dark:hover:bg-white/5
                          transition-colors duration-150"
                 >
-                  {t(child.key)}
+                  {child.label || (child.key && t(child.key))}
                 </a>
               ))}
             </div>

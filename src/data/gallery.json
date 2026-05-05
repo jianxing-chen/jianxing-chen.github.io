@@ -4,11 +4,35 @@
     "cloudinaryId": "DSC06691_vshrpg",
     "title": { "en": "Cinque Terre at Dusk", "zh": "五渔村" },
     "description": { "en": "Evening in Cinque Terre, Italy", "zh": "五渔村的傍晚" },
-    "date": "2023-06-01",
     "tags": ["Italy", "coast", "sunset"],
     "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Cinque Terre", "zh": "五渔村" },
     "width": 6000,
     "height": 4000,
+    "featured": true
+  },
+  {
+    "id": "rialto-bridge",
+    "cloudinaryId": "venice01",
+    "title": { "en": "Rialto Bridge", "zh": "里亚托桥" },
+    "description": { "en": "The iconic Rialto Bridge spanning the Grand Canal in Venice, Italy", "zh": "横跨威尼斯大运河的标志性里亚托桥" },
+    "tags": ["city", "canal", "bridge", "Italy"],
+    "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Venice", "zh": "威尼斯" },
+    "width": 3840,
+    "height": 2560,
+    "featured": true
+  },
+  {
+    "id": "matterhorn",
+    "cloudinaryId": "zermatt01",
+    "title": { "en": "Matterhorn in the Afternoon", "zh": "午后的马特洪峰" },
+    "description": { "en": "The majestic Matterhorn peak seen from Zermatt under afternoon light", "zh": "午后阳光下，从采尔马特眺望雄伟的马特洪峰" },
+    "tags": ["mountain", "Alps", "Switzerland"],
+    "location": { "en": "Switzerland", "zh": "瑞士" },
+    "region": { "en": "Zermatt", "zh": "采尔马特" },
+    "width": 3840,
+    "height": 2560,
     "featured": true
   }
 ]

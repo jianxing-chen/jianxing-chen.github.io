@@ -6,9 +6,9 @@ interface Photo {
   cloudinaryId: string;
   title: { en: string; zh: string };
   description: { en: string; zh: string };
-  date: string;
   tags: string[];
   location: { en: string; zh: string };
+  region: { en: string; zh: string };
   width: number;
   height: number;
   featured: boolean;
@@ -21,31 +21,70 @@ interface Props {
 
 const { photos, lang } = Astro.props;
 
-// Group photos by location (keyed by English name for stable grouping)
-const grouped = photos.reduce<Record<string, Photo[]>>((acc, photo) => {
-  (acc[photo.location.en] ??= []).push(photo);
-  return acc;
-}, {});
-const locationGroups = Object.entries(grouped).map(([key, items]) => ({
+// Group by country, then by region within each country
+const countryMap = new Map<string, { display: string; regions: Map<string, { display: string; items: Photo[] }> }>();
+photos.forEach((photo) => {
+  const countryKey = photo.location.en;
+  if (!countryMap.has(countryKey)) {
+    countryMap.set(countryKey, { display: photo.location[lang as 'en' | 'zh'] || photo.location.en, regions: new Map() });
+  }
+  const country = countryMap.get(countryKey)!;
+  const regionKey = photo.region.en;
+  if (!country.regions.has(regionKey)) {
+    country.regions.set(regionKey, { display: photo.region[lang as 'en' | 'zh'] || photo.region.en, items: [] });
+  }
+  country.regions.get(regionKey)!.items.push(photo);
+});
+
+// Flatten for rendering
+const countries = Array.from(countryMap.entries()).map(([key, c]) => ({
   key,
-  display: items[0].location[lang as 'en' | 'zh'] || items[0].location.en,
-  items,
+  display: c.display,
+  anchorId: `country-${key.toLowerCase().replace(/\s+/g, '-')}`,
+  regions: Array.from(c.regions.entries()).map(([rk, r]) => ({ key: rk, display: r.display, items: r.items })),
 }));
 ---
 
-<div id="gallery-grid" class="space-y-16">
-  {locationGroups.map((group) => (
-    <section>
-      <h3 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
-        {group.display}
-      </h3>
+<div id="gallery-grid">
+  {countries.map((country, ci) => (
+    <div id={country.anchorId} style="scroll-margin-top: 5rem;">
+      <!-- Divider between countries (skip first) -->
+      {ci > 0 && <div class="my-16 border-t border-slate-300/60 dark:border-white/10" />}
+
+      <!-- Country heading -->
+      <h2 class="text-2xl sm:text-3xl font-bold text-heading-light dark:text-heading-dark mb-6">
+        {country.display}
+      </h2>
+
+      <!-- Region filter chips -->
+      {country.regions.length > 1 && (
+        <div class="flex flex-wrap gap-2 mb-6" data-country={country.key}>
+          <button class="region-filter active px-3 py-1.5 rounded-full text-sm font-medium
+                         bg-primary-light dark:bg-primary-dark text-white
+                         hover:opacity-90 transition-opacity"
+                  data-region="all">
+            All
+          </button>
+          {country.regions.map((region) => (
+            <button class="region-filter px-3 py-1.5 rounded-full text-sm font-medium
+                           bg-slate-100 dark:bg-slate-800 text-text-light dark:text-text-dark
+                           hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    data-region={region.key}>
+              {region.display}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <!-- Photo grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {group.items.map((photo) => (
+        {country.regions.flatMap((region) => region.items).map((photo) => (
           <a
             href={getGalleryFullSize(photo.cloudinaryId)}
             data-pswp-width={photo.width}
             data-pswp-height={photo.height}
             data-cropped="true"
+            data-region={photo.region.en}
             class="gallery-item group relative block overflow-hidden rounded-lg
                    border border-slate-200 dark:border-slate-700/50
                    shadow-sm hover:shadow-md dark:shadow-none dark:hover:shadow-lg dark:hover:shadow-black/20
@@ -73,7 +112,7 @@ const locationGroups = Object.entries(grouped).map(([key, items]) => ({
           </a>
         ))}
       </div>
-    </section>
+    </div>
   ))}
 </div>
 
@@ -114,7 +153,7 @@ const locationGroups = Object.entries(grouped).map(([key, items]) => ({
         lightbox.pswp!.on('change', () => {
           const slide = lightbox.pswp!.currSlide;
           if (slide && slide.data.element) {
-            const titleEl = (slide.data.element as HTMLElement).querySelector('h3');
+            const titleEl = (slide.data.element as HTMLElement).querySelector('h4');
             const descEl = (slide.data.element as HTMLElement).querySelector('p');
             const title = titleEl?.textContent || '';
             const desc = descEl?.textContent || '';
@@ -126,4 +165,35 @@ const locationGroups = Object.entries(grouped).map(([key, items]) => ({
   });
 
   lightbox.init();
+
+  // ─── Region filter logic ───
+  document.querySelectorAll('[data-country]').forEach((chipBar) => {
+    const countryKey = (chipBar as HTMLElement).dataset.country!;
+    const buttons = chipBar.querySelectorAll('.region-filter') as NodeListOf<HTMLButtonElement>;
+    const grid = chipBar.nextElementSibling as HTMLElement | null;
+    if (!grid) return;
+    const items = grid.querySelectorAll('.gallery-item') as NodeListOf<HTMLElement>;
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        // Update active state
+        buttons.forEach((b) => {
+          b.classList.remove('active', 'bg-primary-light', 'dark:bg-primary-dark', 'text-white');
+          b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-text-light', 'dark:text-text-dark');
+        });
+        btn.classList.add('active', 'bg-primary-light', 'dark:bg-primary-dark', 'text-white');
+        btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-text-light', 'dark:text-text-dark');
+
+        // Toggle visibility
+        const region = btn.dataset.region;
+        items.forEach((item) => {
+          if (region === 'all' || item.dataset.region === region) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    });
+  });
 </script>
