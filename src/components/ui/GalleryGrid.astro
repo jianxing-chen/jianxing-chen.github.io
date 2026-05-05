@@ -36,13 +36,15 @@ photos.forEach((photo) => {
   country.regions.get(regionKey)!.items.push(photo);
 });
 
-// Flatten for rendering
-const countries = Array.from(countryMap.entries()).map(([key, c]) => ({
-  key,
-  display: c.display,
-  anchorId: `country-${key.toLowerCase().replace(/\s+/g, '-')}`,
-  regions: Array.from(c.regions.entries()).map(([rk, r]) => ({ key: rk, display: r.display, items: r.items })),
-}));
+// Flatten for rendering, sorted alphabetically by English country name
+const countries = Array.from(countryMap.entries())
+  .map(([key, c]) => ({
+    key,
+    display: c.display,
+    anchorId: `country-${key.toLowerCase().replace(/\s+/g, '-')}`,
+    regions: Array.from(c.regions.entries()).map(([rk, r]) => ({ key: rk, display: r.display, items: r.items })),
+  }))
+  .sort((a, b) => a.key.localeCompare(b.key));
 ---
 
 <div id="gallery-grid">
