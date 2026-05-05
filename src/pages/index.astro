@@ -147,7 +147,8 @@ const featuredPhotos = galleryData;
         {featuredPhotos.map((photo, i) => (
           <div
              class="photo-slide absolute inset-0 transition-opacity duration-2000 ease-in-out"
-             style={`opacity: ${i === 0 ? 1 : 0}`}>
+             style="opacity: 0"
+             data-location={photo.location[lang as 'en' | 'zh'] || photo.location.en}>
             <img
               src={getGallerySlide(photo.cloudinaryId)}
               data-fullscreen-src={getGalleryFullscreen(photo.cloudinaryId)}
@@ -161,8 +162,8 @@ const featuredPhotos = galleryData;
         <div class="slideshow-controls absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent transition-opacity duration-500">
           <div class="flex items-end justify-between p-4">
             <!-- Photo title -->
-            <span class="slide-title text-base font-medium text-white truncate mr-4">
-              {featuredPhotos.length > 0 ? featuredPhotos[0].title[lang as 'en' | 'zh'] : ''}
+            <span class="slide-title text-xs sm:text-sm text-white/65 truncate mr-4">
+              {featuredPhotos.length > 0 ? featuredPhotos[0].location[lang as 'en' | 'zh'] + ' · ' + featuredPhotos[0].title[lang as 'en' | 'zh'] : ''}
             </span>
             <!-- Button group -->
             <div class="flex items-center gap-2 shrink-0">
@@ -224,11 +225,13 @@ function initSlideshow() {
   const autoIcon = btnAuto?.querySelector('.icon-auto') as HTMLElement | null;
   const manualIcon = btnAuto?.querySelector('.icon-manual') as HTMLElement | null;
 
-  // Collect titles from each slide's img alt
-  const titles: string[] = [];
+  // Collect titles and locations from each slide
+  const captions: string[] = [];
   slides.forEach((s) => {
     const img = s.querySelector('img');
-    titles.push(img?.alt || '');
+    const title = img?.alt || '';
+    const location = (s as HTMLElement).dataset.location || '';
+    captions.push(location ? `${location} · ${title}` : title);
   });
 
   function showSlide(index: number) {
@@ -236,7 +239,7 @@ function initSlideshow() {
       (s as HTMLElement).style.opacity = i === index ? '1' : '0';
     });
     current = index;
-    if (slideTitle) slideTitle.textContent = titles[index] || '';
+    if (slideTitle) slideTitle.textContent = captions[index] || '';
   }
 
   function nextSlide() {
@@ -346,6 +349,7 @@ function initSlideshow() {
 
   // Init
   updateAutoButton();
+  showSlide(Math.floor(Math.random() * slides.length));
   startAuto();
 }
 initSlideshow();
