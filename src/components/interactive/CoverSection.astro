@@ -31,6 +31,8 @@ const coverPhotos = photos.map((p) => ({
   id: p.id,
   desktop: getCoverImage(p.cloudinaryId),
   mobile: getCoverImageMobile(p.cloudinaryId),
+  title: p.title,
+  location: p.location,
 }));
 
 const startIdx = Math.floor(Math.random() * photos.length);
@@ -38,35 +40,44 @@ const startIdx = Math.floor(Math.random() * photos.length);
 
 <!-- ═══ 固定封面背景层 ═══ -->
 <div id="cover-bg-layer" class="cover-bg-layer">
-  <script type="application/json" id="cover-data" set:html={JSON.stringify({ photos: coverPhotos, startIndex: startIdx })}></script>
+  <script type="application/json" id="cover-data" set:html={JSON.stringify({ photos: coverPhotos, startIndex: startIdx, lang })}></script>
 
   <img id="cover-img-current" class="cover-bg-img" src={coverPhotos[startIdx].desktop} alt="" style="opacity:1" />
   <img id="cover-img-next" class="cover-bg-img" src="" alt="" style="opacity:0" />
   <div class="cover-bg-overlay"></div>
-
-  <!-- 上一张按钮（左侧中部） -->
-  <button id="cover-btn-prev" class="cover-nav-btn cover-nav-btn-prev"
-    aria-label={lang === 'zh' ? '上一张' : 'Previous photo'}>
-    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-    </svg>
-  </button>
-
-  <!-- 下一张按钮（右侧中部） -->
-  <button id="cover-btn-next" class="cover-nav-btn cover-nav-btn-next"
-    aria-label={lang === 'zh' ? '下一张' : 'Next photo'}>
-    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-    </svg>
-  </button>
-
-  <!-- 滚动提示箭头（可点击翻页） -->
-  <button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
-    <svg class="cover-scroll-indicator-icon w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-    </svg>
-  </button>
 </div>
+
+<!-- ═══ 封面 UI 层（提出 cover-bg-layer 以逃脱 z-index 牢笼） ═══ -->
+<div id="cover-credit" class="cover-credit"></div>
+
+<button id="cover-btn-prev" class="cover-nav-btn cover-nav-btn-prev"
+  aria-label={lang === 'zh' ? '上一张' : 'Previous photo'}>
+  <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+  </svg>
+</button>
+
+<button id="cover-btn-next" class="cover-nav-btn cover-nav-btn-next"
+  aria-label={lang === 'zh' ? '下一张' : 'Next photo'}>
+  <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+  </svg>
+</button>
+
+<button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
+  <svg class="cover-scroll-indicator-icon w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+  </svg>
+</button>
+
+<!-- 返回封面按钮（移动端正文态） -->
+<button id="back-to-cover-btn" class="back-to-cover-btn"
+  aria-label={lang === 'zh' ? '返回图库' : 'Back to gallery'}>
+  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+  </svg>
+  <span>{lang === 'zh' ? '返回图库' : 'Gallery'}</span>
+</button>
 
 <script>
   function initCoverSection() {
@@ -78,6 +89,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
     const imgNext = document.getElementById('cover-img-next') as HTMLImageElement | null;
     const btnPrev = document.getElementById('cover-btn-prev');
     const btnNext = document.getElementById('cover-btn-next');
+    const backToCoverBtn = document.getElementById('back-to-cover-btn');
 
     if (!imgCurrent || !imgNext) return;
 
@@ -85,17 +97,28 @@ const startIdx = Math.floor(Math.random() * photos.length);
     if (!coverDataEl) return;
     const coverData = JSON.parse(coverDataEl.textContent || '{}');
 
-    type CoverPhoto = { id: string; desktop: string; mobile: string };
+    type CoverPhoto = { id: string; desktop: string; mobile: string; title: { en: string; zh?: string }; location: { en: string; zh?: string } };
     const coverPhotos: CoverPhoto[] = coverData.photos || [];
     const startIdx: number = coverData.startIndex || 0;
+    const coverLang: string = coverData.lang || 'en';
     if (coverPhotos.length === 0) return;
     let currentIndex = startIdx;
 
     let activeImg = imgCurrent;
     let hiddenImg = imgNext;
+    const historyStack: number[] = [];
 
     function isMobile(): boolean { return window.innerWidth < 768; }
     function getSrc(p: CoverPhoto): string { return isMobile() ? p.mobile : p.desktop; }
+
+    function updateCredit(index: number) {
+      const credit = document.getElementById('cover-credit');
+      if (!credit || index < 0 || index >= coverPhotos.length) return;
+      const photo = coverPhotos[index];
+      const locName = photo.location?.[coverLang as 'en' | 'zh'] || photo.location?.en || '';
+      const titleName = photo.title?.[coverLang as 'en' | 'zh'] || photo.title?.en || '';
+      credit.textContent = locName && titleName ? `${locName} · ${titleName}` : (titleName || locName);
+    }
 
     function showPhoto(index: number) {
       if (index === currentIndex || coverPhotos.length === 0) return;
@@ -104,11 +127,42 @@ const startIdx = Math.floor(Math.random() * photos.length);
       hiddenImg.onload = () => { hiddenImg.style.opacity = '1'; activeImg.style.opacity = '0'; [activeImg, hiddenImg] = [hiddenImg, activeImg]; };
       hiddenImg.onerror = () => { hiddenImg.style.opacity = '1'; activeImg.style.opacity = '0'; [activeImg, hiddenImg] = [hiddenImg, activeImg]; };
       hiddenImg.src = src;
+      updateCredit(index);
       preloadAdjacent(index);
     }
 
-    function nextPhoto() { if (coverPhotos.length > 0) showPhoto((currentIndex + 1) % coverPhotos.length); }
-    function prevPhoto() { if (coverPhotos.length > 0) showPhoto((currentIndex - 1 + coverPhotos.length) % coverPhotos.length); }
+    function nextPhoto() {
+      if (coverPhotos.length <= 1) return;
+      historyStack.push(currentIndex);
+      let nextIndex: number;
+      do {
+        nextIndex = Math.floor(Math.random() * coverPhotos.length);
+      } while (nextIndex === currentIndex && coverPhotos.length > 1);
+      showPhoto(nextIndex);
+    }
+
+    function prevPhoto() {
+      if (historyStack.length === 0) return;
+      const prevIndex = historyStack.pop()!;
+      showPhoto(prevIndex);
+    }
+
+    let autoRotateTimer: ReturnType<typeof setInterval> | null = null;
+
+    function startAutoRotate() {
+      stopAutoRotate();
+      if (coverPhotos.length <= 1) return;
+      autoRotateTimer = setInterval(() => {
+        if (currentState === 'cover') nextPhoto();
+      }, 18000);
+    }
+
+    function stopAutoRotate() {
+      if (autoRotateTimer) {
+        clearInterval(autoRotateTimer);
+        autoRotateTimer = null;
+      }
+    }
 
     function preloadAdjacent(index: number) {
       if (coverPhotos.length === 0) return;
@@ -129,7 +183,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
 
     const pageContent = document.getElementById('page-content');
     const hero = document.getElementById('hero-unified');
-    const scrollIndicator = layer.querySelector('.cover-scroll-indicator');
+    const scrollIndicator = document.querySelector('.cover-scroll-indicator');
     if (!pageContent) return;
 
     const coverLayer = layer;
@@ -137,7 +191,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
 
     let currentState: 'cover' | 'content' | 'transitioning-to-content' | 'transitioning-to-cover' = 'cover';
     let transitionTimer: ReturnType<typeof setTimeout> | null = null;
-    const transitionDuration = 720;
+    const transitionDuration = 500;
 
     function setScrollLocked(locked: boolean) {
       document.documentElement.classList.toggle('home-scroll-lock', locked);
@@ -171,6 +225,9 @@ const startIdx = Math.floor(Math.random() * photos.length);
       setHeroTone(false);
       window.scrollTo({ top: 0, behavior: 'auto' });
       setScrollLocked(true);
+      historyStack.length = 0;
+      startAutoRotate();
+      if (backToCoverBtn) backToCoverBtn.style.display = 'none';
     }
 
     function enterContentState() {
@@ -183,10 +240,12 @@ const startIdx = Math.floor(Math.random() * photos.length);
       setHeroTone(true);
       window.scrollTo({ top: 0, behavior: 'auto' });
       setScrollLocked(false);
+      if (backToCoverBtn) backToCoverBtn.style.display = 'flex';
     }
 
     function transitionToContent() {
       if (currentState !== 'cover') return;
+      stopAutoRotate();
       clearTransitionTimer();
       currentState = 'transitioning-to-content';
       setScrollLocked(true);
@@ -235,6 +294,13 @@ const startIdx = Math.floor(Math.random() * photos.length);
       if (currentState === 'cover') transitionToContent();
     });
 
+    backToCoverBtn?.addEventListener('click', () => {
+      if (currentState === 'content') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => transitionToCover(), 120);
+      }
+    });
+
     let gestureStartX = 0;
     let gestureStartY = 0;
     document.addEventListener('touchstart', (e) => {
@@ -272,6 +338,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
       }, 300);
     });
 
+    updateCredit(currentIndex);
     preloadAdjacent(currentIndex);
   }
 
