@@ -410,10 +410,12 @@ html:not(.cover-visible) .cover-scroll-indicator {
 @media (max-width: 767px) {
   #site-header {
     overflow: hidden;
+    isolation: isolate;
     border-bottom-color: transparent !important;
   }
 
-  #site-header .mobile-nav-glass {
+  #site-header::before {
+    content: '';
     position: absolute;
     inset: 0;
     z-index: 0;
