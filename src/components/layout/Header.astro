@@ -89,7 +89,7 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
                                                 group-focus-within:opacity-100 group-focus-within:visible group-focus-within:translate-y-0
                         transition-all duration-200 ease-out
                         z-50">
-              <div class="desktop-dropdown-panel min-w-[180px] py-1.5
+              <div class="desktop-dropdown-panel min-w-[180px] py-1.5 max-h-[60vh] overflow-y-auto
                           bg-white/72 dark:bg-slate-900/72
                           backdrop-blur-2xl
                           ring-1 ring-black/8 dark:ring-white/10
@@ -279,7 +279,7 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       }
     });
 
-    // Mobile dropdown toggles
+    // Mobile dropdown toggles (accordion: close others on open)
     menu.querySelectorAll('[data-dropdown-toggle]').forEach((toggleBtn) => {
       toggleBtn.addEventListener('click', () => {
         const dropdown = toggleBtn.closest('.mobile-dropdown');
@@ -287,10 +287,23 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
         const panel = dropdown.querySelector('.mobile-dropdown-panel') as HTMLElement;
         if (!panel) return;
 
-        const isOpen = dropdown.classList.toggle('open');
-        if (isOpen) {
+        const willOpen = !dropdown.classList.contains('open');
+
+        // Close all other dropdowns first
+        menu.querySelectorAll('.mobile-dropdown.open').forEach((d) => {
+          if (d !== dropdown) {
+            d.classList.remove('open');
+            const p = d.querySelector('.mobile-dropdown-panel') as HTMLElement;
+            if (p) p.style.maxHeight = '0';
+          }
+        });
+
+        // Toggle current
+        if (willOpen) {
+          dropdown.classList.add('open');
           panel.style.maxHeight = panel.scrollHeight + 'px';
         } else {
+          dropdown.classList.remove('open');
           panel.style.maxHeight = '0';
         }
       });
