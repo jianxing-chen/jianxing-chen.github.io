@@ -1,0 +1,38 @@
+---
+import BaseLayout from '@/components/layout/BaseLayout.astro';
+import GalleryGrid from '@/components/ui/GalleryGrid.astro';
+import { useTranslations } from '@/i18n/ui';
+import photos from '@/data/gallery.json';
+
+const lang = 'en';
+const t = useTranslations(lang);
+
+const { country } = Astro.params;
+const countryName = country!.replace(/-/g, ' ');
+
+// Filter photos by country (case-insensitive match)
+const countryPhotos = photos.filter((p) =>
+  p.location.en.toLowerCase() === countryName
+);
+
+const countryDisplay = countryPhotos.length > 0
+  ? countryPhotos[0].location.en
+  : countryName;
+---
+
+<BaseLayout title={`${countryDisplay} Photos - ${t('site.title')}`} lang={lang}>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="mb-8">
+      <a href=`/gallery/#country-${country}` class="text-sm text-primary-light dark:text-primary-dark hover:underline mb-4 inline-block">
+        ← Back to Gallery
+      </a>
+      <h1 class="text-3xl sm:text-4xl font-bold text-heading-light dark:text-heading-dark mb-3">
+        {countryDisplay}
+      </h1>
+      <p class="text-sm text-text-light/50 dark:text-text-dark/50">
+        {countryPhotos.length} photos
+      </p>
+    </div>
+    <GalleryGrid photos={countryPhotos} lang={lang} />
+  </div>
+</BaseLayout>

@@ -17,9 +17,10 @@ interface Photo {
 interface Props {
   photos: Photo[];
   lang: string;
+  maxPerCountry?: number;
 }
 
-const { photos, lang } = Astro.props;
+const { photos, lang, maxPerCountry = 12 } = Astro.props;
 
 // Group by country, then by region within each country
 const countryMap = new Map<string, { display: string; regions: Map<string, { display: string; items: Photo[] }> }>();
@@ -36,14 +37,34 @@ photos.forEach((photo) => {
   country.regions.get(regionKey)!.items.push(photo);
 });
 
-// Flatten for rendering, sorted alphabetically by English country name
+// Flatten for rendering, sorted alphabetically by English country & region name
 const countries = Array.from(countryMap.entries())
-  .map(([key, c]) => ({
-    key,
-    display: c.display,
-    anchorId: `country-${key.toLowerCase().replace(/\s+/g, '-')}`,
-    regions: Array.from(c.regions.entries()).map(([rk, r]) => ({ key: rk, display: r.display, items: r.items })),
-  }))
+  .map(([key, c]) => {
+    const allRegions = Array.from(c.regions.entries())
+      .map(([rk, r]) => ({ key: rk, display: r.display, items: r.items }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+    const countryTotal = allRegions.reduce((sum, r) => sum + r.items.length, 0);
+    const truncated = countryTotal > maxPerCountry;
+    const displayRegions = truncated
+      ? allRegions.map((r) => ({ ...r, items: r.items.slice(0, Math.min(r.items.length, maxPerCountry)) })).reduce((acc, r) => {
+          const remaining = maxPerCountry - acc.count;
+          if (remaining <= 0) return acc;
+          const take = Math.min(r.items.length, remaining);
+          acc.regions.push({ ...r, items: r.items.slice(0, take) });
+          acc.count += take;
+          return acc;
+        }, { regions: [] as typeof allRegions, count: 0 }).regions
+      : allRegions;
+    return {
+      key,
+      display: c.display,
+      anchorId: `country-${key.toLowerCase().replace(/\s+/g, '-')}`,
+      countrySlug: key.toLowerCase().replace(/\s+/g, '-'),
+      countryTotal,
+      truncated,
+      regions: displayRegions,
+    };
+  })
   .sort((a, b) => a.key.localeCompare(b.key));
 ---
 
@@ -114,6 +135,21 @@ const countries = Array.from(countryMap.entries())
           </a>
         ))}
       </div>
+      {country.truncated && (
+        <div class="mt-6 text-center">
+          <a href={`${lang === 'zh' ? '/zh' : ''}/gallery/country/${country.countrySlug}/`}
+             class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium
+                    bg-slate-100 dark:bg-slate-800 text-text-light dark:text-text-dark
+                    hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+            {lang === 'zh'
+              ? `查看 ${country.display} 全部 ${country.countryTotal} 张`
+              : `View All ${country.countryTotal} in ${country.display}`}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+            </svg>
+          </a>
+        </div>
+      )}
     </div>
   ))}
 </div>
