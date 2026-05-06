@@ -27,11 +27,346 @@
   --font-sans: 'Inter', 'Noto Sans SC', ui-sans-serif, system-ui, sans-serif;
   --font-heading: 'Space Grotesk', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Cover section animation durations */
+  --animate-cover-fade: 0.6s;
+  --animate-hero-slide: 0.7s;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Smooth scroll */
+html.home-scroll-lock,
+body.home-scroll-lock {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* ── Fixed cover background layer ── */
+.cover-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  transition: opacity 0.5s ease;
+}
+
+.cover-bg-layer.cover-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cover-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: opacity var(--animate-cover-fade) ease-in-out;
+}
+
+.cover-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.35) 30%,
+    transparent 55%
+  );
+  pointer-events: none;
+}
+
+/* ── Homepage content states ── */
+.home-page-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+}
+
+.home-page-content.state-cover,
+.home-page-content.is-animating {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.home-page-content.state-cover {
+  pointer-events: none;
+}
+
+.home-page-content.state-cover .hero-content,
+.home-page-content.state-cover .hero-content * {
+  pointer-events: auto;
+}
+
+.home-page-content.state-content {
+  position: relative;
+}
+
+.hero-shell {
+  transition: min-height 0.72s cubic-bezier(0.22, 1, 0.36, 1),
+              padding-bottom 0.72s cubic-bezier(0.22, 1, 0.36, 1),
+              padding-top 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.home-page-content.state-cover .hero-shell,
+.home-page-content.is-animating.state-cover .hero-shell {
+  min-height: 100dvh;
+  padding-top: 5.5rem;
+  padding-bottom: clamp(7rem, 14vh, 8.5rem);
+}
+
+.home-page-content.state-content .hero-shell,
+.home-page-content.is-animating.state-content .hero-shell {
+  min-height: clamp(22rem, 48vw, 28rem);
+  padding-top: 6.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.hero-content {
+  transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.48s ease,
+              color 0.6s cubic-bezier(0.22, 0.61, 0.36, 1),
+              text-shadow 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.home-page-content.state-cover .hero-content {
+  transform: translateY(0);
+}
+
+.home-page-content.state-content .hero-content,
+.home-page-content.is-animating.state-content .hero-content {
+  transform: translateY(0);
+}
+
+/* ── Hero text: cover mode (white) ── */
+.hero-text-cover,
+.hero-text-cover h1,
+.hero-text-cover p,
+.hero-text-cover a {
+  color: white !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.hero-text-cover a:hover {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ── Hero text: themed mode (follows light/dark) ── */
+.hero-text-themed,
+.hero-text-themed h1,
+.hero-text-themed p {
+  transition: color 0.6s cubic-bezier(0.22, 0.61, 0.36, 1),
+              text-shadow 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.hero-text-themed h1 {
+  color: var(--color-heading-light) !important;
+  text-shadow: none;
+}
+
+.dark .hero-text-themed h1 {
+  color: var(--color-heading-dark) !important;
+}
+
+.hero-text-themed p {
+  color: var(--color-text-light) !important;
+  text-shadow: none;
+}
+
+.dark .hero-text-themed p {
+  color: var(--color-text-dark) !important;
+}
+
+.hero-text-themed a {
+  color: var(--color-primary-light) !important;
+  text-shadow: none;
+}
+
+.dark .hero-text-themed a {
+  color: var(--color-primary-dark) !important;
+}
+
+/* Content below hero */
+.content-below {
+  position: relative;
+  transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.48s ease;
+}
+
+.home-page-content.state-cover .content-below,
+.home-page-content.is-animating.state-cover .content-below {
+  opacity: 0;
+  transform: translateY(4rem);
+  pointer-events: none;
+}
+
+.home-page-content.state-content .content-below,
+.home-page-content.is-animating.state-content .content-below {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ── Cover gallery nav buttons (middle-sides, arrow only) ── */
+.cover-nav-btn {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 12;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.3s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cover-nav-btn:hover {
+  color: rgba(255, 255, 255, 0.75);
+  transform: translateY(-50%) scale(1.2);
+}
+
+.cover-nav-btn:active {
+  transform: translateY(-50%) scale(0.9);
+}
+
+.cover-nav-btn-prev {
+  left: 1rem;
+}
+
+.cover-nav-btn-next {
+  right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .cover-nav-btn-prev { left: 1.5rem; }
+  .cover-nav-btn-next { right: 1.5rem; }
+}
+
+/* Hide nav buttons when cover is hidden */
+.cover-bg-layer.cover-hidden .cover-nav-btn {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Scroll indicator on cover ── */
+.cover-scroll-indicator {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  opacity: 0.55;
+  transition: opacity 0.4s ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+}
+
+.cover-scroll-indicator-icon {
+  animation: cover-scroll-bounce 2s ease-in-out infinite;
+}
+
+.cover-scroll-indicator:hover {
+  opacity: 0.85;
+}
+
+.cover-scroll-indicator:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 6px;
+}
+
+@keyframes cover-scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Hide scroll indicator when cover is hidden */
+.cover-bg-layer.cover-hidden .cover-scroll-indicator {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Dark theme persistent overlay ── */
+.theme-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(2, 8, 23, 0.16);
+  pointer-events: none;
+}
+
+/* ── Header transparent mode ── */
+.header-transparent {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom-color: transparent !important;
+}
+
+.dark .header-transparent {
+  background: rgba(15, 23, 42, 0.34) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.header-transparent a,
+.header-transparent button {
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.header-transparent a:hover,
+.header-transparent button:hover {
+  color: white !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.header-transparent .hamburger-line {
+  background-color: white !important;
+}
+
+.header-transparent .desktop-dropdown-panel,
+.header-transparent .desktop-dropdown-panel a {
+  text-shadow: none !important;
+}
+
+.header-transparent .desktop-dropdown-link {
+  color: var(--color-text-light) !important;
+}
+
+.header-transparent .desktop-dropdown-link:hover {
+  color: var(--color-primary-light) !important;
+}
+
+.dark .header-transparent .desktop-dropdown-link {
+  color: var(--color-text-dark) !important;
+}
+
+.dark .header-transparent .desktop-dropdown-link:hover {
+  color: var(--color-primary-dark) !important;
+}
+
+/* Smooth header background transition */
+#site-header {
+  transition: background 0.4s ease,
+              backdrop-filter 0.4s ease,
+              border-bottom-color 0.4s ease;
+}
+
+/* ── Smooth scroll ── */
 html {
   scroll-behavior: smooth;
 }

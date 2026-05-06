@@ -72,6 +72,7 @@
   function initThemeToggle() {
     const btns = document.querySelectorAll<HTMLButtonElement>('.theme-toggle');
     if (btns.length === 0) return;
+    const isHomepage = document.body.dataset.homepage === 'true';
 
     function updateAllAriaPressed() {
       const isDark = document.documentElement.classList.contains('dark');
@@ -85,8 +86,40 @@
         const isDark = document.documentElement.classList.toggle('dark');
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
         updateAllAriaPressed();
+        updateThemeOverlay(isDark);
       });
     });
+
+    // ── 暗色主题常驻蒙版 ──
+    let themeOverlay: HTMLDivElement | null = null;
+
+    function updateThemeOverlay(isDark: boolean) {
+      if (!isHomepage) {
+        if (themeOverlay) {
+          themeOverlay.remove();
+          themeOverlay = null;
+        }
+        return;
+      }
+
+      if (isDark) {
+        if (!themeOverlay) {
+          themeOverlay = document.createElement('div');
+          themeOverlay.className = 'theme-overlay';
+          document.body.appendChild(themeOverlay);
+        }
+      } else {
+        if (themeOverlay) {
+          themeOverlay.remove();
+          themeOverlay = null;
+        }
+      }
+    }
+
+    // 初始化：如果当前是暗色，立即添加蒙版
+    if (document.documentElement.classList.contains('dark')) {
+      updateThemeOverlay(true);
+    }
 
     // Listen for system theme changes when user has no manual preference
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -98,6 +131,7 @@
         document.documentElement.classList.remove('dark');
       }
       updateAllAriaPressed();
+      updateThemeOverlay(document.documentElement.classList.contains('dark'));
     });
   }
 

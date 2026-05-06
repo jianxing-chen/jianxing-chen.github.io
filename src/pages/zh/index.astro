@@ -1,16 +1,15 @@
 ---
 import BaseLayout from '@/components/layout/BaseLayout.astro';
+import CoverSection from '@/components/interactive/CoverSection.astro';
 import { useTranslations, getLocalizedPath } from '@/i18n/ui';
 import { SITE_CONFIG } from '@/config/site';
 import PublicationCard from '@/components/ui/PublicationCard.astro';
 import BlogPostCard from '@/components/ui/BlogPostCard.astro';
 import { getCollection } from 'astro:content';
-import { getGallerySlide, getGalleryFullscreen } from '@/utils/cloudinary';
 
 const lang = 'zh';
 const t = useTranslations(lang);
 
-// Load papers
 import papers from '@/content/publications/papers.json';
 type Paper = {
   title: string;
@@ -27,331 +26,101 @@ type Paper = {
 };
 const recentPapers = (papers as Paper[]).slice(0, 3);
 
-// Load blog posts
 const allPosts = await getCollection('blog', ({ data }) => data.lang === 'zh' && !data.draft);
 const recentPosts = allPosts.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()).slice(0, 3);
 
-// Load gallery
 import galleryData from '@/data/gallery.json';
-const featuredPhotos = galleryData;
-
 ---
 
-<BaseLayout title={t('site.title')} description={t('site.description')} lang={lang}>
-  <div class="space-y-20 sm:space-y-28">
+<BaseLayout title={t('site.title')} description={t('site.description')} lang={lang} isHomepage={true}>
 
-    <!-- ═══ Hero ═══ -->
-    <section class="pt-8 sm:pt-16">
-      <div class="flex flex-col sm:flex-row items-center sm:items-start gap-8">
-        <!-- Avatar -->
-        <div class="shrink-0">
-          <img
-            src={`${import.meta.env.BASE_URL}images/avatar.jpg`}
-            alt="头像"
-            width="160"
-            height="160"
-            class="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover
-                   ring-4 ring-white dark:ring-white/10
-                   shadow-xl shadow-slate-200/50 dark:shadow-black/30"
-          />
-          <!-- Social Links below avatar -->
-          <div class="flex items-center justify-center gap-3 mt-4">
-            <a href={SITE_CONFIG.social.github} target="_blank" rel="noopener noreferrer"
-               class="text-text-light/40 dark:text-text-dark/40 hover:text-primary-light dark:hover:text-primary-dark transition-colors"
-               aria-label="GitHub">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            </a>
-            <a href={SITE_CONFIG.social.orcid} target="_blank" rel="noopener noreferrer"
-               class="text-text-light/40 dark:text-text-dark/40 hover:text-primary-light dark:hover:text-primary-dark transition-colors"
-               aria-label="ORCID">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zM7.369 4.378c.525 0 .947.431.947.947s-.422.947-.947.947a.95.95 0 01-.947-.947c0-.525.422-.947.947-.947zm-.722 3.038h1.444v10.041H6.647V7.416zm3.562 0h3.9c3.712 0 5.344 2.653 5.344 5.025 0 2.578-2.016 5.025-5.325 5.025h-3.919V7.416zm1.444 1.303v7.444h2.297c3.272 0 4.022-2.484 4.022-3.722 0-1.847-1.303-3.722-3.853-3.722h-2.466z"/></svg>
-            </a>
-            <a href={SITE_CONFIG.social.email}
-               class="text-text-light/40 dark:text-text-dark/40 hover:text-primary-light dark:hover:text-primary-dark transition-colors"
-               aria-label="Email">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
-            </a>
-          </div>
-        </div>
+  <CoverSection photos={galleryData} lang={lang} />
 
-        <!-- Info -->
-        <div class="text-center sm:text-left">
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-heading-light dark:text-heading-dark mb-2"
-              style="font-family: 'Space Grotesk', 'Inter', sans-serif;">
-            {SITE_CONFIG.author.zh}
-          </h1>
-          <p class="text-lg sm:text-xl text-primary-light dark:text-primary-dark font-medium mb-1">
-            {SITE_CONFIG.position.zh}
-          </p>
-          <p class="text-sm sm:text-base text-text-light/60 dark:text-text-dark/60 mb-4">
-            {SITE_CONFIG.affiliation.zh}
-          </p>
-          <p class="text-base sm:text-lg italic text-text-light/80 dark:text-text-dark/80 mb-3 max-w-xl">
-            {t('home.hero_tagline')}
-          </p>
-          <p class="text-sm sm:text-base text-text-light/70 dark:text-text-dark/70 max-w-xl leading-relaxed">
-            {t('home.hero_description')}
-          </p>
-        </div>
-      </div>
-    </section>
+  <div id="page-content" class="home-page-content state-cover">
 
-    <!-- ═══ Recent Publications ═══ -->
-    <section>
-      <div class="flex items-baseline justify-between mb-8">
-        <h2 class="text-2xl sm:text-3xl font-semibold text-heading-light dark:text-heading-dark">
-          {t('home.recent_publications')}
-        </h2>
-        <a href={getLocalizedPath('/publications', lang)}
-           class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap">
-          {t('home.view_all')}
-        </a>
-      </div>
-      <div class="grid gap-4">
-        {recentPapers.map((paper) => (
-          <PublicationCard paper={paper} lang={lang} />
-        ))}
-      </div>
-    </section>
-
-    <!-- ═══ Latest Posts ═══ -->
-    <section>
-      <div class="flex items-baseline justify-between mb-8">
-        <h2 class="text-2xl sm:text-3xl font-semibold text-heading-light dark:text-heading-dark">
-          {t('home.latest_posts')}
-        </h2>
-        <a href={getLocalizedPath('/blog', lang)}
-           class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap">
-          {t('home.view_all')}
-        </a>
-      </div>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {recentPosts.map((post) => (
-          <BlogPostCard post={post} lang={lang} />
-        ))}
-      </div>
-    </section>
-
-    <!-- ═══ Photo Highlights ═══ -->
-    <section>
-      <div class="flex items-baseline justify-between mb-8">
-        <h2 class="text-2xl sm:text-3xl font-semibold text-heading-light dark:text-heading-dark">
-          {t('home.photo_highlights')}
-        </h2>
-        <a href={getLocalizedPath('/gallery', lang)}
-           class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap">
-          {t('home.view_all')}
-        </a>
-      </div>
-      <div id="photo-slideshow" class="relative w-full aspect-[3/2] rounded-xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
-        {featuredPhotos.map((photo, i) => (
-          <div
-             class="photo-slide absolute inset-0 transition-opacity duration-2000 ease-in-out"
-             style="opacity: 0"
-             data-location={photo.location[lang as 'en' | 'zh'] || photo.location.en}>
+    <section class="hero-shell hero-container">
+      <div id="hero-unified" class="hero-content hero-text-cover max-w-4xl mx-auto px-4 sm:px-6 w-full">
+        <div class="flex flex-col sm:flex-row items-center sm:items-center gap-6 sm:gap-7">
+          <div class="shrink-0 sm:self-start sm:pt-1">
             <img
-              src={getGallerySlide(photo.cloudinaryId)}
-              data-fullscreen-src={getGalleryFullscreen(photo.cloudinaryId)}
-              alt={photo.title[lang as keyof typeof photo.title]}
-              class="w-full h-full object-cover"
-              loading={i === 0 ? 'eager' : 'lazy'}
+              src={`${import.meta.env.BASE_URL}images/avatar.jpg`}
+              alt="头像"
+              width="128" height="128"
+              class="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover ring-2 ring-white/30 shadow-2xl"
             />
           </div>
-        ))}
-        <!-- Controls overlay -->
-        <div class="slideshow-controls absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent transition-opacity duration-500">
-          <div class="flex items-end justify-between p-4">
-            <!-- Photo title -->
-            <span class="slide-title text-xs sm:text-sm text-white/65 truncate mr-4">
-              {featuredPhotos.length > 0 ? featuredPhotos[0].location[lang as 'en' | 'zh'] + ' · ' + featuredPhotos[0].title[lang as 'en' | 'zh'] : ''}
-            </span>
-            <!-- Button group -->
-            <div class="flex items-center gap-2 shrink-0">
-              <button class="btn-prev w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40 transition-all duration-200" title={t('home.slideshow_prev')}>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-              </button>
-              <button class="btn-next w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40 transition-all duration-200" title={t('home.slideshow_next')}>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-              </button>
-              <button class="btn-auto w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40 transition-all duration-200" title={t('home.slideshow_auto')}>
-                <svg class="icon-auto w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5"/></svg>
-                <svg class="icon-manual w-5 h-5 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"/></svg>
-              </button>
-              <button class="btn-fullscreen w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40 transition-all duration-200" title={t('home.slideshow_fullscreen')}>
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/></svg>
-              </button>
+          <div class="text-center sm:text-left pb-2 sm:pb-3 max-w-2xl">
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold mb-0.5 drop-shadow-lg"
+                style="font-family: 'Space Grotesk', 'Inter', sans-serif;">
+              {SITE_CONFIG.author.zh}
+            </h1>
+            <p class="text-sm sm:text-base font-medium mb-0.5 drop-shadow-md opacity-90">
+              {SITE_CONFIG.position.zh}
+            </p>
+            <p class="text-xs sm:text-sm drop-shadow-md opacity-75">
+              {SITE_CONFIG.affiliation.zh}
+            </p>
+            <p class="mt-3 text-sm sm:text-base leading-relaxed opacity-90">
+              占位自述：我主要关注恒星族群、光谱分析与数据驱动天文学，希望把高精度观测和可解释的物理认识联系起来。
+            </p>
+            <div class="flex items-center justify-center sm:justify-start gap-3 mt-3">
+              <a href={SITE_CONFIG.social.github} target="_blank" rel="noopener noreferrer"
+                 class="opacity-70 hover:opacity-100 transition-opacity" aria-label="GitHub">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              </a>
+              <a href={SITE_CONFIG.social.orcid} target="_blank" rel="noopener noreferrer"
+                 class="opacity-70 hover:opacity-100 transition-opacity" aria-label="ORCID">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zM7.369 4.378c.525 0 .947.431.947.947s-.422.947-.947.947a.95.95 0 01-.947-.947c0-.525.422-.947.947-.947zm-.722 3.038h1.444v10.041H6.647V7.416zm3.562 0h3.9c3.712 0 5.344 2.653 5.344 5.025 0 2.578-2.016 5.025-5.325 5.025h-3.919V7.416zm1.444 1.303v7.444h2.297c3.272 0 4.022-2.484 4.022-3.722 0-1.847-1.303-3.722-3.853-3.722h-2.466z"/></svg>
+              </a>
+              <a href={SITE_CONFIG.social.email}
+                 class="opacity-70 hover:opacity-100 transition-opacity" aria-label="邮件">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+              </a>
             </div>
           </div>
         </div>
       </div>
     </section>
 
+    <section id="content-below" class="content-below bg-background-light dark:bg-background-dark">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-20 sm:space-y-28">
+
+        <section>
+          <div class="flex items-baseline justify-between mb-8">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-heading-light dark:text-heading-dark">
+              {t('home.recent_publications')}
+            </h2>
+            <a href={getLocalizedPath('/publications', lang)}
+               class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap">
+              {t('home.view_all')}
+            </a>
+          </div>
+          <div class="grid gap-4">
+            {recentPapers.map((paper) => (
+              <PublicationCard paper={paper} lang={lang} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div class="flex items-baseline justify-between mb-8">
+            <h2 class="text-2xl sm:text-3xl font-semibold text-heading-light dark:text-heading-dark">
+              {t('home.latest_posts')}
+            </h2>
+            <a href={getLocalizedPath('/blog', lang)}
+               class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap">
+              {t('home.view_all')}
+            </a>
+          </div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {recentPosts.map((post) => (
+              <BlogPostCard post={post} lang={lang} />
+            ))}
+          </div>
+        </section>
+
+      </div>
+    </section>
 
   </div>
 </BaseLayout>
-
-<style is:global>
-  #photo-slideshow.is-fullscreen {
-    background: black;
-    border-radius: 0;
-    box-shadow: none;
-  }
-  #photo-slideshow.is-fullscreen .photo-slide img {
-    object-fit: contain;
-  }
-  #photo-slideshow.is-fullscreen .slideshow-controls {
-    transition: opacity 0.5s ease;
-  }
-</style>
-
-<script>
-function initSlideshow() {
-  const container = document.getElementById('photo-slideshow');
-  if (!container || container.dataset.slideshowInit) return;
-  container.dataset.slideshowInit = 'true';
-  const slides = container.querySelectorAll('.photo-slide');
-
-  let current = 0;
-  let isAuto = true;
-  let autoTimer: ReturnType<typeof setInterval> | null = null;
-  let hideTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const btnPrev = container.querySelector('.btn-prev');
-  const btnNext = container.querySelector('.btn-next');
-  const btnAuto = container.querySelector('.btn-auto');
-  const btnFullscreen = container.querySelector('.btn-fullscreen');
-  const controls = container.querySelector('.slideshow-controls') as HTMLElement | null;
-  const slideTitle = container.querySelector('.slide-title');
-  const autoIcon = btnAuto?.querySelector('.icon-auto') as HTMLElement | null;
-  const manualIcon = btnAuto?.querySelector('.icon-manual') as HTMLElement | null;
-
-  // Collect titles and locations from each slide
-  const captions: string[] = [];
-  slides.forEach((s) => {
-    const img = s.querySelector('img');
-    const title = img?.alt || '';
-    const location = (s as HTMLElement).dataset.location || '';
-    captions.push(location ? `${location} · ${title}` : title);
-  });
-
-  function showSlide(index: number) {
-    slides.forEach((s, i) => {
-      (s as HTMLElement).style.opacity = i === index ? '1' : '0';
-    });
-    current = index;
-    if (slideTitle) slideTitle.textContent = captions[index] || '';
-  }
-
-  function nextSlide() {
-    if (isAuto) {
-      let next: number;
-      do { next = Math.floor(Math.random() * slides.length); } while (next === current && slides.length > 1);
-      showSlide(next);
-    } else {
-      showSlide((current + 1) % slides.length);
-    }
-  }
-
-  function prevSlide() {
-    showSlide((current - 1 + slides.length) % slides.length);
-  }
-
-  function startAuto() {
-    stopAuto();
-    autoTimer = setInterval(nextSlide, 5000);
-  }
-
-  function stopAuto() {
-    if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
-  }
-
-  function updateAutoButton() {
-    if (autoIcon && manualIcon) {
-      autoIcon.style.display = isAuto ? 'block' : 'none';
-      manualIcon.style.display = isAuto ? 'none' : 'block';
-    }
-  }
-
-  // Button events
-  btnPrev?.addEventListener('click', (e) => { e.stopPropagation(); prevSlide(); if (isAuto) startAuto(); });
-  btnNext?.addEventListener('click', (e) => { e.stopPropagation(); nextSlide(); if (isAuto) startAuto(); });
-  btnAuto?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    isAuto = !isAuto;
-    updateAutoButton();
-    if (isAuto) startAuto(); else stopAuto();
-  });
-
-  // Fullscreen
-  btnFullscreen?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      container.requestFullscreen();
-    }
-  });
-
-  // Fullscreen change
-  document.addEventListener('fullscreenchange', () => {
-    const isFS = document.fullscreenElement === container;
-    container.classList.toggle('is-fullscreen', isFS);
-    // Swap image resolution
-    slides.forEach((slide) => {
-      const img = slide.querySelector('img') as HTMLImageElement | null;
-      if (!img) return;
-      if (isFS) {
-        const fsSrc = img.dataset.fullscreenSrc;
-        if (fsSrc) {
-          img.dataset.originalSrc = img.src;
-          img.src = fsSrc;
-        }
-      } else {
-        const origSrc = img.dataset.originalSrc;
-        if (origSrc) img.src = origSrc;
-      }
-    });
-    if (isFS) {
-      startHideTimer();
-      container.addEventListener('mousemove', onMouseMove);
-      container.addEventListener('click', onMouseMove);
-    } else {
-      clearHideTimer();
-      container.removeEventListener('mousemove', onMouseMove);
-      container.removeEventListener('click', onMouseMove);
-      showControls();
-    }
-  });
-
-  function showControls() {
-    if (controls) {
-      controls.style.opacity = '1';
-      container!.style.cursor = '';
-    }
-  }
-  function hideControls() {
-    if (controls && document.fullscreenElement === container) {
-      controls.style.opacity = '0';
-      container!.style.cursor = 'none';
-    }
-  }
-  function startHideTimer() {
-    clearHideTimer();
-    hideTimer = setTimeout(hideControls, 3000);
-  }
-  function clearHideTimer() {
-    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-  }
-  function onMouseMove() {
-    showControls();
-    startHideTimer();
-  }
-
-  // Init
-  updateAutoButton();
-  showSlide(Math.floor(Math.random() * slides.length));
-  startAuto();
-}
-initSlideshow();
-document.addEventListener('astro:after-swap', initSlideshow);
-</script>

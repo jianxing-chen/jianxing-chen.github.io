@@ -44,3 +44,13 @@ export function getGalleryFullscreen(publicId: string): string {
 export function getGalleryFullSize(publicId: string): string {
   return getCloudinaryUrl(publicId, { width: 1920 });
 }
+
+/** 封面全屏图片（1920px 宽，裁剪填充，最佳质量） */
+export function getCoverImage(publicId: string): string {
+  return getCloudinaryUrl(publicId, { width: 1920, height: 1440, crop: 'fill', quality: 'q_auto:best' });
+}
+
+/** 封面移动端图片（828px 宽，裁剪填充，良好质量） */
+export function getCoverImageMobile(publicId: string): string {
+  return getCloudinaryUrl(publicId, { width: 828, height: 1792, crop: 'fill', quality: 'q_auto:good' });
+}

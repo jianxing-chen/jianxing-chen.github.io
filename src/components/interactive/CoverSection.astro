@@ -1,0 +1,280 @@
+---
+/**
+ * CoverSection.astro — 主页固定封面背景层
+ *
+ * v2 变更：
+ * - 封面图层改为 position: fixed，不再随页面滚动
+ * - 移除 Hero 插槽（Hero 在 index.astro 的滚动内容层中统一渲染）
+ * - 新增翻页动画：JS 检测 wheel/touch → spring easing scrollTo 到内容区
+ * - 翻页后封面层淡出隐藏，滚回顶部后重新显示
+ */
+
+import { getCoverImage, getCoverImageMobile } from '@/utils/cloudinary';
+
+interface Photo {
+  id: string;
+  cloudinaryId: string;
+  title: { en: string; zh?: string };
+  location: { en: string; zh?: string };
+  width: number;
+  height: number;
+}
+
+interface Props {
+  photos: Photo[];
+  lang: string;
+}
+
+const { photos, lang } = Astro.props;
+
+const coverPhotos = photos.map((p) => ({
+  id: p.id,
+  desktop: getCoverImage(p.cloudinaryId),
+  mobile: getCoverImageMobile(p.cloudinaryId),
+}));
+
+const startIdx = Math.floor(Math.random() * photos.length);
+---
+
+<!-- ═══ 固定封面背景层 ═══ -->
+<div id="cover-bg-layer" class="cover-bg-layer">
+  <script type="application/json" id="cover-data" set:html={JSON.stringify({ photos: coverPhotos, startIndex: startIdx })}></script>
+
+  <img id="cover-img-current" class="cover-bg-img" src={coverPhotos[startIdx].desktop} alt="" style="opacity:1" />
+  <img id="cover-img-next" class="cover-bg-img" src="" alt="" style="opacity:0" />
+  <div class="cover-bg-overlay"></div>
+
+  <!-- 上一张按钮（左侧中部） -->
+  <button id="cover-btn-prev" class="cover-nav-btn cover-nav-btn-prev"
+    aria-label={lang === 'zh' ? '上一张' : 'Previous photo'}>
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    </svg>
+  </button>
+
+  <!-- 下一张按钮（右侧中部） -->
+  <button id="cover-btn-next" class="cover-nav-btn cover-nav-btn-next"
+    aria-label={lang === 'zh' ? '下一张' : 'Next photo'}>
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+    </svg>
+  </button>
+
+  <!-- 滚动提示箭头（可点击翻页） -->
+  <button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
+    <svg class="cover-scroll-indicator-icon w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+  </button>
+</div>
+
+<script>
+  function initCoverSection() {
+    const layer = document.getElementById('cover-bg-layer');
+    if (!layer || layer.dataset.coverInit) return;
+    layer.dataset.coverInit = 'true';
+
+    const imgCurrent = document.getElementById('cover-img-current') as HTMLImageElement | null;
+    const imgNext = document.getElementById('cover-img-next') as HTMLImageElement | null;
+    const btnPrev = document.getElementById('cover-btn-prev');
+    const btnNext = document.getElementById('cover-btn-next');
+
+    if (!imgCurrent || !imgNext) return;
+
+    const coverDataEl = document.getElementById('cover-data');
+    if (!coverDataEl) return;
+    const coverData = JSON.parse(coverDataEl.textContent || '{}');
+
+    type CoverPhoto = { id: string; desktop: string; mobile: string };
+    const coverPhotos: CoverPhoto[] = coverData.photos || [];
+    const startIdx: number = coverData.startIndex || 0;
+    if (coverPhotos.length === 0) return;
+    let currentIndex = startIdx;
+
+    let activeImg = imgCurrent;
+    let hiddenImg = imgNext;
+
+    function isMobile(): boolean { return window.innerWidth < 768; }
+    function getSrc(p: CoverPhoto): string { return isMobile() ? p.mobile : p.desktop; }
+
+    function showPhoto(index: number) {
+      if (index === currentIndex || coverPhotos.length === 0) return;
+      currentIndex = index;
+      const src = getSrc(coverPhotos[index]);
+      hiddenImg.onload = () => { hiddenImg.style.opacity = '1'; activeImg.style.opacity = '0'; [activeImg, hiddenImg] = [hiddenImg, activeImg]; };
+      hiddenImg.onerror = () => { hiddenImg.style.opacity = '1'; activeImg.style.opacity = '0'; [activeImg, hiddenImg] = [hiddenImg, activeImg]; };
+      hiddenImg.src = src;
+      preloadAdjacent(index);
+    }
+
+    function nextPhoto() { if (coverPhotos.length > 0) showPhoto((currentIndex + 1) % coverPhotos.length); }
+    function prevPhoto() { if (coverPhotos.length > 0) showPhoto((currentIndex - 1 + coverPhotos.length) % coverPhotos.length); }
+
+    function preloadAdjacent(index: number) {
+      if (coverPhotos.length === 0) return;
+      const next = (index + 1) % coverPhotos.length;
+      const prev = (index - 1 + coverPhotos.length) % coverPhotos.length;
+      [next, prev].forEach((i) => {
+        if (i !== index) {
+          const link = document.createElement('link');
+          link.rel = 'preload'; link.as = 'image'; link.href = getSrc(coverPhotos[i]);
+          document.head.appendChild(link);
+        }
+      });
+    }
+
+    btnPrev?.addEventListener('click', prevPhoto);
+    btnNext?.addEventListener('click', nextPhoto);
+    document.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') prevPhoto(); if (e.key === 'ArrowRight') nextPhoto(); });
+
+    const pageContent = document.getElementById('page-content');
+    const hero = document.getElementById('hero-unified');
+    const scrollIndicator = layer.querySelector('.cover-scroll-indicator');
+    if (!pageContent) return;
+
+    const coverLayer = layer;
+    const contentLayer = pageContent;
+
+    let currentState: 'cover' | 'content' | 'transitioning-to-content' | 'transitioning-to-cover' = 'cover';
+    let transitionTimer: ReturnType<typeof setTimeout> | null = null;
+    const transitionDuration = 720;
+
+    function setScrollLocked(locked: boolean) {
+      document.documentElement.classList.toggle('home-scroll-lock', locked);
+      document.body.classList.toggle('home-scroll-lock', locked);
+    }
+
+    function setCoverVisible(visible: boolean) {
+      document.documentElement.classList.toggle('cover-visible', visible);
+    }
+
+    function setHeroTone(isContent: boolean) {
+      if (!hero) return;
+      hero.classList.toggle('hero-text-cover', !isContent);
+      hero.classList.toggle('hero-text-themed', isContent);
+    }
+
+    function clearTransitionTimer() {
+      if (transitionTimer) {
+        clearTimeout(transitionTimer);
+        transitionTimer = null;
+      }
+    }
+
+    function enterCoverState() {
+      clearTransitionTimer();
+      currentState = 'cover';
+      contentLayer.classList.remove('state-content', 'is-animating');
+      contentLayer.classList.add('state-cover');
+      coverLayer.classList.remove('cover-hidden');
+      setCoverVisible(true);
+      setHeroTone(false);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      setScrollLocked(true);
+    }
+
+    function enterContentState() {
+      clearTransitionTimer();
+      currentState = 'content';
+      contentLayer.classList.remove('state-cover', 'is-animating');
+      contentLayer.classList.add('state-content');
+      coverLayer.classList.add('cover-hidden');
+      setCoverVisible(false);
+      setHeroTone(true);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      setScrollLocked(false);
+    }
+
+    function transitionToContent() {
+      if (currentState !== 'cover') return;
+      clearTransitionTimer();
+      currentState = 'transitioning-to-content';
+      setScrollLocked(true);
+      setCoverVisible(true);
+      setHeroTone(true);
+      contentLayer.classList.add('is-animating', 'state-content');
+      contentLayer.classList.remove('state-cover');
+
+      transitionTimer = setTimeout(() => {
+        enterContentState();
+      }, transitionDuration);
+    }
+
+    function transitionToCover() {
+      if (currentState !== 'content' || window.scrollY > 4) return;
+      clearTransitionTimer();
+      currentState = 'transitioning-to-cover';
+      setScrollLocked(true);
+      coverLayer.classList.remove('cover-hidden');
+      setCoverVisible(true);
+      setHeroTone(false);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      contentLayer.classList.add('is-animating', 'state-cover');
+      contentLayer.classList.remove('state-content');
+
+      transitionTimer = setTimeout(() => {
+        enterCoverState();
+      }, transitionDuration);
+    }
+
+    enterCoverState();
+
+    window.addEventListener('wheel', (e) => {
+      if (currentState === 'cover' && e.deltaY > 0) {
+        e.preventDefault();
+        transitionToContent();
+      } else if (currentState === 'content' && e.deltaY < 0 && window.scrollY <= 4) {
+        e.preventDefault();
+        transitionToCover();
+      } else if (currentState.startsWith('transitioning')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    scrollIndicator?.addEventListener('click', () => {
+      if (currentState === 'cover') transitionToContent();
+    });
+
+    let gestureStartX = 0;
+    let gestureStartY = 0;
+    document.addEventListener('touchstart', (e) => {
+      gestureStartX = e.touches[0].clientX;
+      gestureStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - gestureStartX;
+      const dy = e.changedTouches[0].clientY - gestureStartY;
+
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+        if (dx < 0) nextPhoto();
+        else prevPhoto();
+        return;
+      }
+
+      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 60) {
+        if (currentState === 'cover' && dy < 0) {
+          transitionToContent();
+        } else if (currentState === 'content' && dy > 0 && window.scrollY <= 4) {
+          transitionToCover();
+        }
+      }
+    });
+
+    // 窗口 resize 切换图片分辨率
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (coverPhotos.length === 0) return;
+        const src = getSrc(coverPhotos[currentIndex]);
+        if (activeImg.src !== src) activeImg.src = src;
+      }, 300);
+    });
+
+    preloadAdjacent(currentIndex);
+  }
+
+  initCoverSection();
+  document.addEventListener('astro:after-swap', initCoverSection);
+</script>
