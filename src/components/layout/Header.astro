@@ -242,6 +242,11 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
   .mobile-dropdown.open .dropdown-chevron {
     transform: rotate(180deg);
   }
+
+  /* Mobile menu: smooth scrolling on iOS */
+  #mobile-menu {
+    -webkit-overflow-scrolling: touch;
+  }
 </style>
 
 <script>
@@ -256,17 +261,18 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       btn!.setAttribute('aria-expanded', 'false');
       menu!.style.maxHeight = '0';
       menu!.style.opacity = '0';
+      menu!.style.overflowY = 'hidden';
     }
 
     btn.addEventListener('click', () => {
       const isOpen = btn.classList.toggle('menu-open');
       btn.setAttribute('aria-expanded', String(isOpen));
       if (isOpen) {
-        menu.style.maxHeight = menu.scrollHeight + 'px';
+        menu.style.maxHeight = 'calc(100dvh - 4rem)';
         menu.style.opacity = '1';
+        menu.style.overflowY = 'auto';
       } else {
-        menu.style.maxHeight = '0';
-        menu.style.opacity = '0';
+        closeMenu();
       }
     });
 
@@ -284,11 +290,6 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
         } else {
           panel.style.maxHeight = '0';
         }
-
-        // Update parent menu max-height to accommodate expanded content
-        requestAnimationFrame(() => {
-          menu.style.maxHeight = menu.scrollHeight + 'px';
-        });
       });
     });
 
