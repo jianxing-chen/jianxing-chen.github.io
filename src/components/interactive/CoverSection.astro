@@ -73,10 +73,9 @@ const startIdx = Math.floor(Math.random() * photos.length);
 <!-- 返回封面按钮（移动端正文态） -->
 <button id="back-to-cover-btn" class="back-to-cover-btn"
   aria-label={lang === 'zh' ? '返回图库' : 'Back to gallery'}>
-  <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
   </svg>
-  <span>{lang === 'zh' ? '返回图库' : 'Gallery'}</span>
 </button>
 
 <script>
@@ -116,8 +115,14 @@ const startIdx = Math.floor(Math.random() * photos.length);
       if (!credit || index < 0 || index >= coverPhotos.length) return;
       const photo = coverPhotos[index];
       const locName = photo.location?.[coverLang as 'en' | 'zh'] || photo.location?.en || '';
+      const locEn = photo.location?.en || '';
       const titleName = photo.title?.[coverLang as 'en' | 'zh'] || photo.title?.en || '';
-      credit.textContent = locName && titleName ? `${locName} · ${titleName}` : (titleName || locName);
+      const countrySlug = locEn.toLowerCase().replace(/\s+/g, '-');
+      const galleryBase = coverLang === 'zh' ? '/zh/gallery/' : '/gallery/';
+      const locLink = locName && countrySlug
+        ? `<a href="${galleryBase}#country-${countrySlug}" class="cover-credit-link">${locName}</a>`
+        : locName;
+      credit.innerHTML = locLink && titleName ? `${locLink} · ${titleName}` : (titleName || locLink);
     }
 
     function showPhoto(index: number) {
@@ -260,7 +265,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
     }
 
     function transitionToCover() {
-      if (currentState !== 'content' || window.scrollY > 4) return;
+      if (currentState !== 'content' || window.scrollY > 30) return;
       clearTransitionTimer();
       currentState = 'transitioning-to-cover';
       setScrollLocked(true);
@@ -282,7 +287,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
       if (currentState === 'cover' && e.deltaY > 0) {
         e.preventDefault();
         transitionToContent();
-      } else if (currentState === 'content' && e.deltaY < 0 && window.scrollY <= 4) {
+      } else if (currentState === 'content' && e.deltaY < 0 && window.scrollY <= 30) {
         e.preventDefault();
         transitionToCover();
       } else if (currentState.startsWith('transitioning')) {
@@ -321,7 +326,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
       if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 60) {
         if (currentState === 'cover' && dy < 0) {
           transitionToContent();
-        } else if (currentState === 'content' && dy > 0 && window.scrollY <= 4) {
+        } else if (currentState === 'content' && dy > 0 && window.scrollY <= 30) {
           transitionToCover();
         }
       }
