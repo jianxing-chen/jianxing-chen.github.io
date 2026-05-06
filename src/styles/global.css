@@ -395,6 +395,15 @@ html:not(.cover-visible) .cover-scroll-indicator {
   border-bottom-color: transparent !important;
 }
 
+@media (max-width: 767px) {
+  .header-transparent {
+    background: rgba(255, 255, 255, 0.22) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+    border-bottom-color: rgba(0, 0, 0, 0.06) !important;
+  }
+}
+
 .dark .header-transparent {
   background: rgba(15, 23, 42, 0.34) !important;
   backdrop-filter: blur(18px) !important;
