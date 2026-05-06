@@ -64,6 +64,29 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
          transition-colors duration-300"
 >
   <nav aria-label="Main navigation" class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center">
+    <!-- Mobile hamburger -->
+    <button
+      id="mobile-menu-btn"
+      type="button"
+      aria-label="Toggle menu"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+      class="md:hidden relative w-9 h-9 flex items-center justify-center shrink-0
+             text-text-light dark:text-text-dark
+             hover:bg-black/5 dark:hover:bg-white/10
+             rounded-lg transition-colors duration-200 cursor-pointer"
+    >
+      <span class="hamburger-line top-line"></span>
+      <span class="hamburger-line mid-line"></span>
+      <span class="hamburger-line bot-line"></span>
+    </button>
+
+    <!-- Mobile utilities -->
+    <div class="md:hidden flex items-center gap-1 ml-auto">
+      <LanguageSwitch lang={lang} />
+      <ThemeToggle />
+    </div>
+
     <!-- Desktop nav links (evenly distributed) -->
     <div class="hidden md:flex items-center flex-1 justify-evenly">
       {navItems.map((item) =>
@@ -129,23 +152,6 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       <LanguageSwitch lang={lang} />
       <ThemeToggle />
     </div>
-
-    <!-- Mobile hamburger -->
-    <button
-      id="mobile-menu-btn"
-      type="button"
-      aria-label="Toggle menu"
-      aria-expanded="false"
-      aria-controls="mobile-menu"
-      class="md:hidden relative w-9 h-9 flex items-center justify-center
-             text-text-light dark:text-text-dark
-             hover:bg-black/5 dark:hover:bg-white/10
-             rounded-lg transition-colors duration-200 cursor-pointer"
-    >
-      <span class="hamburger-line top-line"></span>
-      <span class="hamburger-line mid-line"></span>
-      <span class="hamburger-line bot-line"></span>
-    </button>
   </nav>
 
   <!-- Mobile menu -->
@@ -208,10 +214,6 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
           </a>
         )
       )}
-      <div class="flex items-center gap-2 px-3 pt-2">
-        <LanguageSwitch lang={lang} />
-        <ThemeToggle />
-      </div>
     </div>
   </div>
 </header>
