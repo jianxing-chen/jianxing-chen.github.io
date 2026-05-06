@@ -108,6 +108,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
     let activeImg = imgCurrent;
     let hiddenImg = imgNext;
     const historyStack: number[] = [];
+    const warmedImageSources = new Set<string>();
 
     function isMobile(): boolean { return window.innerWidth < 768; }
     function getSrc(p: CoverPhoto): string { return isMobile() ? p.mobile : p.desktop; }
@@ -179,9 +180,12 @@ const startIdx = Math.floor(Math.random() * photos.length);
       const prev = (index - 1 + coverPhotos.length) % coverPhotos.length;
       [next, prev].forEach((i) => {
         if (i !== index) {
-          const link = document.createElement('link');
-          link.rel = 'preload'; link.as = 'image'; link.href = getSrc(coverPhotos[i]);
-          document.head.appendChild(link);
+          const src = getSrc(coverPhotos[i]);
+          if (warmedImageSources.has(src)) return;
+          warmedImageSources.add(src);
+          const preloadImage = new Image();
+          preloadImage.decoding = 'async';
+          preloadImage.src = src;
         }
       });
     }
@@ -260,6 +264,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
       setScrollLocked(true);
       setCoverVisible(true);
       setHeroTone(true);
+      coverLayer.classList.add('cover-hidden');
       contentLayer.classList.add('is-animating', 'state-content');
       contentLayer.classList.remove('state-cover');
 

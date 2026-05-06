@@ -33,34 +33,40 @@ const allTags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
       </p>
     </div>
 
-    <!-- Tag filter -->
-    <div class="flex flex-wrap gap-2" id="tag-filter">
-      <button
-        data-tag="all"
-        class="tag-btn active px-3 py-1 text-sm rounded-full font-medium cursor-pointer
-               transition-colors duration-200"
-      >
-        {t('blog.all_posts')}
-      </button>
-      {allTags.map((tag) => (
+    {allTags.length > 0 && (
+      <div class="flex flex-wrap gap-2" id="tag-filter">
         <button
-          data-tag={tag}
-          class="tag-btn px-3 py-1 text-sm rounded-full font-medium cursor-pointer
+          data-tag="all"
+          class="tag-btn active px-3 py-1 text-sm rounded-full font-medium cursor-pointer
                  transition-colors duration-200"
         >
-          {tag}
+          {t('blog.all_posts')}
         </button>
-      ))}
-    </div>
+        {allTags.map((tag) => (
+          <button
+            data-tag={tag}
+            class="tag-btn px-3 py-1 text-sm rounded-full font-medium cursor-pointer
+                   transition-colors duration-200"
+          >
+            {tag}
+          </button>
+        ))}
+      </div>
+    )}
 
-    <!-- Post grid -->
-    <div class="grid gap-5 sm:grid-cols-2" id="posts-grid">
-      {posts.map((post) => (
-        <div data-tags={JSON.stringify(post.data.tags)}>
-          <BlogPostCard post={post} lang={lang} />
-        </div>
-      ))}
-    </div>
+    {posts.length > 0 ? (
+      <div class="grid gap-5 sm:grid-cols-2" id="posts-grid">
+        {posts.map((post) => (
+          <div data-tags={JSON.stringify(post.data.tags)}>
+            <BlogPostCard post={post} lang={lang} />
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p class="rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.02] px-5 py-8 text-center text-text-light/60 dark:text-text-dark/60">
+        {t('blog.empty')}
+      </p>
+    )}
   </div>
 </BaseLayout>
 
@@ -90,6 +96,7 @@ const allTags = [...new Set(posts.flatMap((post) => post.data.tags))].sort();
   function initTagFilter() {
     const buttons = document.querySelectorAll<HTMLButtonElement>('.tag-btn');
     const cards = document.querySelectorAll<HTMLElement>('#posts-grid > div');
+    if (buttons.length === 0 || cards.length === 0) return;
 
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {

@@ -6,12 +6,11 @@ interface Props {
 }
 
 const { lang } = Astro.props;
-const currentUrl = Astro.url;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 // Build the target URL for the other language
 const targetLang = lang === 'en' ? 'zh' : 'en';
-const pathname = currentUrl.pathname;
+const pathname = Astro.url.pathname;
 const stripped = base ? pathname.replace(base, '') : pathname;
 // Build target path: en has no prefix, zh has /zh/ prefix
 let newPath: string;
@@ -30,12 +29,43 @@ const targetDisplayLang = targetLang === 'en' ? 'EN' : '中';
 
 <a
   href={targetUrl}
-  class="inline-flex items-center justify-center w-9 h-9 rounded-lg
+  class="language-switch-link inline-flex items-center justify-center w-9 h-9 rounded-lg
          text-sm font-medium
          text-text-light dark:text-text-dark
          hover:bg-black/5 dark:hover:bg-white/10
          transition-colors duration-200"
+  data-base={base}
+  data-current-lang={lang}
+  data-target-lang={targetLang}
   aria-label={`Switch to ${languages[targetLang]}`}
 >
   {targetDisplayLang}
 </a>
+
+<script>
+  function updateLanguageSwitchLinks() {
+    const links = document.querySelectorAll<HTMLAnchorElement>('.language-switch-link');
+    if (links.length === 0) return;
+
+    links.forEach((link) => {
+      const base = link.dataset.base || '';
+      const currentLang = link.dataset.currentLang || 'en';
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+      const stripped = base && pathname.startsWith(base) ? pathname.slice(base.length) || '/' : pathname;
+
+      let localizedPath: string;
+      if (currentLang === 'en') {
+        localizedPath = `/zh${stripped === '/' ? '/' : stripped}`;
+      } else {
+        localizedPath = stripped.replace(/^\/zh/, '') || '/';
+      }
+
+      link.href = `${base}${localizedPath}${search}${hash}`;
+    });
+  }
+
+  updateLanguageSwitchLinks();
+  document.addEventListener('astro:after-swap', updateLanguageSwitchLinks);
+</script>

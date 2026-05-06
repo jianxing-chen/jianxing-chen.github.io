@@ -11,6 +11,7 @@ const allResearch = await getCollection('research');
 const projects = allResearch
   .filter((p) => p.id.startsWith('zh/'))
   .sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0));
+const completedProjects = projects.filter((p) => p.data.status === 'completed');
 
 const allCatalogs = await getCollection('catalogs');
 const catalogs = allCatalogs.filter((c) => c.id.startsWith('zh/'));
@@ -24,22 +25,28 @@ const catalogs = allCatalogs.filter((c) => c.id.startsWith('zh/'));
     </h2>
     <div class="h-0.5 bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-8" />
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {projects.filter((p) => p.data.status === 'completed').map((project) => {
-        const slug = project.id.replace('zh/', '');
-        return (
-          <ProjectCard
-            title={project.data.title}
-            description={project.data.description}
-            cover={project.data.cover}
-            status={project.data.status}
-            tags={project.data.tags}
-            href={getLocalizedPath(`/research/${slug}`, lang)}
-            statusLabel={t('research.completed')}
-          />
-        );
-      })}
-    </div>
+    {completedProjects.length > 0 ? (
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {completedProjects.map((project) => {
+          const slug = project.id.replace('zh/', '');
+          return (
+            <ProjectCard
+              title={project.data.title}
+              description={project.data.description}
+              cover={project.data.cover}
+              status={project.data.status}
+              tags={project.data.tags}
+              href={getLocalizedPath(`/research/${slug}`, lang)}
+              statusLabel={t('research.completed')}
+            />
+          );
+        })}
+      </div>
+    ) : (
+      <p class="rounded-xl border border-slate-200/80 dark:border-white/[0.08] bg-white/50 dark:bg-white/[0.02] px-5 py-8 text-center text-text-light/60 dark:text-text-dark/60">
+        {t('research.empty_programs')}
+      </p>
+    )}
   </section>
 
   <!-- ═══ Data Products ═══ -->
@@ -95,7 +102,7 @@ const catalogs = allCatalogs.filter((c) => c.id.startsWith('zh/'));
 
     {catalogs.length === 0 && (
       <p class="text-center text-text-light/50 dark:text-text-dark/50 py-12">
-        No catalogs available yet.
+        {t('research.empty_catalogs')}
       </p>
     )}
   </section>

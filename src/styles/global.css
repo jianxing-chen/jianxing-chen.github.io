@@ -346,8 +346,8 @@ html:not(.cover-visible) .cover-scroll-indicator {
 .theme-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9998;
-  background: rgba(2, 8, 23, 0.22);
+  z-index: 5;
+  background: rgba(2, 8, 23, 0.3);
   pointer-events: none;
   opacity: 1;
   transition: opacity 1.4s ease;
@@ -402,13 +402,13 @@ html:not(.cover-visible) .cover-scroll-indicator {
     -webkit-backdrop-filter: blur(18px) !important;
     border-bottom-color: rgba(0, 0, 0, 0.06) !important;
   }
-}
 
-.dark .header-transparent {
-  background: rgba(15, 23, 42, 0.34) !important;
-  backdrop-filter: blur(18px) !important;
-  -webkit-backdrop-filter: blur(18px) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+  .dark .header-transparent {
+    background: rgba(15, 23, 42, 0.34) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+  }
 }
 
 .header-transparent a,
@@ -461,10 +461,10 @@ html:not(.cover-visible) .cover-scroll-indicator {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background: rgba(255, 255, 255, 0.44);
+  background: rgba(255, 255, 255, 0.28);
   background-clip: padding-box;
-  -webkit-backdrop-filter: saturate(185%) blur(32px);
-  backdrop-filter: saturate(185%) blur(32px);
+  -webkit-backdrop-filter: saturate(165%) blur(18px);
+  backdrop-filter: saturate(165%) blur(18px);
   transition: background 0.25s ease,
               border-color 0.25s ease,
               box-shadow 0.25s ease,
@@ -483,15 +483,15 @@ html:not(.cover-visible) .cover-scroll-indicator {
 .desktop-dropdown-panel::before {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.38) 0%,
-    rgba(255, 255, 255, 0.16) 100%
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.05) 100%
   );
-  opacity: 0.92;
+  opacity: 0.54;
 }
 
 .desktop-dropdown-panel::after {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
-              inset 0 -1px 0 rgba(148, 163, 184, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16),
+              inset 0 -1px 0 rgba(148, 163, 184, 0.04);
 }
 
 .desktop-dropdown-scroll {
@@ -502,35 +502,49 @@ html:not(.cover-visible) .cover-scroll-indicator {
 }
 
 .dark .desktop-dropdown-panel {
-  background: rgba(15, 23, 42, 0.5);
-  -webkit-backdrop-filter: saturate(170%) blur(32px);
-  backdrop-filter: saturate(170%) blur(32px);
+  background: rgba(15, 23, 42, 0.31);
+  -webkit-backdrop-filter: saturate(158%) blur(20px);
+  backdrop-filter: saturate(158%) blur(20px);
 }
 
 .dark .desktop-dropdown-panel::before {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.04) 100%
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
   );
-  opacity: 1;
+  opacity: 0.62;
 }
 
 .dark .desktop-dropdown-panel::after {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16),
-              inset 0 -1px 0 rgba(15, 23, 42, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+              inset 0 -1px 0 rgba(15, 23, 42, 0.12);
 }
 
 html.cover-visible:not(.dark) .desktop-dropdown-panel {
-  background: rgba(255, 255, 255, 0.34) !important;
-  -webkit-backdrop-filter: saturate(190%) blur(36px) !important;
-  backdrop-filter: saturate(190%) blur(36px) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  -webkit-backdrop-filter: saturate(168%) blur(20px) !important;
+  backdrop-filter: saturate(168%) blur(20px) !important;
 }
 
 html.cover-visible.dark .desktop-dropdown-panel {
-  background: rgba(15, 23, 42, 0.42) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(36px) !important;
-  backdrop-filter: saturate(180%) blur(36px) !important;
+  background: rgba(15, 23, 42, 0.36) !important;
+  -webkit-backdrop-filter: saturate(165%) blur(24px) !important;
+  backdrop-filter: saturate(165%) blur(24px) !important;
+}
+
+html.cover-visible.dark .desktop-dropdown-panel::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  opacity: 0.58;
+}
+
+html.cover-visible.dark .desktop-dropdown-panel::after {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+              inset 0 -1px 0 rgba(15, 23, 42, 0.14);
 }
 
 /* Smooth header background transition */
