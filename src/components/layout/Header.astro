@@ -157,9 +157,9 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
   <!-- Mobile menu -->
   <div
     id="mobile-menu"
-    class="md:hidden overflow-hidden transition-all duration-300 ease-in-out max-h-0 opacity-0"
+    class="md:hidden overflow-hidden transition-[max-height] duration-300 ease-in-out max-h-0"
   >
-    <div class="px-4 pb-4 pt-2 space-y-1 border-t border-black/5 dark:border-white/10">
+    <div class="mobile-menu-surface px-4 pb-4 pt-2 space-y-1 border-t">
       {navItems.map((item) =>
         item.children ? (
           <div class="mobile-dropdown">
@@ -251,32 +251,83 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
   #mobile-menu {
     -webkit-overflow-scrolling: touch;
   }
+
+  .mobile-menu-surface {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-top-color: transparent;
+    transform: translateY(-0.35rem);
+    opacity: 0;
+    transition: transform 0.28s ease, opacity 0.28s ease,
+                background 0.25s ease, -webkit-backdrop-filter 0.25s ease,
+                backdrop-filter 0.25s ease;
+  }
+
+  #mobile-menu.menu-open-panel .mobile-menu-surface {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .mobile-menu-surface {
+      background: transparent;
+    }
+  }
 </style>
 
 <script>
   function initMobileMenu() {
     const btn = document.getElementById('mobile-menu-btn');
     const menu = document.getElementById('mobile-menu');
-    if (!btn || !menu) return;
+    const menuSurface = menu?.querySelector('.mobile-menu-surface') as HTMLElement | null;
+    const nav = document.querySelector('#site-header nav') as HTMLElement | null;
+    if (!btn || !menu || !menuSurface) return;
+
+    const btnEl = btn;
+    const menuEl = menu;
+    const menuSurfaceEl = menuSurface;
+
+    function getMobileMenuMaxHeight() {
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const navHeight = nav?.getBoundingClientRect().height ?? 64;
+      return Math.max(Math.round(viewportHeight - navHeight), 240);
+    }
 
     // Close mobile menu helper
     function closeMenu() {
-      btn!.classList.remove('menu-open');
-      btn!.setAttribute('aria-expanded', 'false');
-      menu!.style.maxHeight = '0';
-      menu!.style.opacity = '0';
-      menu!.style.overflowY = 'hidden';
+      btnEl.classList.remove('menu-open');
+      btnEl.setAttribute('aria-expanded', 'false');
+      menuEl.classList.remove('menu-open-panel');
+      menuEl.style.maxHeight = '0';
+      menuEl.style.overflowY = 'hidden';
+      menuSurfaceEl.style.opacity = '0';
+      menuSurfaceEl.style.transform = 'translateY(-0.35rem)';
     }
 
-    btn.addEventListener('click', () => {
-      const isOpen = btn.classList.toggle('menu-open');
-      btn.setAttribute('aria-expanded', String(isOpen));
+    function openMenu() {
+      menuEl.classList.add('menu-open-panel');
+      menuEl.style.maxHeight = `${getMobileMenuMaxHeight()}px`;
+      menuEl.style.overflowY = 'auto';
+      requestAnimationFrame(() => {
+        menuSurfaceEl.style.opacity = '1';
+        menuSurfaceEl.style.transform = 'translateY(0)';
+      });
+    }
+
+    btnEl.addEventListener('click', () => {
+      const isOpen = btnEl.classList.toggle('menu-open');
+      btnEl.setAttribute('aria-expanded', String(isOpen));
       if (isOpen) {
-        menu.style.maxHeight = 'calc(100dvh - 4rem)';
-        menu.style.opacity = '1';
-        menu.style.overflowY = 'auto';
+        openMenu();
       } else {
         closeMenu();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (btnEl.classList.contains('menu-open')) {
+        menuEl.style.maxHeight = `${getMobileMenuMaxHeight()}px`;
       }
     });
 

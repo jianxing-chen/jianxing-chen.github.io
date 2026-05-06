@@ -390,24 +390,74 @@ html:not(.cover-visible) .cover-scroll-indicator {
 }
 
 /* ── Header transparent mode ── */
+#site-header {
+  --mobile-nav-surface-bg: rgba(250, 250, 250, 0.95);
+  --mobile-nav-surface-backdrop: none;
+  --mobile-nav-surface-border: rgba(0, 0, 0, 0.05);
+}
+
+.dark #site-header {
+  --mobile-nav-surface-bg: rgba(15, 23, 42, 0.95);
+  --mobile-nav-surface-backdrop: none;
+  --mobile-nav-surface-border: rgba(255, 255, 255, 0.1);
+}
+
 .header-transparent {
   background: transparent !important;
   border-bottom-color: transparent !important;
 }
 
 @media (max-width: 767px) {
+  #site-header {
+    overflow: hidden;
+    isolation: isolate;
+    border-bottom-color: transparent !important;
+  }
+
+  #site-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--mobile-nav-surface-bg);
+    backdrop-filter: var(--mobile-nav-surface-backdrop);
+    -webkit-backdrop-filter: var(--mobile-nav-surface-backdrop);
+    border-bottom: 1px solid var(--mobile-nav-surface-border);
+    transition: background 0.25s ease, backdrop-filter 0.25s ease,
+                -webkit-backdrop-filter 0.25s ease, border-color 0.25s ease;
+  }
+
+  #site-header nav,
+  #site-header #mobile-menu {
+    position: relative;
+    z-index: 1;
+  }
+
+  #site-header.header-transparent {
+    --mobile-nav-surface-bg: rgba(255, 255, 255, 0.22);
+    --mobile-nav-surface-backdrop: blur(18px);
+    --mobile-nav-surface-border: rgba(0, 0, 0, 0.06);
+  }
+
+  .dark #site-header.header-transparent {
+    --mobile-nav-surface-bg: rgba(15, 23, 42, 0.34);
+    --mobile-nav-surface-backdrop: blur(18px);
+    --mobile-nav-surface-border: rgba(255, 255, 255, 0.08);
+  }
+
   .header-transparent {
-    background: rgba(255, 255, 255, 0.22) !important;
-    backdrop-filter: blur(18px) !important;
-    -webkit-backdrop-filter: blur(18px) !important;
-    border-bottom-color: rgba(0, 0, 0, 0.06) !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom-color: transparent !important;
   }
 
   .dark .header-transparent {
-    background: rgba(15, 23, 42, 0.34) !important;
-    backdrop-filter: blur(18px) !important;
-    -webkit-backdrop-filter: blur(18px) !important;
-    border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom-color: transparent !important;
   }
 }
 
