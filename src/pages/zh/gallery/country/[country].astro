@@ -4,6 +4,14 @@ import GalleryGrid from '@/components/ui/GalleryGrid.astro';
 import { useTranslations } from '@/i18n/ui';
 import photos from '@/data/gallery.json';
 
+// Generate all country pages at build time
+export function getStaticPaths() {
+  const countries = [...new Set(photos.map((p) => p.location.en))];
+  return countries.map((c) => ({
+    params: { country: c.toLowerCase().replace(/\s+/g, '-') },
+  }));
+}
+
 const lang = 'zh';
 const t = useTranslations(lang);
 
