@@ -96,8 +96,11 @@
     function updateThemeOverlay(isDark: boolean) {
       if (!isHomepage) {
         if (themeOverlay) {
-          themeOverlay.remove();
-          themeOverlay = null;
+          themeOverlay.style.opacity = '0';
+          themeOverlay.addEventListener('transitionend', function handler() {
+            themeOverlay!.remove();
+            themeOverlay = null;
+          }, { once: true });
         }
         return;
       }
@@ -106,12 +109,19 @@
         if (!themeOverlay) {
           themeOverlay = document.createElement('div');
           themeOverlay.className = 'theme-overlay';
+          themeOverlay.style.opacity = '0';
           document.body.appendChild(themeOverlay);
+          requestAnimationFrame(() => {
+            if (themeOverlay) themeOverlay.style.opacity = '1';
+          });
         }
       } else {
         if (themeOverlay) {
-          themeOverlay.remove();
-          themeOverlay = null;
+          themeOverlay.style.opacity = '0';
+          themeOverlay.addEventListener('transitionend', function handler() {
+            themeOverlay!.remove();
+            themeOverlay = null;
+          }, { once: true });
         }
       }
     }

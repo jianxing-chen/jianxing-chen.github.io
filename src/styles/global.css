@@ -347,8 +347,10 @@ html:not(.cover-visible) .cover-scroll-indicator {
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: rgba(2, 8, 23, 0.16);
+  background: rgba(2, 8, 23, 0.22);
   pointer-events: none;
+  opacity: 1;
+  transition: opacity 1.4s ease;
 }
 
 /* ── Back to cover button (mobile only, content state) ── */
@@ -390,8 +392,6 @@ html:not(.cover-visible) .cover-scroll-indicator {
 /* ── Header transparent mode ── */
 .header-transparent {
   background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
   border-bottom-color: transparent !important;
 }
 
@@ -450,6 +450,87 @@ html:not(.cover-visible) .cover-scroll-indicator {
 
 .dark .header-transparent .desktop-dropdown-link:hover {
   color: var(--color-primary-dark) !important;
+}
+
+/* Dropdown frosted glass */
+.desktop-dropdown-wrapper {
+  backface-visibility: hidden;
+}
+
+.desktop-dropdown-panel {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: rgba(255, 255, 255, 0.44);
+  background-clip: padding-box;
+  -webkit-backdrop-filter: saturate(185%) blur(32px);
+  backdrop-filter: saturate(185%) blur(32px);
+  transition: background 0.25s ease,
+              border-color 0.25s ease,
+              box-shadow 0.25s ease,
+              backdrop-filter 0.25s ease;
+}
+
+.desktop-dropdown-panel::before,
+.desktop-dropdown-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.desktop-dropdown-panel::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.38) 0%,
+    rgba(255, 255, 255, 0.16) 100%
+  );
+  opacity: 0.92;
+}
+
+.desktop-dropdown-panel::after {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
+              inset 0 -1px 0 rgba(148, 163, 184, 0.14);
+}
+
+.desktop-dropdown-scroll {
+  position: relative;
+  z-index: 1;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dark .desktop-dropdown-panel {
+  background: rgba(15, 23, 42, 0.5);
+  -webkit-backdrop-filter: saturate(170%) blur(32px);
+  backdrop-filter: saturate(170%) blur(32px);
+}
+
+.dark .desktop-dropdown-panel::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  opacity: 1;
+}
+
+.dark .desktop-dropdown-panel::after {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16),
+              inset 0 -1px 0 rgba(15, 23, 42, 0.35);
+}
+
+html.cover-visible:not(.dark) .desktop-dropdown-panel {
+  background: rgba(255, 255, 255, 0.34) !important;
+  -webkit-backdrop-filter: saturate(190%) blur(36px) !important;
+  backdrop-filter: saturate(190%) blur(36px) !important;
+}
+
+html.cover-visible.dark .desktop-dropdown-panel {
+  background: rgba(15, 23, 42, 0.42) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(36px) !important;
+  backdrop-filter: saturate(180%) blur(36px) !important;
 }
 
 /* Smooth header background transition */
