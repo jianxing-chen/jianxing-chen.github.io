@@ -268,6 +268,9 @@ const startIdx = Math.floor(Math.random() * photos.length);
       // ── 在滑动手势/按键瞬间就开始渐隐 credit 文字 ──
       const creditEl = document.getElementById('cover-credit');
       if (creditEl) creditEl.classList.add('cover-credit-fading');
+      // ── 菜单栏文字与 hero 同步变色，不再等 800ms 动画 ──
+      const header = document.getElementById('site-header');
+      if (header) header.classList.remove('header-transparent');
       currentState = 'transitioning-to-content';
       setScrollLocked(true);
       setCoverVisible(true);
@@ -284,6 +287,11 @@ const startIdx = Math.floor(Math.random() * photos.length);
     function transitionToCover() {
       if (currentState !== 'content' || window.scrollY > 30) return;
       clearTransitionTimer();
+      // ── credit 文字与菜单栏颜色同步渐现，不再等 800ms 动画 ──
+      const creditEl = document.getElementById('cover-credit');
+      if (creditEl) creditEl.classList.remove('cover-credit-fading');
+      const header = document.getElementById('site-header');
+      if (header) header.classList.add('header-transparent');
       currentState = 'transitioning-to-cover';
 
       // 先滚回顶部，确保 contentLayer 与 viewport 对齐后再切 fixed
