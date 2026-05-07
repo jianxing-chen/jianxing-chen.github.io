@@ -127,7 +127,9 @@ const startIdx = Math.floor(Math.random() * photos.length);
       const locLink = displayLoc && countrySlug
         ? `<a href="${galleryBase}#country-${countrySlug}" class="cover-credit-link">${displayLoc}</a>`
         : displayLoc;
-      credit.innerHTML = locLink && titleName ? `${locLink} · ${titleName}` : (titleName || locLink);
+      credit.innerHTML = isMobile()
+        ? (locLink || '')
+        : (locLink && titleName ? `${locLink} · ${titleName}` : (titleName || locLink));
     }
 
     function showPhoto(index: number) {
@@ -230,6 +232,9 @@ const startIdx = Math.floor(Math.random() * photos.length);
 
     function enterCoverState() {
       clearTransitionTimer();
+      // ── 恢复 credit 文字可见 ──
+      const creditEl = document.getElementById('cover-credit');
+      if (creditEl) creditEl.classList.remove('cover-credit-fading');
       currentState = 'cover';
       contentLayer.classList.remove('state-content', 'is-animating');
       contentLayer.classList.add('state-cover');
@@ -260,6 +265,9 @@ const startIdx = Math.floor(Math.random() * photos.length);
       if (currentState !== 'cover') return;
       stopAutoRotate();
       clearTransitionTimer();
+      // ── 在滑动手势/按键瞬间就开始渐隐 credit 文字 ──
+      const creditEl = document.getElementById('cover-credit');
+      if (creditEl) creditEl.classList.add('cover-credit-fading');
       currentState = 'transitioning-to-content';
       setScrollLocked(true);
       setCoverVisible(true);
