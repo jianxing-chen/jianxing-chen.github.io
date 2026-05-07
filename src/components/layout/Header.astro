@@ -259,12 +259,20 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
     border-top-color: transparent;
     transform: translateY(-0.35rem);
     opacity: 0;
-    transition: transform 0.28s ease, opacity 0.28s ease;
+    transition: transform 0.28s ease, opacity 0.28s ease,
+                background 0.25s ease, -webkit-backdrop-filter 0.25s ease,
+                backdrop-filter 0.25s ease;
   }
 
   #mobile-menu.menu-open-panel .mobile-menu-surface {
     transform: translateY(0);
     opacity: 1;
+  }
+
+  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .mobile-menu-surface {
+      background: transparent;
+    }
   }
 </style>
 
@@ -279,7 +287,6 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
     const btnEl = btn;
     const menuEl = menu;
     const menuSurfaceEl = menuSurface;
-    const viewport = window.visualViewport;
 
     function getMobileMenuMaxHeight() {
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
@@ -318,15 +325,11 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       }
     });
 
-    function syncOpenMenuHeight() {
+    window.addEventListener('resize', () => {
       if (btnEl.classList.contains('menu-open')) {
         menuEl.style.maxHeight = `${getMobileMenuMaxHeight()}px`;
       }
-    }
-
-    window.addEventListener('resize', syncOpenMenuHeight);
-    window.addEventListener('orientationchange', syncOpenMenuHeight);
-    viewport?.addEventListener('resize', syncOpenMenuHeight);
+    });
 
     // Mobile dropdown toggles (accordion: close others on open)
     menu.querySelectorAll('[data-dropdown-toggle]').forEach((toggleBtn) => {
