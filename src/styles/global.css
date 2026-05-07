@@ -483,25 +483,28 @@ html:not(.cover-visible) .cover-scroll-indicator {
   background-color: white !important;
 }
 
-.header-transparent .desktop-dropdown-panel,
-.header-transparent .desktop-dropdown-panel a {
+.header-transparent .desktop-dropdown-panel {
   text-shadow: none !important;
 }
 
 .header-transparent .desktop-dropdown-link {
-  color: var(--color-text-light) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
 }
 
 .header-transparent .desktop-dropdown-link:hover {
-  color: var(--color-primary-light) !important;
+  color: white !important;
+  background: rgba(255, 255, 255, 0.12) !important;
 }
 
 .dark .header-transparent .desktop-dropdown-link {
-  color: var(--color-text-dark) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
 }
 
 .dark .header-transparent .desktop-dropdown-link:hover {
-  color: var(--color-primary-dark) !important;
+  color: white !important;
+  background: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* Dropdown frosted glass */
