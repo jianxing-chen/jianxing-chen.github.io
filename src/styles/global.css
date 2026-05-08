@@ -220,15 +220,18 @@ body.home-scroll-lock {
   transition: background 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
               backdrop-filter 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
               -webkit-backdrop-filter 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              border-color 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+              border-color 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
+              box-shadow 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .hero-text-cover .hero-text-glass {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
   padding: 0.75rem 1rem;
   margin: -0.75rem -1rem;
 }
