@@ -144,6 +144,7 @@ const viewerPhotos = photos.map((p) => ({
 
       const gallery = document.getElementById('country-gallery')!;
       const masonryDesktop = gallery.querySelector('.gallery-masonry--desktop') as HTMLElement;
+      const masonryMobile = gallery.querySelector('.gallery-masonry--mobile') as HTMLElement;
 
       // "全部地区" → 恢复原始 greedy masonry
       if (!region || region === 'all') {
@@ -160,9 +161,15 @@ const viewerPhotos = photos.map((p) => ({
         gallery.classList.add('is-filtered');
       }
 
-      // 筛选卡片（只操作桌面 masonry 内的卡片，不碰移动端 fallback）
-      const cards = [...masonryDesktop.children] as HTMLElement[];
-      cards.forEach((card) => {
+      // 筛选桌面端卡片
+      const desktopCards = [...masonryDesktop.children] as HTMLElement[];
+      desktopCards.forEach((card) => {
+        card.hidden = card.dataset.region !== region;
+      });
+
+      // 筛选移动端卡片
+      const mobileCards = [...masonryMobile.children] as HTMLElement[];
+      mobileCards.forEach((card) => {
         card.hidden = card.dataset.region !== region;
       });
     });
