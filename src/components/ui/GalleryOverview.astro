@@ -22,7 +22,7 @@ interface Props {
 const { photos, lang, previewLimit = 10 } = Astro.props;
 const countries = buildGalleryCountries(photos, lang, previewLimit);
 const moreLabel = lang === 'zh' ? 'More' : 'More';
-const masonryColumns = 3;
+const masonryColumns = 4;
 
 // 预计算每个国家的 masonry 布局 + 收集所有预览照片用于 viewer
 const allPreviewPhotos: GalleryPhoto[] = [];
