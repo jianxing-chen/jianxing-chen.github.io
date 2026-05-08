@@ -10,19 +10,10 @@
  */
 
 import { getCoverImage, getCoverImageMobile } from '@/utils/cloudinary';
-
-interface Photo {
-  id: string;
-  cloudinaryId: string;
-  title: { en: string; zh?: string };
-  location: { en: string; zh?: string };
-  region: { en: string; zh?: string };
-  width: number;
-  height: number;
-}
+import { getGalleryPhotoDetailPath, type GalleryPhoto } from '@/utils/gallery';
 
 interface Props {
-  photos: Photo[];
+  photos: GalleryPhoto[];
   lang: string;
 }
 
@@ -32,6 +23,7 @@ const coverPhotos = photos.map((p) => ({
   id: p.id,
   desktop: getCoverImage(p.cloudinaryId),
   mobile: getCoverImageMobile(p.cloudinaryId),
+  href: getGalleryPhotoDetailPath(p, lang),
   title: p.title,
   location: p.location,
   region: p.region,
@@ -98,7 +90,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
     if (!coverDataEl) return;
     const coverData = JSON.parse(coverDataEl.textContent || '{}');
 
-    type CoverPhoto = { id: string; desktop: string; mobile: string; title: { en: string; zh?: string }; location: { en: string; zh?: string }; region: { en: string; zh?: string } };
+    type CoverPhoto = { id: string; desktop: string; mobile: string; href: string; title: { en: string; zh?: string }; location: { en: string; zh?: string }; region: { en: string; zh?: string } };
     const coverPhotos: CoverPhoto[] = coverData.photos || [];
     const startIdx: number = coverData.startIndex || 0;
     const coverLang: string = coverData.lang || 'en';
@@ -119,13 +111,10 @@ const startIdx = Math.floor(Math.random() * photos.length);
       const photo = coverPhotos[index];
       const locName = photo.location?.[coverLang as 'en' | 'zh'] || photo.location?.en || '';
       const regionName = photo.region?.[coverLang as 'en' | 'zh'] || photo.region?.en || '';
-      const locEn = photo.location?.en || '';
       const titleName = photo.title?.[coverLang as 'en' | 'zh'] || photo.title?.en || '';
-      const photoSlug = photo.id;
-      const galleryBase = coverLang === 'zh' ? '/zh/gallery/' : '/gallery/';
       const displayLoc = locName && regionName ? `${locName}, ${regionName}` : (locName || regionName);
-      const locLink = displayLoc && photoSlug
-        ? `<a href="${galleryBase}#photo-${photoSlug}" class="cover-credit-link">${displayLoc}</a>`
+      const locLink = displayLoc && photo.href
+        ? `<a href="${photo.href}" class="cover-credit-link">${displayLoc}</a>`
         : displayLoc;
       credit.innerHTML = isMobile()
         ? (locLink || '')

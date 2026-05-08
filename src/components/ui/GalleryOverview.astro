@@ -1,0 +1,127 @@
+---
+/**
+ * 图库首页总览组件
+ * 功能：渲染 gallery 首页的国家时间轴布局，桌面端为左列国家名 + More / 中线 marker / 右侧摘录瀑布流，移动端降级为分块标题。
+ * 输入：照片数组、语言代码、每国摘录上限。
+ * 输出：支持 PhotoSwipe 的首页图片总览。
+ * 用法示例：<GalleryOverview photos={photos} lang="zh" previewLimit={10} />
+ */
+
+import { getGalleryThumbnail, getGalleryFullSize } from '@/utils/cloudinary';
+import { buildGalleryCountries, getGalleryCountryPath, type GalleryPhoto } from '@/utils/gallery';
+
+interface Props {
+  photos: GalleryPhoto[];
+  lang: string;
+  previewLimit?: number;
+}
+
+const { photos, lang, previewLimit = 10 } = Astro.props;
+const countries = buildGalleryCountries(photos, lang, previewLimit);
+const moreLabel = lang === 'zh' ? 'More' : 'More';
+---
+
+<div id="gallery-overview" class="gallery-overview">
+  <div class="gallery-overview__line" aria-hidden="true"></div>
+
+  {countries.map((country) => (
+    <section id={country.anchorId} class="gallery-overview__row" style="scroll-margin-top: 5rem;">
+      <div class="gallery-overview__meta">
+        <div class="gallery-overview__meta-stack">
+          <p class="gallery-overview__country">{country.display}</p>
+          <a href={getGalleryCountryPath(country.countrySlug, lang)} class="gallery-overview__more">
+            <span>{moreLabel}</span>
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12h12m0 0-5-5m5 5-5 5" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="gallery-overview__marker-column" aria-hidden="true">
+        <span class="gallery-overview__marker"></span>
+      </div>
+
+      <div class="gallery-overview__content">
+        <div class="gallery-masonry gallery-masonry--overview">
+          {country.previewPhotos.map((photo) => (
+            <a
+              id={`photo-${photo.id}`}
+              href={getGalleryFullSize(photo.cloudinaryId)}
+              data-pswp-width={photo.width}
+              data-pswp-height={photo.height}
+              class="gallery-card gallery-card--overview group"
+            >
+              <img
+                src={getGalleryThumbnail(photo.cloudinaryId)}
+                alt={photo.title[lang as keyof typeof photo.title] || photo.title.en}
+                width={photo.width}
+                height={photo.height}
+                loading="lazy"
+                class="gallery-card__image"
+              />
+              <div class="gallery-card__overlay">
+                <p class="gallery-card__eyebrow">
+                  {photo.region[lang as keyof typeof photo.region] || photo.region.en}
+                </p>
+                <h3 class="gallery-card__title">
+                  {photo.title[lang as keyof typeof photo.title] || photo.title.en}
+                </h3>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  ))}
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css" />
+
+<script>
+  import PhotoSwipeLightbox from 'photoswipe/lightbox';
+
+  const lightbox = new PhotoSwipeLightbox({
+    gallery: '#gallery-overview',
+    children: 'a.gallery-card',
+    pswpModule: () => import('photoswipe'),
+    bgOpacity: 1,
+    padding: { top: 20, bottom: 20, left: 20, right: 20 },
+  });
+
+  lightbox.on('uiRegister', () => {
+    lightbox.pswp!.ui!.registerElement({
+      name: 'caption',
+      order: 9,
+      isButton: false,
+      appendTo: 'root',
+      html: '',
+      onInit: (el) => {
+        el.style.cssText = `
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 16px 20px;
+          background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+          color: white;
+          font-size: 14px;
+          text-align: center;
+          pointer-events: none;
+        `;
+
+        lightbox.pswp!.on('change', () => {
+          const slide = lightbox.pswp!.currSlide;
+          if (!slide || !slide.data.element) return;
+          const eyebrow = (slide.data.element as HTMLElement).querySelector('.gallery-card__eyebrow')?.textContent || '';
+          const title = (slide.data.element as HTMLElement).querySelector('.gallery-card__title')?.textContent || '';
+          el.innerHTML = eyebrow
+            ? `<span style="opacity:0.72;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">${eyebrow}</span><br><strong>${title}</strong>`
+            : `<strong>${title}</strong>`;
+        });
+      },
+    });
+  });
+
+  lightbox.init();
+</script>

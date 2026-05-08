@@ -3,12 +3,13 @@ import BaseLayout from '@/components/layout/BaseLayout.astro';
 import GalleryGrid from '@/components/ui/GalleryGrid.astro';
 import { useTranslations, getLocalizedPath } from '@/i18n/ui';
 import photos from '@/data/gallery.json';
+import { slugifyCountry } from '@/utils/gallery';
 
 // Generate all country pages at build time
 export function getStaticPaths() {
   const countries = [...new Set(photos.map((p) => p.location.en))];
   return countries.map((c) => ({
-    params: { country: c.toLowerCase().replace(/\s+/g, '-') },
+    params: { country: slugifyCountry(c) },
   }));
 }
 
@@ -16,22 +17,19 @@ const lang = 'en';
 const t = useTranslations(lang);
 
 const { country } = Astro.params;
-const countryName = country!.replace(/-/g, ' ');
+const countrySlug = country!;
 
-// Filter photos by country (case-insensitive match)
-const countryPhotos = photos.filter((p) =>
-  p.location.en.toLowerCase() === countryName
-);
+const countryPhotos = photos.filter((p) => slugifyCountry(p.location.en) === countrySlug);
 
 const countryDisplay = countryPhotos.length > 0
   ? countryPhotos[0].location.en
-  : countryName;
-const backHref = getLocalizedPath(`/gallery/#country-${country}`, lang);
+  : countrySlug;
+const backHref = getLocalizedPath(`/gallery/#country-${countrySlug}`, lang);
 ---
 
 <BaseLayout title={`${countryDisplay} Photos - ${t('site.title')}`} lang={lang}>
-  <div class="max-w-6xl mx-auto px-4 sm:px-6">
-    <div class="mb-8">
+  <div class="max-w-[90rem] mx-auto px-4 sm:px-6">
+    <div class="mb-10 sm:mb-12">
       <a href={backHref} class="text-sm text-primary-light dark:text-primary-dark hover:underline mb-4 inline-block">
         ← {t('gallery.back_to_gallery')}
       </a>
