@@ -928,7 +928,10 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .gallery-overview__meta {
-    margin-bottom: 1rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
   }
 }
 
