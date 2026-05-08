@@ -1,14 +1,17 @@
 ---
 /**
  * 图库首页总览组件
- * 功能：渲染 gallery 首页的国家时间轴布局，桌面端为左列国家名 + More / 中线 marker / 右侧摘录瀑布流，移动端降级为分块标题。
+ * 功能：渲染 gallery 首页的国家时间轴布局。桌面端左列为国家名 + More 链接，中间伪元素时间轴（线穿点），
+ *       右侧为 JS 贪心算法驱动的 flex masonry 瀑布流。移动端降级为 CSS columns 分块。
  * 输入：照片数组、语言代码、每国摘录上限。
- * 输出：支持 PhotoSwipe 的首页图片总览。
+ * 输出：带自定义 PhotoViewer 的首页图片总览。
  * 用法示例：<GalleryOverview photos={photos} lang="zh" previewLimit={10} />
  */
 
 import { getGalleryThumbnail, getGalleryFullSize } from '@/utils/cloudinary';
 import { buildGalleryCountries, getGalleryCountryPath, type GalleryPhoto } from '@/utils/gallery';
+import { computeRowLayout } from '@/utils/masonry';
+import PhotoViewer from '@/components/interactive/PhotoViewer.astro';
 
 interface Props {
   photos: GalleryPhoto[];
@@ -19,38 +22,91 @@ interface Props {
 const { photos, lang, previewLimit = 10 } = Astro.props;
 const countries = buildGalleryCountries(photos, lang, previewLimit);
 const moreLabel = lang === 'zh' ? 'More' : 'More';
+const masonryColumns = 3;
+
+// 预计算每个国家的 masonry 布局 + 收集所有预览照片用于 viewer
+const allPreviewPhotos: GalleryPhoto[] = [];
+const countryLayouts = countries.map((country) => {
+  allPreviewPhotos.push(...country.previewPhotos);
+  return {
+    ...country,
+    columns: computeRowLayout(country.previewPhotos, masonryColumns),
+  };
+});
+
+// 序列化照片数据供 PhotoViewer 使用
+const viewerPhotos = allPreviewPhotos.map((p) => ({
+  id: p.id,
+  src: getGalleryFullSize(p.cloudinaryId),
+  width: p.width,
+  height: p.height,
+  title: p.title[lang as keyof typeof p.title] || p.title.en,
+  description: p.description[lang as keyof typeof p.description] || p.description.en,
+  location: p.location[lang as keyof typeof p.location] || p.location.en,
+  region: p.region[lang as keyof typeof p.region] || p.region.en,
+  tags: p.tags,
+}));
 ---
 
 <div id="gallery-overview" class="gallery-overview">
-  <div class="gallery-overview__line" aria-hidden="true"></div>
-
-  {countries.map((country) => (
+  {countryLayouts.map((country) => (
     <section id={country.anchorId} class="gallery-overview__row" style="scroll-margin-top: 5rem;">
+      <!-- 左列：国家名 + More 链接 -->
       <div class="gallery-overview__meta">
-        <div class="gallery-overview__meta-stack">
-          <p class="gallery-overview__country">{country.display}</p>
-          <a href={getGalleryCountryPath(country.countrySlug, lang)} class="gallery-overview__more">
-            <span>{moreLabel}</span>
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12h12m0 0-5-5m5 5-5 5" />
-            </svg>
-          </a>
-        </div>
+        <p class="gallery-overview__country">{country.display}</p>
+        <a href={getGalleryCountryPath(country.countrySlug, lang)} class="gallery-overview__more">
+          <span>{moreLabel}</span>
+          <svg class="more-arrow" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 12h12m0 0-5-5m5 5-5 5" />
+          </svg>
+        </a>
       </div>
 
-      <div class="gallery-overview__marker-column" aria-hidden="true">
-        <span class="gallery-overview__marker"></span>
-      </div>
-
+      <!-- 右列：flex masonry 瀑布流（桌面端）；移动端回退 CSS columns -->
       <div class="gallery-overview__content">
-        <div class="gallery-masonry gallery-masonry--overview">
+        <!-- 桌面端：flex 多列布局 -->
+        <div class="gallery-masonry gallery-masonry--desktop">
+          {country.columns.map((col) => (
+            <div class="gallery-masonry__column">
+              {col.items.map((photo) => (
+                <button
+                  id={`photo-${photo.id}`}
+                  data-photo-id={photo.id}
+                  class="gallery-card group"
+                  type="button"
+                  aria-label={`${photo.title[lang as keyof typeof photo.title] || photo.title.en} — ${photo.region[lang as keyof typeof photo.region] || photo.region.en}`}
+                >
+                  <img
+                    src={getGalleryThumbnail(photo.cloudinaryId)}
+                    alt={photo.title[lang as keyof typeof photo.title] || photo.title.en}
+                    width={photo.width}
+                    height={photo.height}
+                    loading="lazy"
+                    class="gallery-card__image"
+                    style={`aspect-ratio:${photo.width}/${photo.height}`}
+                  />
+                  <div class="gallery-card__overlay">
+                    <p class="gallery-card__eyebrow">
+                      {photo.region[lang as keyof typeof photo.region] || photo.region.en}
+                    </p>
+                    <h3 class="gallery-card__title">
+                      {photo.title[lang as keyof typeof photo.title] || photo.title.en}
+                    </h3>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        <!-- 移动端：CSS columns 回退（隐藏于桌面端） -->
+        <div class="gallery-masonry gallery-masonry--mobile">
           {country.previewPhotos.map((photo) => (
-            <a
-              id={`photo-${photo.id}`}
-              href={getGalleryFullSize(photo.cloudinaryId)}
-              data-pswp-width={photo.width}
-              data-pswp-height={photo.height}
-              class="gallery-card gallery-card--overview group"
+            <button
+              data-photo-id={photo.id}
+              class="gallery-card group"
+              type="button"
+              aria-label={`${photo.title[lang as keyof typeof photo.title] || photo.title.en}`}
             >
               <img
                 src={getGalleryThumbnail(photo.cloudinaryId)}
@@ -59,6 +115,7 @@ const moreLabel = lang === 'zh' ? 'More' : 'More';
                 height={photo.height}
                 loading="lazy"
                 class="gallery-card__image"
+                style={`aspect-ratio:${photo.width}/${photo.height}`}
               />
               <div class="gallery-card__overlay">
                 <p class="gallery-card__eyebrow">
@@ -68,7 +125,7 @@ const moreLabel = lang === 'zh' ? 'More' : 'More';
                   {photo.title[lang as keyof typeof photo.title] || photo.title.en}
                 </h3>
               </div>
-            </a>
+            </button>
           ))}
         </div>
       </div>
@@ -76,52 +133,8 @@ const moreLabel = lang === 'zh' ? 'More' : 'More';
   ))}
 </div>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.4/dist/photoswipe.css" />
+<!-- 照片数据（JSON，供 PhotoViewer 读取） -->
+<script type="application/json" id="gallery-photo-data" set:html={JSON.stringify(viewerPhotos)}></script>
 
-<script>
-  import PhotoSwipeLightbox from 'photoswipe/lightbox';
-
-  const lightbox = new PhotoSwipeLightbox({
-    gallery: '#gallery-overview',
-    children: 'a.gallery-card',
-    pswpModule: () => import('photoswipe'),
-    bgOpacity: 1,
-    padding: { top: 20, bottom: 20, left: 20, right: 20 },
-  });
-
-  lightbox.on('uiRegister', () => {
-    lightbox.pswp!.ui!.registerElement({
-      name: 'caption',
-      order: 9,
-      isButton: false,
-      appendTo: 'root',
-      html: '',
-      onInit: (el) => {
-        el.style.cssText = `
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          padding: 16px 20px;
-          background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
-          color: white;
-          font-size: 14px;
-          text-align: center;
-          pointer-events: none;
-        `;
-
-        lightbox.pswp!.on('change', () => {
-          const slide = lightbox.pswp!.currSlide;
-          if (!slide || !slide.data.element) return;
-          const eyebrow = (slide.data.element as HTMLElement).querySelector('.gallery-card__eyebrow')?.textContent || '';
-          const title = (slide.data.element as HTMLElement).querySelector('.gallery-card__title')?.textContent || '';
-          el.innerHTML = eyebrow
-            ? `<span style="opacity:0.72;font-size:12px;letter-spacing:0.08em;text-transform:uppercase">${eyebrow}</span><br><strong>${title}</strong>`
-            : `<strong>${title}</strong>`;
-        });
-      },
-    });
-  });
-
-  lightbox.init();
-</script>
+<!-- 照片查看器 -->
+<PhotoViewer />

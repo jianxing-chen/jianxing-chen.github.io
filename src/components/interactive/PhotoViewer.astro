@@ -1,0 +1,298 @@
+---
+/**
+ * 照片查看器组件（全屏 overlay）
+ * 功能：点击 gallery-card 后以全屏方式展示照片原图，显示完整元数据（标题、位置、描述、标签），
+ *       支持键盘/触摸手势导航、Esc 关闭，关闭后保持页面原始滚动位置。
+ * 用法：在 gallery 页面底部引入 <PhotoViewer />，页面需提供 #gallery-photo-data 的 JSON 数据。
+ */
+---
+
+<div id="photo-viewer" class="photo-viewer" aria-hidden="true" inert>
+  <!-- 背景遮罩（点击关闭） -->
+  <div class="photo-viewer__backdrop" data-viewer-close></div>
+
+  <!-- 关闭按钮 -->
+  <button class="photo-viewer__close" data-viewer-close aria-label="Close viewer" type="button">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  </button>
+
+  <!-- 上一张 / 下一张 -->
+  <button class="photo-viewer__nav photo-viewer__prev" data-viewer-prev aria-label="Previous photo" type="button">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  </button>
+  <button class="photo-viewer__nav photo-viewer__next" data-viewer-next aria-label="Next photo" type="button">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  </button>
+
+  <!-- 图片舞台 -->
+  <div class="photo-viewer__stage">
+    <div class="photo-viewer__image-wrap">
+      <img class="photo-viewer__image" src="" alt="" draggable="false" />
+      <!-- 图片底部叠加文字（相对于图片下边缘） -->
+      <div class="photo-viewer__info">
+        <p class="photo-viewer__info-line1">
+          <span class="photo-viewer__region"></span><span class="photo-viewer__sep">, </span><span class="photo-viewer__title"></span>
+        </p>
+        <p class="photo-viewer__description"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  interface PhotoData {
+    id: string;
+    src: string;
+    width: number;
+    height: number;
+    title: string;
+    description: string;
+    location: string;
+    region: string;
+    tags: string[];
+  }
+
+  class PhotoViewer {
+    private el: HTMLElement;
+    private imageEl: HTMLImageElement;
+    private stageEl: HTMLElement;
+    private photos: PhotoData[] = [];
+    private currentIndex = -1;
+    private scrollPosition = 0;
+    private currentPhotoId = '';
+
+    // UI elements
+    private regionEl!: HTMLElement;
+    private titleEl!: HTMLElement;
+    private descriptionEl!: HTMLElement;
+    private prevBtn!: HTMLElement;
+    private nextBtn!: HTMLElement;
+
+    constructor(el: HTMLElement) {
+      this.el = el;
+      this.imageEl = el.querySelector('.photo-viewer__image')!;
+      this.stageEl = el.querySelector('.photo-viewer__stage')!;
+
+      this.regionEl = el.querySelector('.photo-viewer__region')!;
+      this.titleEl = el.querySelector('.photo-viewer__title')!;
+      this.descriptionEl = el.querySelector('.photo-viewer__description')!;
+      this.prevBtn = el.querySelector('[data-viewer-prev]')!;
+      this.nextBtn = el.querySelector('[data-viewer-next]')!;
+
+      this.bindEvents();
+    }
+
+    loadData(photos: PhotoData[]) {
+      this.photos = photos;
+    }
+
+    /** 打开查看器 — FLIP 动画从缩略图位置放大 */
+    open(photoId: string) {
+      const idx = this.photos.findIndex((p) => p.id === photoId);
+      if (idx === -1) return;
+
+      this.scrollPosition = window.scrollY;
+      this.currentIndex = idx;
+      this.currentPhotoId = photoId;
+
+      // 渲染图片
+      const photo = this.photos[idx];
+      this.imageEl.src = photo.src;
+      this.imageEl.alt = photo.title;
+      this.regionEl.textContent = photo.region;
+      this.titleEl.textContent = photo.title;
+      this.descriptionEl.textContent = photo.description;
+      this.prevBtn.classList.toggle('is-disabled', idx === 0);
+      this.nextBtn.classList.toggle('is-disabled', idx === this.photos.length - 1);
+
+      // 显示 viewer
+      this.el.setAttribute('aria-hidden', 'false');
+      this.el.removeAttribute('inert');
+      document.body.style.overflow = 'hidden';
+
+      // FLIP 动画：从缩略图位置 → 居中
+      const card = document.querySelector(`[data-photo-id="${photoId}"]`) as HTMLElement | null;
+      const thumbRect = card?.getBoundingClientRect();
+      const stageRect = this.stageEl.getBoundingClientRect();
+
+      if (thumbRect && thumbRect.width > 0) {
+        const scaleX = thumbRect.width / stageRect.width;
+        const scaleY = thumbRect.height / stageRect.height;
+        const scale = Math.max(scaleX, scaleY, 0.15);
+        const tx = (thumbRect.left + thumbRect.width / 2) - (stageRect.left + stageRect.width / 2);
+        const ty = (thumbRect.top + thumbRect.height / 2) - (stageRect.top + stageRect.height / 2);
+
+        this.stageEl.style.transition = 'none';
+        this.stageEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+        this.stageEl.offsetHeight; // force reflow
+
+        this.stageEl.style.transition = 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)';
+        this.stageEl.style.transform = 'translate(0, 0) scale(1)';
+      } else {
+        this.stageEl.style.transition = 'none';
+        this.stageEl.style.transform = 'scale(0.85)';
+        this.stageEl.offsetHeight;
+        this.stageEl.style.transition = 'transform 0.55s cubic-bezier(0.22, 1, 0.36, 1)';
+        this.stageEl.style.transform = 'scale(1)';
+      }
+    }
+
+    /** 关闭查看器 — FLIP 动画缩回缩略图位置 */
+    close() {
+      const card = document.querySelector(`[data-photo-id="${this.currentPhotoId}"]`) as HTMLElement | null;
+      const thumbRect = card?.getBoundingClientRect();
+      const stageRect = this.stageEl.getBoundingClientRect();
+
+      this.el.style.transition = 'opacity 0.45s ease';
+
+      if (thumbRect && thumbRect.width > 0) {
+        const scaleX = thumbRect.width / stageRect.width;
+        const scaleY = thumbRect.height / stageRect.height;
+        const scale = Math.max(scaleX, scaleY, 0.15);
+        const tx = (thumbRect.left + thumbRect.width / 2) - (stageRect.left + stageRect.width / 2);
+        const ty = (thumbRect.top + thumbRect.height / 2) - (stageRect.top + stageRect.height / 2);
+
+        this.stageEl.style.transition = 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)';
+        this.stageEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+        this.el.style.opacity = '0';
+      } else {
+        this.stageEl.style.transition = 'transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)';
+        this.stageEl.style.transform = 'scale(0.85)';
+        this.el.style.opacity = '0';
+      }
+
+      setTimeout(() => {
+        this.el.setAttribute('aria-hidden', 'true');
+        this.el.setAttribute('inert', '');
+        this.el.style.opacity = '';
+        this.el.style.transition = '';
+        this.stageEl.style.transition = '';
+        this.stageEl.style.transform = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, this.scrollPosition);
+      }, 500);
+    }
+
+    next() {
+      if (this.currentIndex < this.photos.length - 1) {
+        this.currentIndex++;
+        this.currentPhotoId = this.photos[this.currentIndex].id;
+        this.render();
+        this.stageEl.style.transition = 'none';
+        this.stageEl.style.transform = 'scale(0.95)';
+        this.stageEl.offsetHeight;
+        this.stageEl.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
+        this.stageEl.style.transform = 'scale(1)';
+      }
+    }
+
+    prev() {
+      if (this.currentIndex > 0) {
+        this.currentIndex--;
+        this.currentPhotoId = this.photos[this.currentIndex].id;
+        this.render();
+        this.stageEl.style.transition = 'none';
+        this.stageEl.style.transform = 'scale(0.95)';
+        this.stageEl.offsetHeight;
+        this.stageEl.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
+        this.stageEl.style.transform = 'scale(1)';
+      }
+    }
+
+    private render() {
+      const photo = this.photos[this.currentIndex];
+      if (!photo) return;
+      this.imageEl.src = photo.src;
+      this.imageEl.alt = photo.title;
+      this.regionEl.textContent = photo.region;
+      this.titleEl.textContent = photo.title;
+      this.descriptionEl.textContent = photo.description;
+      this.prevBtn.classList.toggle('is-disabled', this.currentIndex === 0);
+      this.nextBtn.classList.toggle('is-disabled', this.currentIndex === this.photos.length - 1);
+    }
+
+    private bindEvents() {
+      this.el.querySelectorAll('[data-viewer-close]').forEach((el) => {
+        el.addEventListener('click', () => this.close());
+      });
+
+      this.prevBtn.addEventListener('click', () => this.prev());
+      this.nextBtn.addEventListener('click', () => this.next());
+
+      document.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (this.currentIndex === -1) return;
+        switch (e.key) {
+          case 'Escape': this.close(); break;
+          case 'ArrowLeft': this.prev(); break;
+          case 'ArrowRight': this.next(); break;
+        }
+      });
+
+      let touchStartX = 0, touchStartY = 0;
+      this.el.addEventListener('touchstart', (e: TouchEvent) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      this.el.addEventListener('touchend', (e: TouchEvent) => {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+          dx < 0 ? this.next() : this.prev();
+        }
+      });
+    }
+  }
+
+  // ── 初始化 ──
+  function initViewer() {
+    const viewerEl = document.getElementById('photo-viewer');
+    if (!viewerEl) return;
+
+    const viewer = new PhotoViewer(viewerEl);
+
+    // 加载照片数据
+    const dataScript = document.getElementById('gallery-photo-data');
+    if (dataScript && dataScript.textContent) {
+      try {
+        const photos: PhotoData[] = JSON.parse(dataScript.textContent);
+        viewer.loadData(photos);
+      } catch (e) {
+        console.warn('PhotoViewer: failed to parse photo data', e);
+      }
+    }
+
+    // 绑定卡片点击（使用事件委托，兼容 Astro 页面切换）
+    document.addEventListener('click', (e: MouseEvent) => {
+      const card = (e.target as HTMLElement).closest('[data-photo-id]') as HTMLElement | null;
+      if (!card) return;
+
+      // 忽略信息面板区域内的链接点击
+      const photoId = card.dataset.photoId;
+      if (photoId) {
+        e.preventDefault();
+        viewer.open(photoId);
+      }
+    });
+
+    // 暴露到全局供调试
+    (window as any).__photoViewer = viewer;
+  }
+
+  // Astro 页面加载 / 切换时初始化
+  document.addEventListener('astro:page-load', initViewer);
+  // 首屏也初始化（astro:page-load 在首次可能不触发）
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(initViewer, 0);
+  }
+</script>
