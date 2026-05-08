@@ -346,6 +346,11 @@ html:not(.cover-visible) .cover-scroll-indicator {
   pointer-events: none;
 }
 
+/* Hide footer during cover to avoid flash on scroll-up transition */
+html.cover-visible body footer {
+  visibility: hidden;
+}
+
 /* ── Scroll indicator on cover ── */
 .cover-scroll-indicator {
   position: fixed;

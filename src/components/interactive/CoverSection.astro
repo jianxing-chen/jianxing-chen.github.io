@@ -294,12 +294,12 @@ const startIdx = Math.floor(Math.random() * photos.length);
       if (header) header.classList.add('header-transparent');
       currentState = 'transitioning-to-cover';
 
-      // 先滚回顶部，确保 contentLayer 与 viewport 对齐后再切 fixed
+      // 先标记 cover 可见（隐藏 footer），再滚回顶部
+      setCoverVisible(true);
       window.scrollTo({ top: 0, behavior: 'auto' });
       requestAnimationFrame(() => {
         setScrollLocked(true);
         coverLayer.classList.remove('cover-hidden');
-        setCoverVisible(true);
         setHeroTone(false);
         contentLayer.classList.add('is-animating', 'state-cover');
         contentLayer.classList.remove('state-content');
