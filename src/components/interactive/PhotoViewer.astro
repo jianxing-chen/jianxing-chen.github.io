@@ -105,13 +105,18 @@
       this.currentIndex = idx;
       this.currentPhotoId = photoId;
 
-      // 渲染图片
+      // 渲染图片（先清空文字，等图片加载完再同步显示）
       const photo = this.photos[idx];
+      this.regionEl.textContent = '';
+      this.titleEl.textContent = '';
+      this.descriptionEl.textContent = '';
+      this.imageEl.onload = () => {
+        this.regionEl.textContent = photo.region;
+        this.titleEl.textContent = photo.title;
+        this.descriptionEl.textContent = photo.description;
+      };
       this.imageEl.src = photo.src;
       this.imageEl.alt = photo.title;
-      this.regionEl.textContent = photo.region;
-      this.titleEl.textContent = photo.title;
-      this.descriptionEl.textContent = photo.description;
       this.prevBtn.classList.toggle('is-disabled', idx === 0);
       this.nextBtn.classList.toggle('is-disabled', idx === this.photos.length - 1);
 
@@ -187,12 +192,7 @@
       if (this.currentIndex < this.photos.length - 1) {
         this.currentIndex++;
         this.currentPhotoId = this.photos[this.currentIndex].id;
-        this.render();
-        this.stageEl.style.transition = 'none';
-        this.stageEl.style.transform = 'scale(0.95)';
-        this.stageEl.offsetHeight;
-        this.stageEl.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
-        this.stageEl.style.transform = 'scale(1)';
+        this.crossfade();
       }
     }
 
@@ -200,23 +200,45 @@
       if (this.currentIndex > 0) {
         this.currentIndex--;
         this.currentPhotoId = this.photos[this.currentIndex].id;
-        this.render();
-        this.stageEl.style.transition = 'none';
-        this.stageEl.style.transform = 'scale(0.95)';
-        this.stageEl.offsetHeight;
-        this.stageEl.style.transition = 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)';
-        this.stageEl.style.transform = 'scale(1)';
+        this.crossfade();
       }
+    }
+
+    /** 渐隐 → 换图 → 渐现 */
+    private crossfade() {
+      this.imageEl.style.transition = 'opacity 0.25s ease';
+      this.imageEl.style.opacity = '0';
+
+      setTimeout(() => {
+        const photo = this.photos[this.currentIndex];
+        if (!photo) return;
+        this.regionEl.textContent = '';
+        this.titleEl.textContent = '';
+        this.descriptionEl.textContent = '';
+        this.imageEl.onload = () => {
+          this.imageEl.style.opacity = '1';
+          this.regionEl.textContent = photo.region;
+          this.titleEl.textContent = photo.title;
+          this.descriptionEl.textContent = photo.description;
+        };
+        this.imageEl.src = photo.src;
+        this.imageEl.alt = photo.title;
+        this.prevBtn.classList.toggle('is-disabled', this.currentIndex === 0);
+        this.nextBtn.classList.toggle('is-disabled', this.currentIndex === this.photos.length - 1);
+      }, 280);
     }
 
     private render() {
       const photo = this.photos[this.currentIndex];
       if (!photo) return;
-      this.imageEl.src = photo.src;
-      this.imageEl.alt = photo.title;
+      this.imageEl.style.transition = 'none';
+      this.imageEl.style.transform = '';
+      this.imageEl.style.opacity = '1';
       this.regionEl.textContent = photo.region;
       this.titleEl.textContent = photo.title;
       this.descriptionEl.textContent = photo.description;
+      this.imageEl.src = photo.src;
+      this.imageEl.alt = photo.title;
       this.prevBtn.classList.toggle('is-disabled', this.currentIndex === 0);
       this.nextBtn.classList.toggle('is-disabled', this.currentIndex === this.photos.length - 1);
     }
