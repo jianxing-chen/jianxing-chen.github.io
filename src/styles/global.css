@@ -1343,22 +1343,18 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* ── 筛选后切换为 CSS Grid 行流（左→右，上→下）── */
-.gallery-detail.is-filtered .gallery-masonry--desktop {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.25rem;
-  grid-auto-flow: row;
-  align-items: start;
-}
-
-.gallery-detail.is-filtered .gallery-masonry--desktop .gallery-card {
-  margin-bottom: 0;
-}
-
-@media (max-width: 1023px) {
+/* ── 筛选后切换为 CSS Grid 行流（仅桌面端）── */
+@media (min-width: 1024px) {
   .gallery-detail.is-filtered .gallery-masonry--desktop {
-    grid-template-columns: repeat(2, 1fr);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+    grid-auto-flow: row;
+    align-items: start;
+  }
+
+  .gallery-detail.is-filtered .gallery-masonry--desktop .gallery-card {
+    margin-bottom: 0;
   }
 }
 
