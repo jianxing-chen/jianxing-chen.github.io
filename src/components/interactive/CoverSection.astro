@@ -121,11 +121,11 @@ const startIdx = Math.floor(Math.random() * photos.length);
       const regionName = photo.region?.[coverLang as 'en' | 'zh'] || photo.region?.en || '';
       const locEn = photo.location?.en || '';
       const titleName = photo.title?.[coverLang as 'en' | 'zh'] || photo.title?.en || '';
-      const countrySlug = locEn.toLowerCase().replace(/\s+/g, '-');
+      const photoSlug = photo.id;
       const galleryBase = coverLang === 'zh' ? '/zh/gallery/' : '/gallery/';
       const displayLoc = locName && regionName ? `${locName}, ${regionName}` : (locName || regionName);
-      const locLink = displayLoc && countrySlug
-        ? `<a href="${galleryBase}#country-${countrySlug}" class="cover-credit-link">${displayLoc}</a>`
+      const locLink = displayLoc && photoSlug
+        ? `<a href="${galleryBase}#photo-${photoSlug}" class="cover-credit-link">${displayLoc}</a>`
         : displayLoc;
       credit.innerHTML = isMobile()
         ? (locLink || '')
