@@ -982,7 +982,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .gallery-masonry--mobile {
   display: block;
-  column-count: 1;
+  column-count: 2;
   column-gap: 0.25rem;
 }
 
@@ -1004,14 +1004,6 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-}
-
-/* ── 移动端 CSS columns ── */
-@media (min-width: 640px) {
-  .gallery-masonry--mobile {
-    column-count: 2;
-    column-gap: 0.25rem;
-  }
 }
 
 /* ── Gallery Card（极简风格）── */
