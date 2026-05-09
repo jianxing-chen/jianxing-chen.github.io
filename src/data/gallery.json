@@ -459,7 +459,7 @@
     "id": "punta-carena-lighthouse",
     "cloudinaryId": "DSC08946_2_mfosfm",
     "title": { "en": "Punta Carena Lighthouse", "zh": "卡布里岛红色灯塔" },
-    "description": { "en": "The iconic red Punta Carena Lighthouse on the island of Capri", "zh": "卡布里岛上标志性的红色灯塔" },
+    "description": { "en": "Faro di Punta Carena, the iconic red lighthouse on the island of Capri", "zh": "卡布里岛上标志性的红色灯塔——Faro di Punta Carena" },
     "tags": ["lighthouse", "sea", "Capri", "Campania", "Italy"],
     "location": { "en": "Italy", "zh": "意大利" },
     "region": { "en": "Capri", "zh": "卡布里岛" },
@@ -993,6 +993,16 @@
     "region": { "en": "Bologna", "zh": "博洛尼亚" },
     "width": 3839,
     "height": 2560,
-    "featured": true
-  }
+    "featured": true  },
+  {
+    "id": "faraglione-di-fuori",
+    "cloudinaryId": "DSC08972_qk0bao",
+    "title": { "en": "Faraglione di Fuori, Capri", "zh": "卡布里岛 Faraglione di Fuori" },
+    "description": { "en": "Faraglione di Fuori (Scopolo), the outermost of the iconic Faraglioni rocks of Capri, under a blue sky with white clouds", "zh": "蓝天白云下，卡布里岛最外围的 Faraglione di Fuori（Scopolo）巨礁" },
+    "tags": ["rock", "sea", "coast", "Capri", "Italy"],
+    "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Capri", "zh": "卡布里岛" },
+    "width": 3840,
+    "height": 2560,
+    "featured": true  }
 ]
