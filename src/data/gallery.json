@@ -134,7 +134,7 @@
   {
     "id": "civita",
     "cloudinaryId": "DSC03729_mmqjz0",
-    "title": { "en": "Civita di Bagnoregio", "zh": "奇维塔小村" },
+    "title": { "en": "Civita di Bagnoregio", "zh": "奇维塔村" },
     "description": { "en": "Civita di Bagnoregio, the ancient hilltop village known as the inspiration for 'Castle in the Sky'", "zh": "白露里治奥古城——宫崎骏《天空之城》的灵感原型" },
     "tags": ["hilltop", "village", "Italy", "Lazio"],
     "location": { "en": "Italy", "zh": "意大利" },
@@ -183,7 +183,7 @@
     "id": "stellisee-matterhorn",
     "cloudinaryId": "DSC07441_yezqy6",
     "title": { "en": "Matterhorn from Stellisee", "zh": "Stellisee 湖看马特洪峰" },
-    "description": { "en": "The Matterhorn reflected in the alpine lake Stellisee near Zermatt", "zh": "采尔马特附近高山湖 Stellisee 中倒映的马特洪峰" },
+    "description": { "en": "The Matterhorn reflected in the alpine lake Stellisee near Zermatt", "zh": "采尔马特附近高山湖 Stellisee 湖畔的马特洪峰" },
     "tags": ["mountain", "lake", "Alps", "Switzerland"],
     "location": { "en": "Switzerland", "zh": "瑞士" },
     "region": { "en": "Zermatt", "zh": "采尔马特" },
