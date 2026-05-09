@@ -25,9 +25,9 @@ export function getCloudinaryUrl(publicId: string, options?: CloudinaryOptions):
   return `https://res.cloudinary.com/${cloudName}/image/upload/${transformStr}/${publicId}`;
 }
 
-/** 图库缩略图（400x300 裁剪填充） */
+/** 图库缩略图（保持原始比例，宽度上限 800px） */
 export function getGalleryThumbnail(publicId: string): string {
-  return getCloudinaryUrl(publicId, { width: 400, height: 300, crop: 'fill' });
+  return getCloudinaryUrl(publicId, { width: 800, crop: 'limit' });
 }
 
 /** 首页幻灯片（1200x800 裁剪填充，匹配 3:2 宽屏） */

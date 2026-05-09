@@ -113,6 +113,7 @@
       this.sepEl.textContent = '';
       this.titleEl.textContent = '';
       this.descriptionEl.textContent = '';
+      this.imageEl.removeAttribute('src');
       this.imageEl.onload = () => {
         this.regionEl.textContent = photo.region;
         this.sepEl.textContent = ', ';
@@ -208,7 +209,7 @@
       }
     }
 
-    /** 渐隐 → 换图 → 渐现 */
+    /** 渐隐 → 清空 → 换图 → 渐现 */
     private crossfade() {
       this.imageEl.style.transition = 'opacity 0.25s ease';
       this.imageEl.style.opacity = '0';
@@ -220,6 +221,8 @@
         this.sepEl.textContent = '';
         this.titleEl.textContent = '';
         this.descriptionEl.textContent = '';
+        // 先清空 src 强制丢弃旧图 → 再设新 src
+        this.imageEl.removeAttribute('src');
         this.imageEl.onload = () => {
           this.imageEl.style.opacity = '1';
           this.regionEl.textContent = photo.region;

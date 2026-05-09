@@ -68,6 +68,8 @@ export function buildGalleryCountries(
   return Array.from(countryMap.entries())
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([countryKey, countryPhotos]) => {
+      // 同一国家内按地区排序
+      countryPhotos.sort((a, b) => a.region.en.localeCompare(b.region.en));
       const regionMap = new Map<string, GalleryPhoto[]>();
 
       countryPhotos.forEach((photo) => {
@@ -107,9 +109,10 @@ export function getGalleryPhotoDetailPath(photo: GalleryPhoto, lang: string): st
 }
 
 export function buildCountryDetail(photos: GalleryPhoto[], lang: string) {
+  const sorted = [...photos].sort((a, b) => a.region.en.localeCompare(b.region.en));
   const regions = new Map<string, GalleryRegionGroup>();
 
-  photos.forEach((photo) => {
+  sorted.forEach((photo) => {
     const regionKey = photo.region.en;
     const region = regions.get(regionKey);
     if (region) {
@@ -125,7 +128,7 @@ export function buildCountryDetail(photos: GalleryPhoto[], lang: string) {
   });
 
   return {
-    photos,
+    photos: sorted,
     regions: Array.from(regions.values()).sort((left, right) => left.key.localeCompare(right.key)),
   };
 }

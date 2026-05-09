@@ -75,9 +75,26 @@ export function computeRowLayout(
     totalHeight: 0,
   }));
 
-  photos.forEach((photo, i) => {
-    cols[i % columns].items.push(photo);
-  });
+  // 按地区分组，每组内顺序不变
+  const regionGroups: GalleryPhoto[][] = [];
+  let lastRegion = '';
+  for (const photo of photos) {
+    if (photo.region.en !== lastRegion) {
+      regionGroups.push([]);
+      lastRegion = photo.region.en;
+    }
+    regionGroups[regionGroups.length - 1].push(photo);
+  }
+
+  // 逐组填入：每组从最短列开始，内部轮询
+  for (const group of regionGroups) {
+    let shortest = cols.reduce((min, c, i) => c.totalHeight < cols[min].totalHeight ? i : min, 0);
+    group.forEach((photo, i) => {
+      const colIdx = (shortest + i) % columns;
+      cols[colIdx].items.push(photo);
+      cols[colIdx].totalHeight += photo.height / photo.width;
+    });
+  }
 
   return cols;
 }

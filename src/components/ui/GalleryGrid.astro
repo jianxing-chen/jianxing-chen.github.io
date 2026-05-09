@@ -19,15 +19,15 @@ interface Props {
 }
 
 const { photos, lang } = Astro.props;
-const { regions } = buildCountryDetail(photos, lang);
+const { regions, photos: sortedPhotos } = buildCountryDetail(photos, lang);
 const allRegionsLabel = lang === 'zh' ? '全部地区' : 'All Regions';
 const masonryColumns = 4;
 
 // 预计算 masonry 布局
-const columns = computeMasonryLayout(photos, masonryColumns);
+const columns = computeMasonryLayout(sortedPhotos, masonryColumns);
 
 // 序列化照片数据供 PhotoViewer 使用
-const viewerPhotos = photos.map((p) => ({
+const viewerPhotos = sortedPhotos.map((p) => ({
   id: p.id,
   src: getGalleryFullSize(p.cloudinaryId),
   width: p.width,
@@ -92,7 +92,7 @@ const viewerPhotos = photos.map((p) => ({
 
   <!-- 移动端：CSS columns 回退 -->
   <div class="gallery-masonry gallery-masonry--mobile">
-    {photos.map((photo) => (
+    {sortedPhotos.map((photo) => (
       <button
         data-photo-id={photo.id}
         data-region={photo.region.en}
