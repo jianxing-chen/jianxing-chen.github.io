@@ -73,6 +73,7 @@
 
     // UI elements
     private regionEl!: HTMLElement;
+    private sepEl!: HTMLElement;
     private titleEl!: HTMLElement;
     private descriptionEl!: HTMLElement;
     private prevBtn!: HTMLElement;
@@ -84,6 +85,7 @@
       this.stageEl = el.querySelector('.photo-viewer__stage')!;
 
       this.regionEl = el.querySelector('.photo-viewer__region')!;
+      this.sepEl = el.querySelector('.photo-viewer__sep')!;
       this.titleEl = el.querySelector('.photo-viewer__title')!;
       this.descriptionEl = el.querySelector('.photo-viewer__description')!;
       this.prevBtn = el.querySelector('[data-viewer-prev]')!;
@@ -108,10 +110,12 @@
       // 渲染图片（先清空文字，等图片加载完再同步显示）
       const photo = this.photos[idx];
       this.regionEl.textContent = '';
+      this.sepEl.textContent = '';
       this.titleEl.textContent = '';
       this.descriptionEl.textContent = '';
       this.imageEl.onload = () => {
         this.regionEl.textContent = photo.region;
+        this.sepEl.textContent = ', ';
         this.titleEl.textContent = photo.title;
         this.descriptionEl.textContent = photo.description;
       };
@@ -213,11 +217,13 @@
         const photo = this.photos[this.currentIndex];
         if (!photo) return;
         this.regionEl.textContent = '';
+        this.sepEl.textContent = '';
         this.titleEl.textContent = '';
         this.descriptionEl.textContent = '';
         this.imageEl.onload = () => {
           this.imageEl.style.opacity = '1';
           this.regionEl.textContent = photo.region;
+          this.sepEl.textContent = ', ';
           this.titleEl.textContent = photo.title;
           this.descriptionEl.textContent = photo.description;
         };
