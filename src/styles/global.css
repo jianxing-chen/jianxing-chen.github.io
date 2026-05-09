@@ -841,7 +841,7 @@ h1, h2, h3, h4, h5, h6 {
 /* 桌面端：2 列 grid（meta + content），线/点均用伪元素 */
 @media (min-width: 1024px) {
   .gallery-overview {
-    --tl-meta-w: 13rem;
+    --tl-meta-w: 16rem;
     --tl-gap: 2rem;
     --tl-dot-size: 0.6rem;
     --tl-dot-ring: 4px;
