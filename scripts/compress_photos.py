@@ -31,7 +31,8 @@
 
   第二步：迭代降质量
     从 QUALITY_START (95) 开始保存，检查文件大小
-    若 > 目标 MB，质量逐次降低 QUALITY_STEP (5)
+    有效目标 = min(TARGET_SIZE_MB, 原文件大小)，确保压缩后不会比原图更大
+    若 > 有效目标，质量逐次降低 QUALITY_STEP (5)
     直到满足大小要求或触底 QUALITY_MIN (20)
 
 ────────────────────────────────────────────────────────
@@ -83,7 +84,7 @@ import sys
 from pathlib import Path
 
 try:
-    from PIL import Image
+    from PIL import Image # type: ignore
 except ImportError:
     print("错误：请先安装 Pillow → pip install Pillow")
     sys.exit(1)
@@ -91,7 +92,7 @@ except ImportError:
 # ─── 可调参数 ────────────────────────────────────────────
 
 MAX_LONG_SIDE = 3840       # 4K 屏长边像素（3840×2160 的宽）
-TARGET_SIZE_MB = 5.0       # 目标文件大小上限 (MB)
+TARGET_SIZE_MB = 4.0       # 目标文件大小上限 (MB)
 QUALITY_START = 95         # 起始 JPEG 质量
 QUALITY_MIN = 20           # 最低质量（低于此值放弃）
 QUALITY_STEP = 5           # 每次降质量步长
@@ -132,9 +133,10 @@ def compress_image(src: Path, dst: Path, max_long: int, target_mb: float) -> dic
         new_size = (w, h)
     info["resized_px"] = f"{new_size[0]}×{new_size[1]}"
 
-    # 迭代降质量直到满足目标大小
+    # 迭代降质量直到满足目标大小（不超过原文件大小）
     quality = QUALITY_START
-    target_bytes = target_mb * 1_000_000
+    original_bytes = src.stat().st_size
+    target_bytes = min(target_mb * 1_000_000, original_bytes)
     dst.parent.mkdir(parents=True, exist_ok=True)
 
     while quality >= QUALITY_MIN:
