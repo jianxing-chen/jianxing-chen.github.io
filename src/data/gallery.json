@@ -490,5 +490,65 @@
     "width": 3840,
     "height": 2560,
     "featured": true
+  },
+  {
+    "id": "taormina-theatre-etna",
+    "cloudinaryId": "DSC07424_utubta",
+    "title": { "en": "Mount Etna from the Greek Theatre of Taormina", "zh": "陶尔米纳古剧场看埃特纳火山" },
+    "description": { "en": "The majestic Mount Etna seen from the Ancient Greek Theatre of Taormina, Sicily", "zh": "西西里陶尔米纳古希腊剧场远眺雄伟的埃特纳火山" },
+    "tags": ["theatre", "volcano", "ancient", "Sicily", "Italy"],
+    "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Sicily", "zh": "西西里" },
+    "width": 3840,
+    "height": 2400,
+    "featured": true
+  },
+  {
+    "id": "piazza-duomo-siracusa",
+    "cloudinaryId": "DSC07667_vh5stg",
+    "title": { "en": "Piazza del Duomo, Siracusa", "zh": "锡拉库萨大教堂广场" },
+    "description": { "en": "The Piazza del Duomo in Ortigia, Siracusa — the iconic setting from the film 'Malèna'", "zh": "锡拉库萨大教堂广场——《西西里的美丽传说》经典取景地" },
+    "tags": ["piazza", "baroque", "Siracusa", "Sicily", "Italy"],
+    "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Sicily", "zh": "西西里" },
+    "width": 3840,
+    "height": 2560,
+    "featured": true
+  },
+  {
+    "id": "scala-dei-turchi",
+    "cloudinaryId": "DSC08364_pgpjx6",
+    "title": { "en": "Scala dei Turchi", "zh": "土耳其阶梯" },
+    "description": { "en": "The striking white limestone cliffs of Scala dei Turchi near Agrigento, Sicily", "zh": "西西里阿格里真托附近的白色石灰岩海岸——土耳其阶梯" },
+    "tags": ["coast", "cliff", "sea", "Sicily", "Italy"],
+    "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Sicily", "zh": "西西里" },
+    "width": 3840,
+    "height": 2560,
+    "featured": true
+  },
+  {
+    "id": "temple-concordia",
+    "cloudinaryId": "DSC08174_pbtdix",
+    "title": { "en": "Temple of Concordia, Agrigento", "zh": "阿格里真托协和神庙" },
+    "description": { "en": "The remarkably well-preserved Temple of Concordia in the Valley of the Temples, Agrigento", "zh": "阿格里真托神殿之谷中保存最完好的协和神庙" },
+    "tags": ["temple", "ancient", "Greek", "Sicily", "Italy"],
+    "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Sicily", "zh": "西西里" },
+    "width": 3840,
+    "height": 2560,
+    "featured": true
+  },
+  {
+    "id": "palermo-piazza-evening",
+    "cloudinaryId": "DSC08085_ghryge",
+    "title": { "en": "Evening in a Palermo Piazza", "zh": "巴勒莫小广场的傍晚" },
+    "description": { "en": "A quiet evening in a small piazza in Palermo, with golden streetlights and people resting on the steps", "zh": "傍晚的巴勒莫小广场，金色路灯下人们在台阶上休憩" },
+    "tags": ["piazza", "evening", "street", "Sicily", "Italy"],
+    "location": { "en": "Italy", "zh": "意大利" },
+    "region": { "en": "Sicily", "zh": "西西里" },
+    "width": 3839,
+    "height": 2560,
+    "featured": true
   }
 ]
