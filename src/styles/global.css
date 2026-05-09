@@ -64,6 +64,7 @@ body.home-scroll-lock {
   transition: opacity var(--animate-cover-fade) ease-in-out;
 }
 
+/* 暂时禁用封面蒙版
 .cover-bg-overlay {
   position: absolute;
   inset: 0;
@@ -75,6 +76,7 @@ body.home-scroll-lock {
   );
   pointer-events: none;
 }
+*/
 
 /* ── Cover photo credit (bottom-right) ── */
 .cover-credit {
@@ -186,11 +188,11 @@ body.home-scroll-lock {
 .hero-content {
   transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
               opacity 0.6s ease,
-              color 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              text-shadow 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              background 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              backdrop-filter 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              -webkit-backdrop-filter 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+              color 1s cubic-bezier(0.4, 0, 0.2, 1),
+              text-shadow 1s cubic-bezier(0.4, 0, 0.2, 1),
+              background 1s cubic-bezier(0.4, 0, 0.2, 1),
+              backdrop-filter 1s cubic-bezier(0.4, 0, 0.2, 1),
+              -webkit-backdrop-filter 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .home-page-content.state-cover .hero-content {
@@ -217,11 +219,11 @@ body.home-scroll-lock {
 
 /* ── Hero text subtle glass (cover state only, text area only) ── */
 .hero-text-glass {
-  transition: background 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              backdrop-filter 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              -webkit-backdrop-filter 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              border-color 0.8s cubic-bezier(0.22, 0.61, 0.36, 1),
-              box-shadow 0.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: background 1s cubic-bezier(0.4, 0, 0.2, 1),
+              backdrop-filter 1s cubic-bezier(0.4, 0, 0.2, 1),
+              -webkit-backdrop-filter 1s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 1s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hero-text-cover .hero-text-glass {
@@ -247,8 +249,8 @@ body.home-scroll-lock {
 .hero-text-themed,
 .hero-text-themed h1,
 .hero-text-themed p {
-  transition: color 0.6s cubic-bezier(0.22, 0.61, 0.36, 1),
-              text-shadow 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+  transition: color 1s cubic-bezier(0.4, 0, 0.2, 1),
+              text-shadow 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hero-text-themed h1 {
@@ -1360,6 +1362,17 @@ h1, h2, h3, h4, h5, h6 {
   .gallery-detail.is-filtered .gallery-masonry--desktop .gallery-card {
     margin-bottom: 0;
   }
+}
+
+/* ── 主题切换夜幕过渡动画（非首页）── */
+html:not(.cover-visible) *,
+html:not(.cover-visible) *::before,
+html:not(.cover-visible) *::after {
+  transition:
+    color 1s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 1s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 1s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Reduced motion ── */
