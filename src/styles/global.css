@@ -1170,8 +1170,8 @@ h1, h2, h3, h4, h5, h6 {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .photo-viewer__close {
