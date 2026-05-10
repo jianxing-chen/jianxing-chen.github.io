@@ -86,14 +86,13 @@ export function computeRowLayout(
     regionGroups[regionGroups.length - 1].push(photo);
   }
 
-  // 逐组填入：每组从最短列开始，内部轮询
+  // 逐组填入：每组内按贪心（最短列优先），兼顾宽高比平衡
   for (const group of regionGroups) {
-    let shortest = cols.reduce((min, c, i) => c.totalHeight < cols[min].totalHeight ? i : min, 0);
-    group.forEach((photo, i) => {
-      const colIdx = (shortest + i) % columns;
-      cols[colIdx].items.push(photo);
-      cols[colIdx].totalHeight += photo.height / photo.width;
-    });
+    for (const photo of group) {
+      let shortest = cols.reduce((min, c, i) => c.totalHeight < cols[min].totalHeight ? i : min, 0);
+      cols[shortest].items.push(photo);
+      cols[shortest].totalHeight += photo.height / photo.width;
+    }
   }
 
   return cols;
