@@ -302,6 +302,8 @@ const startIdx = Math.floor(Math.random() * photos.length);
     enterCoverState();
 
     window.addEventListener('wheel', (e) => {
+      // 忽略下拉菜单内的滚动
+      if ((e.target as HTMLElement).closest('.desktop-dropdown-panel')) return;
       if (currentState === 'cover' && e.deltaY > 0) {
         e.preventDefault();
         transitionToContent();
