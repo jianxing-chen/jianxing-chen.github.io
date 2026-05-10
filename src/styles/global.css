@@ -1368,7 +1368,13 @@ html:not(.cover-visible) *::before,
 html:not(.cover-visible) *::after {
   transition:
     color 1s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 1s cubic-bezier(0.4, 0, 0.2, 1),
     border-color 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 排除 header 子树，避免 background-color 过渡破坏毛玻璃 */
+#site-header, #site-header * {
+  transition: none !important;
 }
 
 /* ── Reduced motion ── */
