@@ -36,12 +36,13 @@ const postUrl = getLocalizedPath(`/blog/${slug}/`, lang);
 ---
 
 <article
-  class="group relative rounded-xl
-         bg-white dark:bg-white/5
-         border border-black/[0.06] dark:border-white/[0.06]
-         hover:border-primary-light/30 dark:hover:border-primary-dark/30
-         hover:shadow-lg hover:shadow-primary-light/5 dark:hover:shadow-primary-dark/5
-         transition-all duration-300 overflow-hidden"
+  class="group relative rounded-xl overflow-hidden
+         bg-white dark:bg-white/[0.03]
+         border border-slate-200/70 dark:border-white/[0.06]
+         hover:border-primary-light/25 dark:hover:border-primary-dark/20
+         hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-black/20
+         hover:-translate-y-0.5
+         transition-all duration-300 ease-out"
 >
   {cover && (
     <a href={postUrl} class="block aspect-[2/1] overflow-hidden">

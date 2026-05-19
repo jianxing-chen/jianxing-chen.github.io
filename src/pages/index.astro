@@ -97,17 +97,18 @@ import galleryData from '@/data/gallery.json';
       <div class="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-20 sm:space-y-28">
 
         <!-- ═══ Recent Publications ═══ -->
-        <section>
+        <section class="reveal-on-scroll">
           <div class="flex items-baseline justify-between mb-8">
-            <h2 class="text-2xl sm:text-3xl font-semibold text-heading-light dark:text-heading-dark">
+            <h2 class="text-2xl sm:text-3xl font-bold text-heading-light dark:text-heading-dark">
               {t('home.recent_publications')}
             </h2>
             <a href={getLocalizedPath('/publications', lang)}
-               class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap">
-              {t('home.view_all')}
+               class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap
+                      transition-colors duration-200">
+              {t('home.view_all')} →
             </a>
           </div>
-          <div class="grid gap-4">
+          <div class="grid gap-4 reveal-stagger">
             {recentPapers.map((paper) => (
               <PublicationCard paper={paper} lang={lang} />
             ))}
@@ -115,17 +116,18 @@ import galleryData from '@/data/gallery.json';
         </section>
 
         <!-- ═══ Latest Posts ═══ -->
-        <section>
+        <section class="reveal-on-scroll">
           <div class="flex items-baseline justify-between mb-8">
-            <h2 class="text-2xl sm:text-3xl font-semibold text-heading-light dark:text-heading-dark">
+            <h2 class="text-2xl sm:text-3xl font-bold text-heading-light dark:text-heading-dark">
               {t('home.latest_posts')}
             </h2>
             <a href={getLocalizedPath('/blog', lang)}
-               class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap">
-              {t('home.view_all')}
+               class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap
+                      transition-colors duration-200">
+              {t('home.view_all')} →
             </a>
           </div>
-          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 reveal-stagger">
             {recentPosts.map((post) => (
               <BlogPostCard post={post} lang={lang} />
             ))}

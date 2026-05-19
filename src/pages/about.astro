@@ -124,7 +124,7 @@ const awards = [
       <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">
         {t('about.section.cv')}
       </h2>
-      <div class="h-0.5 bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
+      <div class="section-divider mb-10" />
 
     <!-- ====== Education ====== -->
     <section>
@@ -191,7 +191,7 @@ const awards = [
       <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">
         {t('about.section.publications')}
       </h2>
-      <div class="h-0.5 bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
+      <div class="section-divider mb-10" />
 
       {/* Three collapsible sub-sections */}
       <div class="space-y-6">
@@ -238,7 +238,7 @@ const awards = [
     <!-- ====== Section 3: News ====== -->
     <section id="news" style="scroll-margin-top: 5rem;">
       <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">{t('about.section.news')}</h2>
-      <div class="h-0.5 bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
+      <div class="section-divider mb-10" />
       <div class="space-y-4">
         {sortedNews.filter((item) => item.highlight).slice(0, 5).map((item) => (
           <a href={item.url} target="_blank" rel="noopener noreferrer"
@@ -282,7 +282,7 @@ const awards = [
       <h2 class="text-3xl font-bold text-heading-light dark:text-heading-dark mb-3">
         {t('about.section.contact')}
       </h2>
-      <div class="h-0.5 bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
+      <div class="section-divider mb-10" />
       <div class="grid sm:grid-cols-2 gap-4 text-sm">
         <div class="flex items-start gap-3">
           <svg class="w-5 h-5 mt-0.5 shrink-0 text-primary-light dark:text-primary-dark" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
