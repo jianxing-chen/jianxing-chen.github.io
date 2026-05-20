@@ -19,7 +19,22 @@ interface Props {
 
 const { photos, lang } = Astro.props;
 
-const coverPhotos = photos.map((p) => ({
+const fixedCoverIds = [
+  'c1_DSC1418_tswqii',
+  'DSC07667_vh5stg',
+  'DSC08917_ergsmw',
+  'DSC02071_q8ozmv',
+];
+
+const fixedCoverPhotos = fixedCoverIds
+  .map((id) => photos.find((p) => p.cloudinaryId === id))
+  .filter((p): p is GalleryPhoto => Boolean(p));
+
+const selectedCoverPhotos = fixedCoverPhotos.length === fixedCoverIds.length
+  ? fixedCoverPhotos
+  : photos.slice(0, 4);
+
+const coverPhotos = selectedCoverPhotos.map((p) => ({
   id: p.id,
   desktop: getCoverImage(p.cloudinaryId),
   mobile: getCoverImageMobile(p.cloudinaryId),
@@ -29,7 +44,7 @@ const coverPhotos = photos.map((p) => ({
   region: p.region,
 }));
 
-const startIdx = Math.floor(Math.random() * photos.length);
+const startIdx = 0;
 ---
 
 <!-- ═══ 固定封面背景层 ═══ -->
@@ -44,6 +59,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
 <!-- ═══ 封面 UI 层（提出 cover-bg-layer 以逃脱 z-index 牢笼） ═══ -->
 <div id="cover-credit" class="cover-credit"></div>
 
+<!--
 <button id="cover-btn-prev" class="cover-nav-btn cover-nav-btn-prev"
   aria-label={lang === 'zh' ? '上一张' : 'Previous photo'}>
   <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -57,6 +73,15 @@ const startIdx = Math.floor(Math.random() * photos.length);
     <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
   </svg>
 </button>
+-->
+
+<div
+  id="cover-pagination"
+  class="cover-pagination"
+  data-lang={lang}
+  role="tablist"
+  aria-label={lang === 'zh' ? '封面轮播分页' : 'Cover carousel pagination'}
+></div>
 
 <button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
   <svg class="cover-scroll-indicator-icon w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -82,6 +107,7 @@ const startIdx = Math.floor(Math.random() * photos.length);
     const imgNext = document.getElementById('cover-img-next') as HTMLImageElement | null;
     const btnPrev = document.getElementById('cover-btn-prev');
     const btnNext = document.getElementById('cover-btn-next');
+    const pagination = document.getElementById('cover-pagination');
     const backToCoverBtn = document.getElementById('back-to-cover-btn');
 
     if (!imgCurrent || !imgNext) return;
@@ -99,8 +125,40 @@ const startIdx = Math.floor(Math.random() * photos.length);
 
     let activeImg = imgCurrent;
     let hiddenImg = imgNext;
-    const historyStack: number[] = [];
     const warmedImageSources = new Set<string>();
+
+    function createPagination() {
+      if (!pagination) return;
+      const labels = {
+        tab: coverLang === 'zh' ? '跳转到第' : 'Go to photo',
+        activeSuffix: coverLang === 'zh' ? '（当前）' : '(current)',
+      };
+
+      pagination.innerHTML = coverPhotos
+        .map((_, idx) => {
+          const active = idx === currentIndex;
+          const text = `${labels.tab} ${idx + 1}`;
+          return `<button type="button" class="cover-page-dot${active ? ' is-active' : ''}" data-cover-dot="${idx}" role="tab" aria-label="${text}${active ? labels.activeSuffix : ''}" aria-selected="${active ? 'true' : 'false'}"></button>`;
+        })
+        .join('');
+
+      pagination.querySelectorAll<HTMLButtonElement>('[data-cover-dot]').forEach((dot) => {
+        dot.addEventListener('click', () => {
+          const idx = Number(dot.dataset.coverDot);
+          if (!Number.isNaN(idx)) showPhoto(idx);
+        });
+      });
+    }
+
+    function updatePagination(index: number) {
+      if (!pagination) return;
+      pagination.querySelectorAll<HTMLButtonElement>('[data-cover-dot]').forEach((dot) => {
+        const dotIndex = Number(dot.dataset.coverDot);
+        const isActive = dotIndex === index;
+        dot.classList.toggle('is-active', isActive);
+        dot.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+    }
 
     function isMobile(): boolean { return window.innerWidth < 768; }
     function getSrc(p: CoverPhoto): string { return isMobile() ? p.mobile : p.desktop; }
@@ -129,22 +187,19 @@ const startIdx = Math.floor(Math.random() * photos.length);
       hiddenImg.onerror = () => { hiddenImg.style.opacity = '1'; activeImg.style.opacity = '0'; [activeImg, hiddenImg] = [hiddenImg, activeImg]; };
       hiddenImg.src = src;
       updateCredit(index);
+      updatePagination(index);
       preloadAdjacent(index);
     }
 
     function nextPhoto() {
       if (coverPhotos.length <= 1) return;
-      historyStack.push(currentIndex);
-      let nextIndex: number;
-      do {
-        nextIndex = Math.floor(Math.random() * coverPhotos.length);
-      } while (nextIndex === currentIndex && coverPhotos.length > 1);
+      const nextIndex = (currentIndex + 1) % coverPhotos.length;
       showPhoto(nextIndex);
     }
 
     function prevPhoto() {
-      if (historyStack.length === 0) return;
-      const prevIndex = historyStack.pop()!;
+      if (coverPhotos.length <= 1) return;
+      const prevIndex = (currentIndex - 1 + coverPhotos.length) % coverPhotos.length;
       showPhoto(prevIndex);
     }
 
@@ -184,6 +239,8 @@ const startIdx = Math.floor(Math.random() * photos.length);
     btnPrev?.addEventListener('click', prevPhoto);
     btnNext?.addEventListener('click', nextPhoto);
     document.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') prevPhoto(); if (e.key === 'ArrowRight') nextPhoto(); });
+    createPagination();
+    updatePagination(currentIndex);
 
     const pageContent = document.getElementById('page-content');
     const hero = document.getElementById('hero-unified');
@@ -232,7 +289,6 @@ const startIdx = Math.floor(Math.random() * photos.length);
       setHeroTone(false);
       window.scrollTo({ top: 0, behavior: 'auto' });
       setScrollLocked(true);
-      historyStack.length = 0;
       startAutoRotate();
       if (backToCoverBtn) backToCoverBtn.style.display = 'none';
     }
