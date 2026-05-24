@@ -24,6 +24,7 @@ const fixedCoverIds = [
   'DSC07667_vh5stg',
   'DSC08917_ergsmw',
   'DSC02071_q8ozmv',
+  'DSC02388_rlk6od',
 ];
 
 const fixedCoverPhotos = fixedCoverIds
@@ -32,7 +33,7 @@ const fixedCoverPhotos = fixedCoverIds
 
 const selectedCoverPhotos = fixedCoverPhotos.length === fixedCoverIds.length
   ? fixedCoverPhotos
-  : photos.slice(0, 4);
+  : photos.slice(0, 5);
 
 const coverPhotos = selectedCoverPhotos.map((p) => ({
   id: p.id,
