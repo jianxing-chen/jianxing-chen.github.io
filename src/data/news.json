@@ -1,50 +1,18 @@
 [
   {
-    "id": "example-news-1",
-    "title": { "en": "Groundbreaking Discovery in Stellar Spectroscopy", "zh": "恒星光谱学的突破性发现" },
-    "source": "Science Daily",
-    "date": "2025-06-15",
-    "url": "https://example.com/news-article-1",
+    "id": "science-china-daily-2021-m13",
+    "title": { "en": "China Science Daily — Slowly cooling white dwarfs discovered in M13", "zh": "中国科学报：M13 中发现缓慢冷却的白矮星" },
+    "source": "中国科学报 (头版)",
+    "date": "2021-09-09",
+    "url": "https://news.sciencenet.cn/sbhtmlnews/2021/9/365195.shtm",
     "highlight": true
   },
   {
-    "id": "example-news-2",
-    "title": { "en": "New Variable Star Catalog Released", "zh": "新变星星表发布" },
-    "source": "Astronomy Magazine",
-    "date": "2025-03-20",
-    "url": "https://example.com/news-article-2",
+    "id": "bologna-today-2021-m13",
+    "title": { "en": "BolognaToday — Some stars hide a secret to age more slowly, Unibo and INAF reveal how", "zh": "BolognaToday：部分恒星隐藏延缓衰老的秘密——博洛尼亚大学与 INAF 揭示其机制" },
+    "source": "BolognaToday",
+    "date": "2021-09-06",
+    "url": "https://www.bolognatoday.it/attualita/stelle-invecchiamento-unibo.html",
     "highlight": true
-  },
-  {
-    "id": "example-news-3",
-    "title": { "en": "AI-Powered Methods Revolutionize Galactic Archaeology", "zh": "AI 驱动方法革新银河考古学" },
-    "source": "Nature Astronomy",
-    "date": "2024-11-08",
-    "url": "https://example.com/news-article-3",
-    "highlight": true
-  },
-  {
-    "id": "example-news-4",
-    "title": { "en": "LAMOST DR10 Released with 17 Million Spectra", "zh": "LAMOST DR10 发布 1700 万条光谱" },
-    "source": "NAOC News",
-    "date": "2024-07-01",
-    "url": "https://example.com/news-article-4",
-    "highlight": true
-  },
-  {
-    "id": "example-news-5",
-    "title": { "en": "International Team Maps Milky Way Halo Structure", "zh": "国际团队绘制银河系晕结构图" },
-    "source": "ESA Press Release",
-    "date": "2024-02-14",
-    "url": "https://example.com/news-article-5",
-    "highlight": true
-  },
-  {
-    "id": "example-news-6",
-    "title": { "en": "Early Career Researcher Award in Astrophysics", "zh": "天体物理学青年研究者奖" },
-    "source": "IAU Bulletin",
-    "date": "2023-09-30",
-    "url": "https://example.com/news-article-6",
-    "highlight": false
   }
 ]

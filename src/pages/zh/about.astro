@@ -36,45 +36,79 @@ const researchInterests = [
 ];
 
 const education = [
-  {
-    degree: '天体物理学博士',
-    school: '占位大学',
-    years: '2018 – 2023',
-    field: '恒星光谱学与数据驱动方法',
-  },
-  {
-    degree: '天文学硕士',
-    school: '占位理工大学',
-    years: '2016 – 2018',
-    field: '变星分类研究',
-  },
-  {
-    degree: '物理学学士',
-    school: '占位国立大学',
-    years: '2012 – 2016',
-    field: '基础物理与数学',
-  },
+//   {
+//     degree: '天体物理学博士',
+//     school: '占位大学',
+//     years: '2018 – 2023',
+//     field: '恒星光谱学与数据驱动方法',
+//   },
+//   {
+//     degree: '天文学硕士',
+//     school: '占位理工大学',
+//     years: '2016 – 2018',
+//     field: '变星分类研究',
+//   },
+//   {
+//     degree: '物理学学士',
+//     school: '占位国立大学',
+//     years: '2012 – 2016',
+//     field: '基础物理与数学',
+//   },
 ];
 
 const experience = [
   {
-    title: '博士后研究员',
-    org: '占位大学天文系',
-    years: '2023 – 至今',
-    desc: '领导基于数据驱动光谱方法的恒星参数估计研究。',
+    title: '励耘博士后',
+    org: '北京师范大学物理与天文学院',
+    years: '2024 – 至今',
+    desc: '利用 HST 测光研究球状星团中的白矮星冷却序列与奇特双星系统。',
   },
   {
-    title: '研究助理',
-    org: '占位天文台',
-    years: '2018 – 2023',
-    desc: '开展光谱巡天工作，开发自动化分类流水线。',
+    title: '研究员',
+    org: '博洛尼亚大学物理与天文学系',
+    years: '2023 – 2024',
+    desc: '研究银河系球状星团中的恒星族。',
   },
 ];
 
-const awards = [
-  { year: '2023', title: '占位大学优秀博士学位论文奖' },
-  { year: '2021', title: '国际天文学会议最佳展板奖' },
-  { year: '2019', title: '国家研究生奖学金' },
+const grants = [
+  {
+    title: '中国博士后科学基金 — 面上项目',
+    number: 'No. 2024M760242',
+    years: '2024 – 2026',
+  },
+  {
+    title: '国家资助博士后研究人员计划（C 档）',
+    number: 'No. GZC20240124',
+    years: '2024 – 2026',
+  },
+  {
+    title: '博洛尼亚大学研究生科研活动基金',
+    years: '2022（8 个月）',
+  },
+  {
+    title: '博洛尼亚大学马可·波罗基金',
+    years: '2022（3 个月）',
+  },
+  {
+    title: '国家自然科学基金重点项目 — Kepler 天区脉动变星星震学研究',
+    number: 'No. 1183000094（参与）',
+    years: '2019 – 2023',
+  },
+  {
+    title: '北京市自然科学基金 — LAMOST 与 Kepler 高振幅 δ Scuti 星星震学',
+    number: 'No. 1194023（参与）',
+    years: '2019 – 2020',
+  },
+];
+
+const observations = [
+  { telescope: 'HST', desc: 'GO 17763 — 校准白矮星冷却计时器：残余热核燃烧效应' },
+  { telescope: '兴隆 2.16m', desc: '中国科学院国家天文台' },
+  { telescope: '兴隆 85cm', desc: '中国科学院国家天文台' },
+  { telescope: '南山 1m', desc: '中国科学院新疆天文台' },
+  { telescope: '丽江 2.4m', desc: '中国科学院云南天文台' },
+  { telescope: 'SPM 85cm', desc: '墨西哥圣佩德罗马尔蒂尔山国家天文台' },
 ];
 ---
 
@@ -126,7 +160,8 @@ const awards = [
       </h2>
       <div class="h-0.5 bg-gradient-to-r from-primary-light/40 via-slate-200 dark:via-white/10 to-transparent mb-10" />
 
-    <!-- ====== Education ====== -->
+    <!-- ====== Education (commented out) ====== -->
+    <!--
     <section>
       <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-8">
         {t('about.education')}
@@ -144,8 +179,8 @@ const awards = [
       </div>
     </section>
 
-    {/* Divider between Education and Experience */}
     <div class="my-14 border-t border-slate-300/60 dark:border-white/10" />
+    -->
 
     <!-- ====== Experience ====== -->
     <section>
@@ -160,25 +195,41 @@ const awards = [
             <h3 class="text-lg font-semibold text-heading-light dark:text-heading-dark">{item.title}</h3>
             <p class="text-text-light/80 dark:text-text-dark/80">{item.org}</p>
             <p class="text-sm text-text-light/60 dark:text-text-dark/60 mt-1">{item.desc}</p>
-
-    {/* Divider between Experience and Awards */}
-    <div class="my-14 border-t border-slate-300/60 dark:border-white/10" />
-
           </div>
         ))}
       </div>
     </section>
 
-    <!-- ====== Awards ====== -->
-    <section>
+    <!-- ====== 基金与资助 ====== -->
+    <section class="mt-14">
       <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
-        {t('about.awards')}
+        {t('about.grants')}
+      </h2>
+      <ul class="space-y-4">
+        {grants.map((item) => (
+          <li class="flex items-start gap-3">
+            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5">{item.years}</span>
+            <div>
+              <span class="text-text-light/80 dark:text-text-dark/80">{item.title}</span>
+              {item.number && (
+                <span class="ml-2 text-xs font-mono text-text-light/40 dark:text-text-dark/40">{item.number}</span>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <!-- ====== 观测设施 ====== -->
+    <section class="mt-14">
+      <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
+        {t('about.observations')}
       </h2>
       <ul class="space-y-3">
-        {awards.map((item) => (
+        {observations.map((item) => (
           <li class="flex items-start gap-3">
-            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5">{item.year}</span>
-            <span class="text-text-light/80 dark:text-text-dark/80">{item.title}</span>
+            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5 min-w-[8rem]">{item.telescope}</span>
+            <span class="text-text-light/80 dark:text-text-dark/80">{item.desc}</span>
           </li>
         ))}
       </ul>
