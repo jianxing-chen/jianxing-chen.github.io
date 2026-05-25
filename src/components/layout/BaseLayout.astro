@@ -125,7 +125,7 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
            antialiased"
     style="font-family: 'Inter', 'Noto Sans SC', sans-serif;"
   >
-    <Header lang={lang} />
+    <Header lang={lang} isHomepage={isHomepage} />
 
     {isHomepage ? (
       <main class="flex-1 w-full">
