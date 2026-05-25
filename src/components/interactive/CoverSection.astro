@@ -52,8 +52,8 @@ const startIdx = 0;
 <div id="cover-bg-layer" class="cover-bg-layer">
   <script type="application/json" id="cover-data" set:html={JSON.stringify({ photos: coverPhotos, startIndex: startIdx, lang })}></script>
 
-  <img id="cover-img-current" class="cover-bg-img" src={coverPhotos[startIdx].desktop} alt="" style="opacity:1" />
-  <img id="cover-img-next" class="cover-bg-img" src="" alt="" style="opacity:0" />
+  <img id="cover-img-current" class="cover-bg-img" src={coverPhotos[startIdx].desktop} alt="" role="presentation" style="opacity:1" />
+  <img id="cover-img-next" class="cover-bg-img" src="" alt="" role="presentation" style="opacity:0" />
   <div class="cover-bg-overlay"></div>
 </div>
 
@@ -85,7 +85,7 @@ const startIdx = 0;
 ></div>
 
 <button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
-  <svg class="cover-scroll-indicator-icon w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+  <svg class="cover-scroll-indicator-icon w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
   </svg>
 </button>
@@ -93,7 +93,7 @@ const startIdx = 0;
 <!-- 返回封面按钮（移动端正文态） -->
 <button id="back-to-cover-btn" class="back-to-cover-btn"
   aria-label={lang === 'zh' ? '返回图库' : 'Back to gallery'}>
-  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
   </svg>
 </button>
