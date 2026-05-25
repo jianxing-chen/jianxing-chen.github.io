@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "多波段恒星星表构建"
 status: "ongoing"
 description: "通过交叉匹配地面和空间天文台的数据，构建综合多波段测光星表。"

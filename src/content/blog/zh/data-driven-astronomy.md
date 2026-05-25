@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "数据驱动的天文学：当机器学习遇上星辰"
 date: 2024-08-20
 tags: ["machine-learning", "data-science", "astronomy"]

@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "Variable Stars Catalog in the Galactic Bulge"
 description: "A catalog of variable stars identified from multi-epoch spectroscopic observations toward the Galactic bulge region."
 version: "1.0"

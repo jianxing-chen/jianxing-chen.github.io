@@ -7,7 +7,7 @@ import CatalogTable from '@/components/interactive/CatalogTable.tsx';
 
 export async function getStaticPaths() {
   const allCatalogs = await getCollection('catalogs');
-  const enCatalogs = allCatalogs.filter((c) => c.id.startsWith('en/'));
+  const enCatalogs = allCatalogs.filter((c) => c.id.startsWith('en/') && !c.data.draft);
   return enCatalogs.map((catalog) => ({
     params: { slug: extractSlug(catalog.id) },
     props: { catalog },

@@ -7,7 +7,7 @@ import { getCollection, render } from 'astro:content';
 export async function getStaticPaths() {
   const allResearch = await getCollection('research');
   return allResearch
-    .filter((p) => p.id.startsWith('en/'))
+    .filter((p) => p.id.startsWith('en/') && !p.data.draft)
     .map((project) => ({
       params: { slug: extractSlug(project.id) },
       props: { project },

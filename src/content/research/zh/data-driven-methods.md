@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "数据驱动的恒星参数估计方法"
 status: "completed"
 description: "开发从低分辨率光谱估计恒星大气参数的机器学习方法。"

@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "Data-Driven Astronomy: Machine Learning Meets the Stars"
 date: 2024-08-20
 tags: ["machine-learning", "data-science", "astronomy"]

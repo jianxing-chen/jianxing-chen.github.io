@@ -7,7 +7,7 @@ import CatalogTable from '@/components/interactive/CatalogTable.tsx';
 
 export async function getStaticPaths() {
   const allCatalogs = await getCollection('catalogs');
-  const zhCatalogs = allCatalogs.filter((c) => c.id.startsWith('zh/'));
+  const zhCatalogs = allCatalogs.filter((c) => c.id.startsWith('zh/') && !c.data.draft);
   return zhCatalogs.map((catalog) => ({
     params: { slug: extractSlug(catalog.id) },
     props: { catalog },

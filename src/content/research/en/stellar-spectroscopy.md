@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "Large-scale Stellar Spectroscopic Survey"
 status: "ongoing"
 description: "A comprehensive spectroscopic survey targeting variable stars in the Galactic bulge."

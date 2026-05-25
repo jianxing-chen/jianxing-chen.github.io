@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "大规模恒星光谱巡天"
 status: "ongoing"
 description: "针对银河系核球区变星的综合光谱巡天项目。"

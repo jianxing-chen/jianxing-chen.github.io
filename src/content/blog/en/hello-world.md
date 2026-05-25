@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "Exploring the Cosmos: An Introduction to Modern Spectroscopy"
 date: 2024-06-15
 tags: ["spectroscopy", "tutorial", "astrophysics"]

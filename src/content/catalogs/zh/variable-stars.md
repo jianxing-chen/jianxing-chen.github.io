@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "银河系核球区变星星表"
 description: "基于多历元光谱观测认证的银河系核球区变星星表。"
 version: "1.0"

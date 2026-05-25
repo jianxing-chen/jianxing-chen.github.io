@@ -9,6 +9,7 @@ const research = defineCollection({
     description: z.string(),
     cover: z.string().optional(),
     tags: z.array(z.string()),
+    draft: z.boolean().default(false),
     order: z.number().default(0),
   }),
 });
@@ -28,6 +29,7 @@ const catalogs = defineCollection({
     })),
     citation: z.string().optional(),
     doi: z.string().optional(),
+    draft: z.boolean().default(false),
   }),
 });
 

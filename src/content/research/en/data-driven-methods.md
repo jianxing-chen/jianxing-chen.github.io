@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "Data-Driven Methods for Stellar Parameter Estimation"
 status: "completed"
 description: "Developing machine learning approaches for estimating stellar atmospheric parameters from low-resolution spectra."

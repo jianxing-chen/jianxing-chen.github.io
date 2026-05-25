@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "Multi-band Stellar Catalog Construction"
 status: "ongoing"
 description: "Building a comprehensive multi-band photometric catalog by cross-matching data from ground and space observatories."
