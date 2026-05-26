@@ -74,35 +74,43 @@ const experience = [
 const grants = [
   {
     title: 'National Natural Science Foundation of China — Young Scientists Fund (Category C)',
-    years: '2026.01 – 2028.12',
+    number: 'No. 12503036',
+    years: '2026 – 2028',
+    role: 'pi' as const,
   },
   {
     title: 'China Postdoctoral Science Fund — General Fund (76th Batch)',
     number: 'No. 2024M760242',
     years: '2024 – 2026',
+    role: 'pi' as const,
   },
   {
     title: 'Postdoctoral Fellowship Program of CPSF',
     number: 'No. GZC20240124',
     years: '2024 – 2026',
+    role: 'pi' as const,
   },
   {
     title: 'Postgraduate Research Activities Grant, University of Bologna',
     years: '2022 (8 months)',
+    role: 'pi' as const,
   },
   {
     title: 'Marco Polo Grant, University of Bologna',
     years: '2022 (3 months)',
+    role: 'pi' as const,
   },
   {
     title: 'Key Program of NSFC — Asteroseismology of pulsating variable stars in the Kepler fields',
-    number: 'No. 1183000094 (co-I)',
+    number: 'No. 1183000094',
     years: '2019 – 2023',
+    role: 'co-i' as const,
   },
   {
     title: 'Natural Science Foundation of Beijing — Asteroseismology of high-amplitude δ Scuti stars from LAMOST & Kepler',
-    number: 'No. 1194023 (co-I)',
+    number: 'No. 1194023',
     years: '2019 – 2020',
+    role: 'co-i' as const,
   },
 ];
 
@@ -237,12 +245,15 @@ const outreach = [
         {grants.map((item) => (
           <li class="flex items-start gap-3">
             <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5">{item.years}</span>
-            <div>
+            <div class="flex-1 min-w-0">
               <span class="text-text-light/80 dark:text-text-dark/80">{item.title}</span>
               {item.number && (
                 <span class="ml-2 text-xs font-mono text-text-light/40 dark:text-text-dark/40">{item.number}</span>
               )}
             </div>
+            <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/[0.05] dark:text-slate-400 dark:border-white/10">
+              {item.role === 'pi' ? 'PI' : 'Co-I'}
+            </span>
           </li>
         ))}
       </ul>

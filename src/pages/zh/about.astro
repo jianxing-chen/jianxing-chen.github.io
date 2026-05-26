@@ -74,35 +74,43 @@ const experience = [
 const grants = [
   {
     title: '国家自然科学基金青年科学基金项目（C类）',
-    years: '2026.01 – 2028.12',
+    number: 'No. 12503036',
+    years: '2026 – 2028',
+    role: 'pi' as const,
   },
   {
     title: '中国博士后科学基金第76批面上项目',
     number: 'No. 2024M760242',
     years: '2024 – 2026',
+    role: 'pi' as const,
   },
   {
     title: '国家资助博士后研究人员计划（C 档）',
     number: 'No. GZC20240124',
     years: '2024 – 2026',
+    role: 'pi' as const,
   },
   {
     title: '博洛尼亚大学研究生科研活动基金',
     years: '2022（8 个月）',
+    role: 'pi' as const,
   },
   {
     title: '博洛尼亚大学马可·波罗基金',
     years: '2022（3 个月）',
+    role: 'pi' as const,
   },
   {
     title: '国家自然科学基金重点项目 — Kepler 天区脉动变星星震学研究',
-    number: 'No. 1183000094（参与）',
+    number: 'No. 1183000094',
     years: '2019 – 2023',
+    role: 'co-i' as const,
   },
   {
     title: '北京市自然科学基金 — LAMOST 与 Kepler 高振幅 δ Scuti 星星震学',
-    number: 'No. 1194023（参与）',
+    number: 'No. 1194023',
     years: '2019 – 2020',
+    role: 'co-i' as const,
   },
 ];
 
@@ -237,12 +245,15 @@ const outreach = [
         {grants.map((item) => (
           <li class="flex items-start gap-3">
             <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5">{item.years}</span>
-            <div>
+            <div class="flex-1 min-w-0">
               <span class="text-text-light/80 dark:text-text-dark/80">{item.title}</span>
               {item.number && (
                 <span class="ml-2 text-xs font-mono text-text-light/40 dark:text-text-dark/40">{item.number}</span>
               )}
             </div>
+            <span class="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full border bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/[0.05] dark:text-slate-400 dark:border-white/10">
+              {item.role === 'pi' ? '主持' : '参与'}
+            </span>
           </li>
         ))}
       </ul>
