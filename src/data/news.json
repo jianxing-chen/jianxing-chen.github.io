@@ -43,5 +43,50 @@
     "url": "https://www.bolognatoday.it/attualita/stelle-invecchiamento-unibo.html",
     "type": "media",
     "highlight": true
+  },
+  {
+    "id": "nasa-hubble-2021-m13",
+    "title": { "en": "NASA — Hubble Discovers Hydrogen-Burning White Dwarfs Enjoying Slow Aging", "zh": "NASA：哈勃发现通过燃烧氢延缓衰老的白矮星" },
+    "source": "NASA",
+    "date": "2021-09-06",
+    "url": "https://science.nasa.gov/missions/hubble/hubble-discovers-hydrogen-burning-white-dwarfs-enjoying-slow-aging/",
+    "type": "media",
+    "highlight": true
+  },
+  {
+    "id": "esa-hubble-2021-m13",
+    "title": { "en": "ESA/Hubble — Hubble Discovers Hydrogen-Burning White Dwarfs Enjoying Slow Ageing", "zh": "ESA/Hubble：哈勃发现通过燃烧氢延缓衰老的白矮星" },
+    "source": "ESA/Hubble",
+    "date": "2021-09-06",
+    "url": "https://esahubble.org/news/heic2108/",
+    "type": "media",
+    "highlight": true
+  },
+  {
+    "id": "the-times-2021-m13",
+    "title": { "en": "The Times — Stars rage against the dying of the light: white dwarfs found to burn hydrogen", "zh": "The Times：恒星抗拒光明的消逝——白矮星被发现仍在燃烧氢" },
+    "source": "The Times",
+    "date": "2021-09-06",
+    "url": "https://www.thetimes.com/uk/science/article/stars-rage-dying-of-their-light-white-dwarf-kwmf3jpm7",
+    "type": "media",
+    "highlight": true
+  },
+  {
+    "id": "sky-news-2021-m13",
+    "title": { "en": "Sky News — White dwarf stars are meant to be dead, but astronomers have just found some that are still alive", "zh": "Sky News：本应死亡的白矮星——天文学家发现其中一些仍然存活" },
+    "source": "Sky News",
+    "date": "2021-09-06",
+    "url": "https://news.sky.com/story/white-dwarf-stars-are-meant-to-be-dead-but-astronomers-have-just-found-some-that-are-still-alive-12400763",
+    "type": "media",
+    "highlight": true
+  },
+  {
+    "id": "dw-2021-m13",
+    "title": { "en": "DW — White dwarfs that burn hydrogen age slowly", "zh": "德国之声：燃烧氢的白矮星缓慢衰老" },
+    "source": "Deutsche Welle",
+    "date": "2021-09-07",
+    "url": "https://www.dw.com/es/nuevo-descubrimiento-sobre-enanas-blancas-podr%C3%ADa-ayudar-a-predecir-el-fin-del-universo/a-59116738",
+    "type": "media",
+    "highlight": true
   }
 ]
