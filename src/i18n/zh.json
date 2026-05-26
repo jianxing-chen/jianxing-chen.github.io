@@ -26,6 +26,7 @@
   "about.experience": "工作经历",
   "about.grants": "基金与资助",
   "about.observations": "观测经验",
+  "about.outreach": "科普活动",
   "about.contact": "联系方式",
   "about.cv": "个人简历",
   "about.publications.first_corresponding": "第一作者 / 通讯作者",
@@ -113,5 +114,7 @@
   "catalogs.doi": "DOI",
   "catalogs.search": "搜索所有列…",
   "catalogs.noResults": "无匹配结果",
-  "catalogs.emptyData": "暂无数据"
+  "catalogs.emptyData": "暂无数据",
+  "news.type.talk": "学术报告",
+  "news.type.media": "媒体报道"
 }

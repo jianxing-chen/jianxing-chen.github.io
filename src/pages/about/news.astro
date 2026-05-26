@@ -51,9 +51,11 @@ const sortedNews = (newsData as NewsItem[]).sort(
               <time datetime={item.date}>{new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
             </div>
           </div>
-          <svg class="w-5 h-5 text-text-light/40 dark:text-text-dark/40 group-hover:text-primary-light dark:group-hover:text-primary-dark transition-colors flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
+          {item.type && (
+            <span class="shrink-0 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium border text-text-light/40 dark:text-text-dark/40 border-text-light/15 dark:border-text-dark/15">
+              {item.type === 'talk' ? t('news.type.talk') : t('news.type.media')}
+            </span>
+          )}
         </div>
       </a>
     ))}

@@ -5,7 +5,7 @@ const research = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/research' }),
   schema: z.object({
     title: z.string(),
-    status: z.enum(['ongoing', 'completed']),
+    status: z.enum(['ongoing', 'completed']).optional().default('ongoing'),
     description: z.string(),
     cover: z.string().optional(),
     tags: z.array(z.string()),

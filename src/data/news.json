@@ -1,10 +1,38 @@
 [
   {
+    "id": "cwnu-2023-talk",
+    "title": { "en": "Invited Talk at China West Normal University — Slowly cooling white dwarfs in globular clusters", "zh": "学术报告·西华师范大学 — 球状星团中缓慢冷却的白矮星" },
+    "source": "西华师范大学物理与天文学院",
+    "date": "2023-09-08",
+    "url": "https://pei.cwnu.edu.cn/info/1061/14373.htm",
+    "type": "talk",
+    "highlight": true
+  },
+  {
+    "id": "sysu-csst-2023-talk",
+    "title": { "en": "CSST Seminar at Sun Yat-sen University — Slowly cooling white dwarfs in globular clusters", "zh": "学术报告·中山大学 — 球状星团中缓慢冷却的白矮星" },
+    "source": "中山大学 CSST 科学工作联合中心",
+    "date": "2023-09-07",
+    "url": "https://csst.sysu.edu.cn/event/318",
+    "type": "talk",
+    "highlight": true
+  },
+  {
+    "id": "dzu-2023-talk",
+    "title": { "en": "Invited Talk at Dezhou University — Slowly cooling white dwarfs in globular clusters", "zh": "德州学院计算机与信息学院邀请陈剑星博士开展学术交流" },
+    "source": "德州学院",
+    "date": "2023-09-06",
+    "url": "https://jsjxy.dzu.edu.cn/info/1034/4668.htm",
+    "type": "talk",
+    "highlight": true
+  },
+  {
     "id": "science-china-daily-2021-m13",
     "title": { "en": "China Science Daily — Slowly cooling white dwarfs discovered in M13", "zh": "中国科学报：M13 中发现缓慢冷却的白矮星" },
     "source": "中国科学报 (头版)",
     "date": "2021-09-09",
     "url": "https://news.sciencenet.cn/sbhtmlnews/2021/9/365195.shtm",
+    "type": "media",
     "highlight": true
   },
   {
@@ -13,6 +41,7 @@
     "source": "BolognaToday",
     "date": "2021-09-06",
     "url": "https://www.bolognatoday.it/attualita/stelle-invecchiamento-unibo.html",
+    "type": "media",
     "highlight": true
   }
 ]

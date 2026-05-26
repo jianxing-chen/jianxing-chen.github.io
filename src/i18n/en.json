@@ -26,6 +26,7 @@
   "about.experience": "Experience",
   "about.grants": "Grants & Funding",
   "about.observations": "Observing Experience",
+  "about.outreach": "Outreach",
   "about.contact": "Contact",
   "about.cv": "CV",
   "about.download_cv": "Download CV",
@@ -113,5 +114,7 @@
   "catalogs.doi": "DOI",
   "catalogs.search": "Search all columns…",
   "catalogs.noResults": "No matching results",
-  "catalogs.emptyData": "No data available"
+  "catalogs.emptyData": "No data available",
+  "news.type.talk": "Talk",
+  "news.type.media": "Media"
 }

@@ -73,7 +73,7 @@ const experience = [
 
 const grants = [
   {
-    title: 'China Postdoctoral Science Fund — General Fund',
+    title: 'China Postdoctoral Science Fund — General Fund (76th Batch)',
     number: 'No. 2024M760242',
     years: '2024 – 2026',
   },
@@ -109,6 +109,30 @@ const observations = [
   { telescope: 'Nanshan 1m', desc: 'Xinjiang Astronomical Observatory, China' },
   { telescope: 'Lijiang 2.4m', desc: 'Yunnan Astronomical Observatory, China' },
   { telescope: 'SPM 85cm', desc: 'Observatorio Astronómico Nacional de la Sierra de San Pedro Mártir, Mexico' },
+];
+
+const outreach = [
+  {
+    type: 'award',
+    title: 'The Popular Supernova Project Discovery Award',
+    org: 'XMO & China-VO',
+    year: '2018',
+    url: 'https://nadc.china-vo.org/psp/article/20190202143814',
+  },
+  {
+    type: 'award',
+    title: 'The Popular Supernova Project Newcomer Award',
+    org: 'XMO & China-VO',
+    year: '2018',
+    url: 'https://nadc.china-vo.org/psp/article/20190202143814',
+  },
+  {
+    type: 'article',
+    title: 'The first supernova I discovered',
+    org: 'Amateur Astronomer magazine, Dec 2015',
+    year: '2015',
+    url: 'https://nadc.china-vo.org/psp/article/20221129113818',
+  },
 ];
 ---
 
@@ -235,6 +259,28 @@ const observations = [
       </ul>
     </section>
 
+    <!-- ====== Outreach ====== -->
+    <section class="mt-14">
+      <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
+        {t('about.outreach')}
+      </h2>
+      <ul class="space-y-3">
+        {outreach.map((item) => (
+          <li class="flex items-start gap-3">
+            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5">{item.year}</span>
+            <div>
+              <span class="text-xs font-medium uppercase text-accent-light dark:text-accent-dark">{item.type === 'award' ? '🏆' : '📝'}</span>
+              <a href={item.url} target="_blank" rel="noopener noreferrer"
+                 class="text-text-light/80 dark:text-text-dark/80 hover:text-primary-light dark:hover:text-primary-dark transition-colors">
+                {item.title}
+              </a>
+              <span class="ml-2 text-xs text-text-light/40 dark:text-text-dark/40">{item.org}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
     </section><!-- end CV -->
 
     <!-- ====== Section 2: Publications ====== -->
@@ -305,9 +351,11 @@ const observations = [
                   <time datetime={item.date}>{new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
                 </div>
               </div>
-              <svg class="w-5 h-5 text-text-light/40 dark:text-text-dark/40 group-hover:text-primary-light dark:group-hover:text-primary-dark transition-colors flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              {item.type && (
+                <span class="shrink-0 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium border text-text-light/40 dark:text-text-dark/40 border-text-light/15 dark:border-text-dark/15">
+                  {item.type === 'talk' ? t('news.type.talk') : t('news.type.media')}
+                </span>
+              )}
             </div>
           </a>
         ))}

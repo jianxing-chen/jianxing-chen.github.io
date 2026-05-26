@@ -28,11 +28,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const sortedNews = [...newsData].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 const researchInterests = [
-  'White Dwarfs',
-  'Globular Clusters',
-  'Photometry',
-  'Variable Stars',
-  'Millisecond Pulsars',
+  '白矮星',
+  '球状星团',
+  '测光',
+  '变星',
+  '毫秒脉冲星',
 ];
 
 const education = [
@@ -73,7 +73,7 @@ const experience = [
 
 const grants = [
   {
-    title: '中国博士后科学基金 — 面上项目',
+    title: '中国博士后科学基金第76批面上项目',
     number: 'No. 2024M760242',
     years: '2024 – 2026',
   },
@@ -109,6 +109,30 @@ const observations = [
   { telescope: '南山 1m', desc: '中国科学院新疆天文台' },
   { telescope: '丽江 2.4m', desc: '中国科学院云南天文台' },
   { telescope: 'SPM 85cm', desc: '墨西哥圣佩德罗马尔蒂尔山国家天文台' },
+];
+
+const outreach = [
+  {
+    type: 'award',
+    title: '公众超新星搜寻项目发现奖',
+    org: 'XMO & 中国虚拟天文台',
+    year: '2018',
+    url: 'https://nadc.china-vo.org/psp/article/20190202143814',
+  },
+  {
+    type: 'award',
+    title: '公众超新星搜寻项目新人奖',
+    org: 'XMO & 中国虚拟天文台',
+    year: '2018',
+    url: 'https://nadc.china-vo.org/psp/article/20190202143814',
+  },
+  {
+    type: 'article',
+    title: '我发现的第⼀颗超新星',
+    org: '《天文爱好者》，2015 年 12 月',
+    year: '2015',
+    url: 'https://nadc.china-vo.org/psp/article/20221129113818',
+  },
 ];
 ---
 
@@ -235,6 +259,28 @@ const observations = [
       </ul>
     </section>
 
+    <!-- ====== 科普 Outreach ====== -->
+    <section class="mt-14">
+      <h2 class="text-2xl font-bold text-heading-light dark:text-heading-dark mb-6">
+        {t('about.outreach')}
+      </h2>
+      <ul class="space-y-3">
+        {outreach.map((item) => (
+          <li class="flex items-start gap-3">
+            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5">{item.year}</span>
+            <div>
+              <span class="text-xs font-medium uppercase text-accent-light dark:text-accent-dark">{item.type === 'award' ? '🏆' : '📝'}</span>
+              <a href={item.url} target="_blank" rel="noopener noreferrer"
+                 class="text-text-light/80 dark:text-text-dark/80 hover:text-primary-light dark:hover:text-primary-dark transition-colors">
+                {item.title}
+              </a>
+              <span class="ml-2 text-xs text-text-light/40 dark:text-text-dark/40">{item.org}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
     </section><!-- end CV -->
 
     <!-- ====== 第二部分：发表论文 ====== -->
@@ -305,9 +351,11 @@ const observations = [
                   <time datetime={item.date}>{new Date(item.date).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
                 </div>
               </div>
-              <svg class="w-5 h-5 text-text-light/40 dark:text-text-dark/40 group-hover:text-primary-light dark:group-hover:text-primary-dark transition-colors flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              {item.type && (
+                <span class="shrink-0 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium border text-text-light/40 dark:text-text-dark/40 border-text-light/15 dark:border-text-dark/15">
+                  {item.type === 'talk' ? t('news.type.talk') : t('news.type.media')}
+                </span>
+              )}
             </div>
           </a>
         ))}
