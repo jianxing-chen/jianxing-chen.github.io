@@ -45,7 +45,7 @@ const coverPhotos = selectedCoverPhotos.map((p) => ({
   region: p.region,
 }));
 
-const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos.length) : 0;
+const startIdx = 0;
 ---
 
 <!-- ═══ 固定封面背景层 ═══ -->
@@ -119,7 +119,9 @@ const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos
 
     type CoverPhoto = { id: string; desktop: string; mobile: string; href: string; title: { en: string; zh?: string }; location: { en: string; zh?: string }; region: { en: string; zh?: string } };
     const coverPhotos: CoverPhoto[] = coverData.photos || [];
-    const startIdx: number = coverData.startIndex || 0;
+    const startIdx: number = (coverPhotos.length > 1)
+      ? Math.floor(Math.random() * coverPhotos.length)
+      : (coverData.startIndex || 0);
     const coverLang: string = coverData.lang || 'en';
     if (coverPhotos.length === 0) return;
     let currentIndex = startIdx;
