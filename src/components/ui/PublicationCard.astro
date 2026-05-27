@@ -46,14 +46,8 @@ const doiUrl = `https://doi.org/${paper.doi}`;
     'hover:shadow-md hover:shadow-slate-200/50 dark:hover:shadow-black/20',
     'hover:border-slate-300/80 dark:hover:border-white/[0.08]',
     'hover:-translate-y-0.5',
-    isHighlighted && 'pl-5',
   ]}
 >
-  {/* Accent bar for first-author / corresponding */}
-  {isHighlighted && (
-    <div class="absolute left-0 top-4 bottom-4 w-[3px] rounded-full bg-primary-light dark:bg-primary-dark" />
-  )}
-
   {/* Title */}
   <h3 class="text-[0.95rem] font-semibold leading-snug mb-2">
     <a href={doiUrl} target="_blank" rel="noopener noreferrer"
