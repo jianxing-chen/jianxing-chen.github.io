@@ -45,7 +45,7 @@ const coverPhotos = selectedCoverPhotos.map((p) => ({
   region: p.region,
 }));
 
-const startIdx = 0;
+const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos.length) : 0;
 ---
 
 <!-- ═══ 固定封面背景层 ═══ -->
