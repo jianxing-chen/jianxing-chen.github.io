@@ -267,8 +267,8 @@ const outreach = [
       <ul class="space-y-3">
         {observations.map((item) => (
           <li class="flex items-start gap-3">
-            <a href={item.url} target="_blank" rel="noopener noreferrer" class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5 min-w-[8rem] hover:underline">{item.telescope}</a>
-            <span class="text-text-light/80 dark:text-text-dark/80">{item.desc}</span>
+            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5 min-w-[8rem]">{item.telescope}</span>
+            <a href={item.url} target="_blank" rel="noopener noreferrer" class="text-text-light/80 dark:text-text-dark/80 hover:text-primary-light dark:hover:text-primary-dark transition-colors">{item.desc}</a>
           </li>
         ))}
       </ul>
