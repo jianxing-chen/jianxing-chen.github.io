@@ -126,6 +126,12 @@ const startIdx = 0;
     if (coverPhotos.length === 0) return;
     let currentIndex = startIdx;
 
+    // 如果随机起始不是 0，需要把首屏图和文案也切过去
+    if (currentIndex !== 0) {
+      imgCurrent.src = getSrc(coverPhotos[currentIndex]);
+      updateCredit(currentIndex);
+    }
+
     let activeImg = imgCurrent;
     let hiddenImg = imgNext;
     const warmedImageSources = new Set<string>();
