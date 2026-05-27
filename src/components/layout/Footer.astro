@@ -11,24 +11,25 @@ const { lang, isHomepage = false } = Astro.props;
 const t = useTranslations(lang);
 ---
 
-{isHomepage && (
-<!-- 7Timer Astro Forecast -->
-<div id="forecast-section" class="max-w-5xl mx-auto px-2 sm:px-6 mt-12 sm:mt-20">
-  <div class="flex flex-col items-center">
-    <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
-      {lang === 'zh' ? '北京 · 天文气象预报' : 'Beijing · Astro Forecast'} · 7Timer
-    </p>
-    <img
-      src={`https://www.7timer.info/bin/astro.php?lon=116.36&lat=39.96&lang=${lang === 'zh' ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
-      alt={lang === 'zh' ? '天文气象预报' : 'Astro weather forecast'}
-      class="forecast-thumbnail opacity-70 hover:opacity-100 transition-opacity"
-      loading="lazy"
-    />
+<footer class="border-t border-black/[0.06] dark:border-white/[0.06] mt-20 transition-colors duration-300">
+  {isHomepage && (
+  <!-- 7Timer Astro Forecast -->
+  <div id="forecast-section" class="max-w-5xl mx-auto px-2 sm:px-6 pt-10">
+    <div class="flex flex-col items-center">
+      <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
+        {lang === 'zh' ? '北京 · 天文气象预报' : 'Beijing · Astro Forecast'} · 7Timer
+      </p>
+      <img
+        src={`https://www.7timer.info/bin/astro.php?lon=116.36&lat=39.96&lang=${lang === 'zh' ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
+        alt={lang === 'zh' ? '天文气象预报' : 'Astro weather forecast'}
+        class="forecast-thumbnail opacity-70 hover:opacity-100 transition-opacity"
+        decoding="async"
+        width="700"
+        height="320"
+      />
+    </div>
   </div>
-</div>
-)}
-
-<footer class="border-t border-black/[0.06] dark:border-white/[0.06] mt-10 transition-colors duration-300">
+  )}
   <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
       <!-- Copyright -->
@@ -121,9 +122,5 @@ const t = useTranslations(lang);
       max-width: 100%;
       width: 100%;
     }
-  }
-
-  :global(html.cover-visible) #forecast-section {
-    visibility: hidden;
   }
 </style>
