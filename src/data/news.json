@@ -2,7 +2,7 @@
   {
     "id": "xjtu-2023-talk",
     "title": { "en": "Invited Talk at Xi'an Jiaotong University — Slowly cooling white dwarfs in globular clusters", "zh": "学术报告·西安交通大学 — 球状星团中缓慢冷却的白矮星" },
-    "source": "西安交通大学物理学院",
+    "source": { "en": "School of Physics, Xi'an Jiaotong University", "zh": "西安交通大学物理学院" },
     "date": "2023-09-12",
     "url": "https://phy.xjtu.edu.cn/info/1147/8816.htm",
     "type": "talk",
@@ -11,7 +11,7 @@
   {
     "id": "cwnu-2023-talk",
     "title": { "en": "Invited Talk at China West Normal University — Slowly cooling white dwarfs in globular clusters", "zh": "学术报告·西华师范大学 — 球状星团中缓慢冷却的白矮星" },
-    "source": "西华师范大学物理与天文学院",
+    "source": { "en": "School of Physics and Astronomy, China West Normal University", "zh": "西华师范大学物理与天文学院" },
     "date": "2023-09-08",
     "url": "https://pei.cwnu.edu.cn/info/1061/14373.htm",
     "type": "talk",
@@ -20,7 +20,7 @@
   {
     "id": "sysu-csst-2023-talk",
     "title": { "en": "CSST Seminar at Sun Yat-sen University — Slowly cooling white dwarfs in globular clusters", "zh": "学术报告·中山大学 — 球状星团中缓慢冷却的白矮星" },
-    "source": "中山大学 CSST 科学工作联合中心",
+    "source": { "en": "CSST Science Center, Sun Yat-sen University", "zh": "中山大学 CSST 科学工作联合中心" },
     "date": "2023-09-07",
     "url": "https://csst.sysu.edu.cn/event/318",
     "type": "talk",
@@ -29,7 +29,7 @@
   {
     "id": "dzu-2023-talk",
     "title": { "en": "Invited Talk at Dezhou University — Slowly cooling white dwarfs in globular clusters", "zh": "德州学院计算机与信息学院邀请陈剑星博士开展学术交流" },
-    "source": "德州学院",
+    "source": { "en": "Dezhou University", "zh": "德州学院" },
     "date": "2023-09-06",
     "url": "https://jsjxy.dzu.edu.cn/info/1034/4668.htm",
     "type": "talk",
@@ -38,7 +38,7 @@
   {
     "id": "science-china-daily-2021-m13",
     "title": { "en": "China Science Daily — Slowly cooling white dwarfs discovered in M13", "zh": "中国科学报：M13 中发现缓慢冷却的白矮星" },
-    "source": "中国科学报 (头版)",
+    "source": { "en": "China Science Daily (Front Page)", "zh": "中国科学报 (头版)" },
     "date": "2021-09-09",
     "url": "https://news.sciencenet.cn/sbhtmlnews/2021/9/365195.shtm",
     "type": "media",
@@ -47,7 +47,7 @@
   {
     "id": "bologna-today-2021-m13",
     "title": { "en": "BolognaToday — Some stars hide a secret to age more slowly, Unibo and INAF reveal how", "zh": "BolognaToday：部分恒星隐藏延缓衰老的秘密——博洛尼亚大学与 INAF 揭示其机制" },
-    "source": "BolognaToday",
+    "source": { "en": "BolognaToday", "zh": "博洛尼亚今日报" },
     "date": "2021-09-06",
     "url": "https://www.bolognatoday.it/attualita/stelle-invecchiamento-unibo.html",
     "type": "media",
@@ -74,7 +74,7 @@
   {
     "id": "the-times-2021-m13",
     "title": { "en": "The Times — Stars rage against the dying of the light: white dwarfs found to burn hydrogen", "zh": "The Times：恒星抗拒光明的消逝——白矮星被发现仍在燃烧氢" },
-    "source": "《泰晤士报》",
+    "source": { "en": "The Times", "zh": "《泰晤士报》" },
     "date": "2021-09-06",
     "url": "https://www.thetimes.com/uk/science/article/stars-rage-dying-of-their-light-white-dwarf-kwmf3jpm7",
     "type": "media",
@@ -83,7 +83,7 @@
   {
     "id": "sky-news-2021-m13",
     "title": { "en": "Sky News — White dwarf stars are meant to be dead, but astronomers have just found some that are still alive", "zh": "Sky News：本应死亡的白矮星——天文学家发现其中一些仍然存活" },
-    "source": "天空新闻",
+    "source": { "en": "Sky News", "zh": "天空新闻" },
     "date": "2021-09-06",
     "url": "https://news.sky.com/story/white-dwarf-stars-are-meant-to-be-dead-but-astronomers-have-just-found-some-that-are-still-alive-12400763",
     "type": "media",
@@ -92,7 +92,7 @@
   {
     "id": "dw-2021-m13",
     "title": { "en": "DW — White dwarfs that burn hydrogen age slowly", "zh": "德国之声：燃烧氢的白矮星缓慢衰老" },
-    "source": "Deutsche Welle",
+    "source": { "en": "Deutsche Welle", "zh": "德国之声" },
     "date": "2021-09-07",
     "url": "https://www.dw.com/es/nuevo-descubrimiento-sobre-enanas-blancas-podr%C3%ADa-ayudar-a-predecir-el-fin-del-universo/a-59116738",
     "type": "media",

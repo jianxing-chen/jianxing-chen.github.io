@@ -46,7 +46,7 @@ const sortedNews = (newsData as NewsItem[]).sort(
               {item.title[lang]}
             </h3>
             <div class="flex items-center gap-2 mt-1 text-sm text-text-light/60 dark:text-text-dark/60">
-              <span>{item.source}</span>
+              <span>{item.source?.[lang] || item.source}</span>
               <span>·</span>
               <time datetime={item.date}>{new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
             </div>
