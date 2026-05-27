@@ -115,12 +115,12 @@ const grants = [
 ];
 
 const observations = [
-  { telescope: 'HST', desc: 'GO 17763 — 校准白矮星冷却计时器：残余热核燃烧效应' },
-  { telescope: '兴隆 2.16m', desc: '中国科学院国家天文台' },
-  { telescope: '兴隆 85cm', desc: '中国科学院国家天文台' },
-  { telescope: '南山 1m', desc: '中国科学院新疆天文台' },
-  { telescope: '丽江 2.4m', desc: '中国科学院云南天文台' },
-  { telescope: 'SPM 85cm', desc: '墨西哥圣佩德罗马尔蒂尔山国家天文台' },
+  { telescope: 'HST', desc: 'GO 17763 — 校准白矮星冷却计时器：残余热核燃烧的影响', url: 'https://archive.stsci.edu/proposal_search.php?mission=hst&id=17763' },
+  { telescope: '兴隆 2.16m', desc: '中国科学院国家天文台', url: 'https://bmpg.nao.cas.cn/' },
+  { telescope: '兴隆 85cm', desc: '中国科学院国家天文台', url: 'https://bmpg.nao.cas.cn/' },
+  { telescope: '南山 1m', desc: '中国科学院新疆天文台', url: 'http://www.xao.ac.cn/' },
+  { telescope: '丽江 2.4m', desc: '中国科学院云南天文台', url: 'https://gmg.bnu.edu.cn/' },
+  { telescope: 'SPM 85cm', desc: '墨西哥圣佩德罗马尔蒂尔山国家天文台', url: 'https://www.astrossp.unam.mx/' },
 ];
 
 const outreach = [
@@ -267,7 +267,7 @@ const outreach = [
       <ul class="space-y-3">
         {observations.map((item) => (
           <li class="flex items-start gap-3">
-            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5 min-w-[8rem]">{item.telescope}</span>
+            <a href={item.url} target="_blank" rel="noopener noreferrer" class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5 min-w-[8rem] hover:underline">{item.telescope}</a>
             <span class="text-text-light/80 dark:text-text-dark/80">{item.desc}</span>
           </li>
         ))}

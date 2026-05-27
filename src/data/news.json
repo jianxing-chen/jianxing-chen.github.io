@@ -1,5 +1,14 @@
 [
   {
+    "id": "xjtu-2023-talk",
+    "title": { "en": "Invited Talk at Xi'an Jiaotong University — Slowly cooling white dwarfs in globular clusters", "zh": "学术报告·西安交通大学 — 球状星团中缓慢冷却的白矮星" },
+    "source": "西安交通大学物理学院",
+    "date": "2023-09-12",
+    "url": "https://phy.xjtu.edu.cn/info/1147/8816.htm",
+    "type": "talk",
+    "highlight": true
+  },
+  {
     "id": "cwnu-2023-talk",
     "title": { "en": "Invited Talk at China West Normal University — Slowly cooling white dwarfs in globular clusters", "zh": "学术报告·西华师范大学 — 球状星团中缓慢冷却的白矮星" },
     "source": "西华师范大学物理与天文学院",

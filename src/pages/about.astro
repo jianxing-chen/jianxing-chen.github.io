@@ -115,12 +115,12 @@ const grants = [
 ];
 
 const observations = [
-  { telescope: 'HST', desc: 'GO 17763 — Calibrating the white dwarf cooling chronometer: the effect of residual thermonuclear burning' },
-  { telescope: 'Xinglong 2.16m', desc: 'National Astronomical Observatories, China' },
-  { telescope: 'Xinglong 85cm', desc: 'National Astronomical Observatories, China' },
-  { telescope: 'Nanshan 1m', desc: 'Xinjiang Astronomical Observatory, China' },
-  { telescope: 'Lijiang 2.4m', desc: 'Yunnan Astronomical Observatory, China' },
-  { telescope: 'SPM 85cm', desc: 'Observatorio Astronómico Nacional de la Sierra de San Pedro Mártir, Mexico' },
+  { telescope: 'HST', desc: 'GO 17763 — Calibrating the white dwarf cooling chronometer: the effect of residual thermonuclear burning', url: 'https://archive.stsci.edu/proposal_search.php?mission=hst&id=17763' },
+  { telescope: 'Xinglong 2.16m', desc: 'National Astronomical Observatories, China', url: 'https://bmpg.nao.cas.cn/' },
+  { telescope: 'Xinglong 85cm', desc: 'National Astronomical Observatories, China', url: 'https://bmpg.nao.cas.cn/' },
+  { telescope: 'Nanshan 1m', desc: 'Xinjiang Astronomical Observatory, China', url: 'http://www.xao.ac.cn/' },
+  { telescope: 'Lijiang 2.4m', desc: 'Yunnan Astronomical Observatory, China', url: 'https://gmg.bnu.edu.cn/' },
+  { telescope: 'SPM 85cm', desc: 'Observatorio Astronómico Nacional de la Sierra de San Pedro Mártir, Mexico', url: 'https://www.astrossp.unam.mx/' },
 ];
 
 const outreach = [
@@ -267,7 +267,7 @@ const outreach = [
       <ul class="space-y-3">
         {observations.map((item) => (
           <li class="flex items-start gap-3">
-            <span class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5 min-w-[8rem]">{item.telescope}</span>
+            <a href={item.url} target="_blank" rel="noopener noreferrer" class="shrink-0 text-sm font-mono text-primary-light dark:text-primary-dark mt-0.5 min-w-[8rem] hover:underline">{item.telescope}</a>
             <span class="text-text-light/80 dark:text-text-dark/80">{item.desc}</span>
           </li>
         ))}
