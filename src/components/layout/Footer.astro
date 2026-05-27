@@ -11,10 +11,10 @@ const { lang, isHomepage = false } = Astro.props;
 const t = useTranslations(lang);
 ---
 
-<footer class="border-t border-black/[0.06] dark:border-white/[0.06] mt-20 transition-colors duration-300">
+<div id="page-bottom">
   {isHomepage && (
   <!-- 7Timer Astro Forecast -->
-  <div id="forecast-section" class="max-w-5xl mx-auto px-2 sm:px-6 pt-10">
+  <div class="max-w-5xl mx-auto px-2 sm:px-6 mt-12 sm:mt-20">
     <div class="flex flex-col items-center">
       <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
         {lang === 'zh' ? '北京 · 天文气象预报' : 'Beijing · Astro Forecast'} · 7Timer
@@ -30,6 +30,8 @@ const t = useTranslations(lang);
     </div>
   </div>
   )}
+
+<footer class="border-t border-black/[0.06] dark:border-white/[0.06] mt-10 transition-colors duration-300">
   <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
       <!-- Copyright -->
@@ -83,6 +85,7 @@ const t = useTranslations(lang);
     </p>
   </div>
 </footer>
+</div>
 
 <style>
   .social-link {
@@ -112,7 +115,8 @@ const t = useTranslations(lang);
   }
 
   .forecast-thumbnail {
-    max-width: 100%;
+    max-width: 480px;
+    width: 100%;
     height: auto;
     border-radius: 0.5rem;
   }
