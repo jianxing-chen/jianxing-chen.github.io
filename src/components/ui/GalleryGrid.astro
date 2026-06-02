@@ -146,9 +146,12 @@ const viewerPhotos = sortedPhotos.map((p) => ({
       const masonryDesktop = gallery.querySelector('.gallery-masonry--desktop') as HTMLElement;
       const masonryMobile = gallery.querySelector('.gallery-masonry--mobile') as HTMLElement;
 
-      // "全部地区" → 恢复原始 greedy masonry
+      // "全部地区" → 显示所有卡片，恢复原始布局
       if (!region || region === 'all') {
-        window.location.reload();
+        gallery.classList.remove('is-filtered');
+        [...masonryDesktop.children, ...masonryMobile.children].forEach((card) => {
+          (card as HTMLElement).hidden = false;
+        });
         return;
       }
 

@@ -240,6 +240,7 @@ const startIdx = 0;
           warmedImageSources.add(src);
           const preloadImage = new Image();
           preloadImage.decoding = 'async';
+          preloadImage.onerror = () => { warmedImageSources.delete(src); };
           preloadImage.src = src;
         }
       });
