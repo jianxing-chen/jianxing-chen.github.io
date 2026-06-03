@@ -109,16 +109,16 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </a>
-            <div class="desktop-dropdown-wrapper absolute left-1/2 -translate-x-1/2 top-full pt-1
-                        invisible pointer-events-none translate-y-1
-                        group-hover:visible group-hover:pointer-events-auto group-hover:translate-y-0
-                        group-focus-within:visible group-focus-within:pointer-events-auto group-focus-within:translate-y-0
-                        transition-transform duration-200 ease-out
+            <div class="desktop-dropdown-wrapper absolute left-1/2 -translate-x-1/2 top-[calc(100%+0.5rem)]
+                        opacity-0 pointer-events-none translate-y-2
+                        group-hover:opacity-100 group-hover:pointer-events-auto group-hover:translate-y-0
+                        group-focus-within:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0
+                        transition-all duration-250 ease-out
                         z-50">
               <div class="desktop-dropdown-panel min-w-[180px]
                           ring-1 ring-black/3 dark:ring-white/5
                           border border-black/5 dark:border-white/6
-                          rounded-xl shadow-sm shadow-black/3 dark:shadow-black/10">
+                          rounded-b-xl rounded-t-lg shadow-sm shadow-black/3 dark:shadow-black/10">
                 <div class="desktop-dropdown-scroll max-h-[60vh] overflow-y-auto py-1.5">
                   {item.children.map((child) => (
                     <a
