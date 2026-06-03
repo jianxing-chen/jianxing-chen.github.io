@@ -323,7 +323,16 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
       }
     }
     updateBeijingTime();
-    setInterval(updateBeijingTime, 60000);
+    // 对齐分钟边界：首次在下一秒整分钟触发，之后每 60 秒准时更新
+    function scheduleNextMinute() {
+      const now = new Date();
+      const msToNext = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+      setTimeout(() => {
+        updateBeijingTime();
+        setInterval(updateBeijingTime, 60000);
+      }, msToNext);
+    }
+    scheduleNextMinute();
 
     const pageContent = document.getElementById('page-content');
     const hero = document.getElementById('hero-unified');
