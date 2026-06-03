@@ -151,6 +151,7 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     const isZh = lang === 'zh';
 
     function update() {
+      if (!timeEl || !labelEl) return;
       const now = new Date();
       const bj = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
       let h = bj.getHours();
