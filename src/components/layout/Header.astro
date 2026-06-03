@@ -115,6 +115,8 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
                         group-focus-within:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0
                         transition-all duration-250 ease-out
                         z-50">
+              <!-- 隐形桥接层：填补菜单和下拉之间的间隙 -->
+              <div class="absolute -top-2 left-0 right-0 h-2" aria-hidden="true"></div>
               <div class="desktop-dropdown-panel min-w-[180px]
                           ring-1 ring-black/3 dark:ring-white/5
                           border border-black/5 dark:border-white/6
