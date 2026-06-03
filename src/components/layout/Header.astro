@@ -118,9 +118,7 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
               <!-- 隐形桥接层：填补菜单和下拉之间的间隙 -->
               <div class="absolute -top-2 left-0 right-0 h-2" aria-hidden="true"></div>
               <div class="desktop-dropdown-panel min-w-[180px]
-                          ring-1 ring-black/3 dark:ring-white/5
-                          border border-black/5 dark:border-white/6
-                          rounded-b-xl rounded-t-lg shadow-sm shadow-black/3 dark:shadow-black/10">
+                          border rounded-b-xl rounded-t-lg shadow-sm">
                 <div class="desktop-dropdown-scroll max-h-[60vh] overflow-y-auto py-1.5">
                   {item.children.map((child) => (
                     <a
