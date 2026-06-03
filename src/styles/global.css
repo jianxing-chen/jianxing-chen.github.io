@@ -864,6 +864,18 @@ html.cover-visible #page-bottom {
   opacity: 0;
 }
 
+/* 时钟指针平滑旋转动画 */
+.bj-clock-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+}
+
+.bj-clock-hand {
+  transform-origin: 12px 12px;
+  transition: transform 1s ease-out;
+}
+
 .header-transparent .desktop-dropdown-panel {
   text-shadow: none !important;
 }

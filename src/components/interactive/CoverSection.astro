@@ -46,6 +46,22 @@ const coverPhotos = selectedCoverPhotos.map((p) => ({
 }));
 
 const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos.length) : 0;
+
+// 服务端预渲染北京时间，避免页面加载后 JS 才显示造成延迟
+const bjNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+const bjH = bjNow.getHours();
+const bjM = bjNow.getMinutes().toString().padStart(2, '0');
+const bjIsPM = bjH >= 12;
+const bjHour12 = bjH % 12 || 12;
+const initialTimeText = lang === 'zh'
+  ? `${bjIsPM ? '下午' : '上午'}${bjHour12}:${bjM}`
+  : `${bjHour12}:${bjM} ${bjIsPM ? 'PM' : 'AM'}`;
+const initialTimeLabel = lang === 'zh' ? '北京' : 'Beijing';
+
+// 时钟指针初始旋转角度
+const bjTotalMin = bjH * 60 + bjNow.getMinutes();
+const initialHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);  // 时针: (时*60+分)/720*360
+const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 ---
 
 <!-- ═══ 固定封面背景层 ═══ -->
@@ -87,12 +103,23 @@ const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos
 <!-- 北京时间（封面右上角，跟随封面层消失） -->
 <div id="cover-beijing-time" class="cover-beijing-time"
      style="font-family: 'Space Grotesk', 'Inter', sans-serif;">
-  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-    <circle cx="12" cy="12" r="10"/>
-    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/>
+  <svg
+    class="bj-clock-icon"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
+    <g id="bj-hour-hand" class="bj-clock-hand" style="transform: rotate({initialHourDeg}deg)">
+      <path d="M12 12V7" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+    <g id="bj-minute-hand" class="bj-clock-hand" style="transform: rotate({initialMinDeg}deg)">
+      <path d="M12 12V3.5" stroke-width="1.1" stroke-linecap="round"/>
+    </g>
   </svg>
-  <span id="bj-time-text"></span>
-  <span id="bj-time-label" style="opacity: 0.75;"></span>
+  <span id="bj-time-text">{initialTimeText}</span>
+  <span id="bj-time-label" style="opacity: 0.75;">{initialTimeLabel}</span>
 </div>
 
 <button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
@@ -267,6 +294,7 @@ const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos
     function updateBeijingTime() {
       const timeEl = document.getElementById('bj-time-text');
       const labelEl = document.getElementById('bj-time-label');
+      const handEl = document.getElementById('bj-clock-hand');
       if (!timeEl || !labelEl) return;
       const now = new Date();
       const bj = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
@@ -283,9 +311,19 @@ const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos
         timeEl.textContent = `${h}:${m} ${ampm}`;
         labelEl.textContent = 'Beijing';
       }
+      // 更新时钟指针旋转
+      const hourHandEl = document.getElementById('bj-hour-hand');
+      const minuteHandEl = document.getElementById('bj-minute-hand');
+      if (hourHandEl) {
+        const totalMin = bj.getHours() * 60 + bj.getMinutes();
+        hourHandEl.style.transform = `rotate(${(totalMin / 60) * 30}deg)`;
+      }
+      if (minuteHandEl) {
+        minuteHandEl.style.transform = `rotate(${bj.getMinutes() * 6}deg)`;
+      }
     }
     updateBeijingTime();
-    setInterval(updateBeijingTime, 1000);
+    setInterval(updateBeijingTime, 60000);
 
     const pageContent = document.getElementById('page-content');
     const hero = document.getElementById('hero-unified');
