@@ -137,6 +137,58 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 </button>
 
 <script>
+  // ── 北京时间 — 独立运行，最早执行，不依赖封面初始化 ──
+  (function initBeijingTime() {
+    const timeEl = document.getElementById('bj-time-text');
+    const labelEl = document.getElementById('bj-time-label');
+    const hourHandEl = document.getElementById('bj-hour-hand');
+    const minuteHandEl = document.getElementById('bj-minute-hand');
+    if (!timeEl || !labelEl) return;
+
+    // 读取语言：优先 pagination 上的 data-lang，fallback 到 html lang
+    const pagination = document.getElementById('cover-pagination');
+    const lang = pagination?.dataset.lang || document.documentElement.lang || 'en';
+    const isZh = lang === 'zh';
+
+    function update() {
+      const now = new Date();
+      const bj = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+      let h = bj.getHours();
+      const m = bj.getMinutes();
+      const mm = m.toString().padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+
+      const newText = isZh
+        ? `${ampm === 'PM' ? '下午' : '上午'}${h}:${mm}`
+        : `${h}:${mm} ${ampm}`;
+      if (timeEl.textContent !== newText) {
+        timeEl.textContent = newText;
+        labelEl.textContent = isZh ? '北京' : 'Beijing';
+      }
+
+      // 指针每分钟更新（仅含分精度）
+      const totalMin = bj.getHours() * 60 + m;
+      if (hourHandEl) {
+        hourHandEl.style.transform = `rotate(${(totalMin / 60) * 30}deg)`;
+      }
+      if (minuteHandEl) {
+        minuteHandEl.style.transform = `rotate(${m * 6}deg)`;
+      }
+    }
+
+    update();
+    // 对齐分钟边界：首次在整分钟触发，之后每 60 秒准时更新
+    function scheduleNext() {
+      const msToNext = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
+      setTimeout(() => {
+        update();
+        setInterval(update, 60000);
+      }, msToNext);
+    }
+    scheduleNext();
+  })();
+
   function initCoverSection() {
     const layer = document.getElementById('cover-bg-layer');
     if (!layer || layer.dataset.coverInit) return;
@@ -289,50 +341,6 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     document.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') prevPhoto(); if (e.key === 'ArrowRight') nextPhoto(); });
     createPagination();
     updatePagination(currentIndex);
-
-    // ── Beijing time (cover top-right, AM/PM) ──
-    function updateBeijingTime() {
-      const timeEl = document.getElementById('bj-time-text');
-      const labelEl = document.getElementById('bj-time-label');
-      const handEl = document.getElementById('bj-clock-hand');
-      if (!timeEl || !labelEl) return;
-      const now = new Date();
-      const bj = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-      let h = bj.getHours();
-      const m = bj.getMinutes().toString().padStart(2, '0');
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-      const isZh = coverLang === 'zh';
-      if (isZh) {
-        const period = ampm === 'PM' ? '下午' : '上午';
-        timeEl.textContent = `${period}${h}:${m}`;
-        labelEl.textContent = '北京';
-      } else {
-        timeEl.textContent = `${h}:${m} ${ampm}`;
-        labelEl.textContent = 'Beijing';
-      }
-      // 更新时钟指针旋转
-      const hourHandEl = document.getElementById('bj-hour-hand');
-      const minuteHandEl = document.getElementById('bj-minute-hand');
-      if (hourHandEl) {
-        const totalMin = bj.getHours() * 60 + bj.getMinutes();
-        hourHandEl.style.transform = `rotate(${(totalMin / 60) * 30}deg)`;
-      }
-      if (minuteHandEl) {
-        minuteHandEl.style.transform = `rotate(${bj.getMinutes() * 6}deg)`;
-      }
-    }
-    updateBeijingTime();
-    // 对齐分钟边界：首次在下一秒整分钟触发，之后每 60 秒准时更新
-    function scheduleNextMinute() {
-      const now = new Date();
-      const msToNext = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-      setTimeout(() => {
-        updateBeijingTime();
-        setInterval(updateBeijingTime, 60000);
-      }, msToNext);
-    }
-    scheduleNextMinute();
 
     const pageContent = document.getElementById('page-content');
     const hero = document.getElementById('hero-unified');
