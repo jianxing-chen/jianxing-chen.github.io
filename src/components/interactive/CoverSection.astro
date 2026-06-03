@@ -210,18 +210,10 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 
     type CoverPhoto = { id: string; desktop: string; mobile: string; href: string; title: { en: string; zh?: string }; location: { en: string; zh?: string }; region: { en: string; zh?: string } };
     const coverPhotos: CoverPhoto[] = coverData.photos || [];
-    const startIdx: number = (coverPhotos.length > 1)
-      ? Math.floor(Math.random() * coverPhotos.length)
-      : (coverData.startIndex || 0);
+    const startIdx: number = coverData.startIndex ?? 0;
     const coverLang: string = coverData.lang || 'en';
     if (coverPhotos.length === 0) return;
     let currentIndex = startIdx;
-
-    // 如果随机起始不是 0，需要把首屏图和文案也切过去
-    if (currentIndex !== 0) {
-      imgCurrent.src = getSrc(coverPhotos[currentIndex]);
-      updateCredit(currentIndex);
-    }
 
     let activeImg = imgCurrent;
     let hiddenImg = imgNext;
