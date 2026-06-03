@@ -845,7 +845,7 @@ html.cover-visible #page-bottom {
 /* Beijing time on cover (follows cover layer visibility) */
 .cover-beijing-time {
   position: fixed;
-  top: 1.65rem;
+  top: 1.875rem;
   right: 1.5rem;
   z-index: 12;
   display: flex;
