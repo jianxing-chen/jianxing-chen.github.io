@@ -179,15 +179,8 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     }
 
     update();
-    // 对齐分钟边界：首次在整分钟触发，之后每 60 秒准时更新
-    function scheduleNext() {
-      const msToNext = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
-      setTimeout(() => {
-        update();
-        setInterval(update, 60000);
-      }, msToNext);
-    }
-    scheduleNext();
+    // 每秒检查，但仅在分钟变化时更新 DOM（稳健兼容所有设备）
+    setInterval(update, 1000);
   })();
 
   function initCoverSection() {
