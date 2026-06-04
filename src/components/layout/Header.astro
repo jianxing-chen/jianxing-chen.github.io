@@ -279,6 +279,13 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
     transform: translateY(0);
     opacity: 1;
   }
+
+  /* 桌面端下拉：触摸点击切换（iPad 等触摸屏优化） */
+  .group.dropdown-open .desktop-dropdown-wrapper {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(0) !important;
+  }
 </style>
 
 <script>
@@ -407,4 +414,51 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
 
   initHeaderTransparency();
   document.addEventListener('astro:after-swap', initHeaderTransparency);
+
+  // ── 桌面端导航：触摸友好的下拉切换（iPad 等触摸屏优化） ──
+  function initDesktopDropdowns() {
+    const groups = document.querySelectorAll('#site-header .group');
+    if (groups.length === 0) return;
+
+    groups.forEach((group) => {
+      const link = group.querySelector(':scope > a') as HTMLAnchorElement | null;
+      if (!link) return;
+
+      link.addEventListener('click', (e) => {
+        const isOpen = group.classList.contains('dropdown-open');
+        if (!isOpen) {
+          // 首次点击：打开下拉，阻止跳转
+          e.preventDefault();
+          groups.forEach((g) => g !== group && g.classList.remove('dropdown-open'));
+          group.classList.add('dropdown-open');
+        }
+        // 已打开时：允许正常跳转
+      });
+
+      // 点击子链接后关闭下拉
+      group.querySelectorAll('.desktop-dropdown-link').forEach((child) => {
+        child.addEventListener('click', () => {
+          group.classList.remove('dropdown-open');
+        });
+      });
+    });
+
+    // 点击外部区域关闭所有下拉
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.group')) {
+        groups.forEach((g) => g.classList.remove('dropdown-open'));
+      }
+    });
+
+    // ESC 关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        groups.forEach((g) => g.classList.remove('dropdown-open'));
+      }
+    });
+  }
+
+  initDesktopDropdowns();
+  document.addEventListener('astro:after-swap', initDesktopDropdowns);
 </script>
