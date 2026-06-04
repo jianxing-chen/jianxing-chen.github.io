@@ -488,40 +488,7 @@ body.home-scroll-lock {
   pointer-events: auto;
 }
 
-/* ── Cover gallery nav buttons (middle-sides, arrow only) ── */
-.cover-nav-btn {
-  position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 12;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-  padding: 0.5rem;
-  transition: color 0.3s ease, transform 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cover-nav-btn:hover {
-  color: rgba(255, 255, 255, 0.75);
-  transform: translateY(-50%) scale(1.2);
-}
-
-.cover-nav-btn:active {
-  transform: translateY(-50%) scale(0.9);
-}
-
-.cover-nav-btn-prev {
-  left: 1rem;
-}
-
-.cover-nav-btn-next {
-  right: 1rem;
-}
-
+/* ── Cover gallery pagination dots ── */
 .cover-pagination {
   position: fixed;
   left: 50%;
@@ -588,13 +555,7 @@ body.home-scroll-lock {
   }
 }
 
-@media (min-width: 640px) {
-  .cover-nav-btn-prev { left: 1.5rem; }
-  .cover-nav-btn-next { right: 1.5rem; }
-}
-
 /* Hide cover UI elements when not on cover */
-html:not(.cover-visible) .cover-nav-btn,
 html:not(.cover-visible) .cover-credit,
 html:not(.cover-visible) .cover-pagination,
 html:not(.cover-visible) .cover-scroll-indicator {
@@ -789,8 +750,7 @@ html.cover-visible #page-bottom {
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    transition: background 0.3s ease, backdrop-filter 0.3s ease,
-                -webkit-backdrop-filter 0.3s ease;
+    transition: background 0.3s ease;
   }
 
   .dark #site-header {
@@ -909,16 +869,15 @@ html.cover-visible #page-bottom {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.45);
   background-clip: padding-box;
-  border-color: rgba(255, 255, 255, 0.35) !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
-  backdrop-filter: saturate(180%) blur(10px);
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
   transition: background 0.25s ease,
               border-color 0.25s ease,
-              box-shadow 0.25s ease,
-              backdrop-filter 0.25s ease;
+              box-shadow 0.25s ease;
 }
 
 /* 顶部玻璃高光，放在内容上方 */
@@ -926,7 +885,7 @@ html.cover-visible #page-bottom {
   content: '';
   position: absolute;
   inset: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
   z-index: 2;
   pointer-events: none;
   border-radius: inherit;
@@ -942,11 +901,9 @@ html.cover-visible #page-bottom {
 }
 
 .dark .desktop-dropdown-panel {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(15, 23, 42, 0.5);
   border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
-  backdrop-filter: saturate(180%) blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .dark .desktop-dropdown-panel::before {
@@ -954,23 +911,19 @@ html.cover-visible #page-bottom {
 }
 
 html.cover-visible:not(.dark) .desktop-dropdown-panel {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(10px) !important;
-  backdrop-filter: saturate(180%) blur(10px) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
 html.cover-visible:not(.dark) .desktop-dropdown-panel::before {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
 }
 
 html.cover-visible.dark .desktop-dropdown-panel {
-  background: rgba(15, 23, 42, 0.3) !important;
+  background: rgba(15, 23, 42, 0.35) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(10px) !important;
-  backdrop-filter: saturate(180%) blur(10px) !important;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3) !important;
 }
 
 html.cover-visible.dark .desktop-dropdown-panel::before {
@@ -980,8 +933,6 @@ html.cover-visible.dark .desktop-dropdown-panel::before {
 /* Smooth header background transition */
 #site-header {
   transition: background 0.4s ease,
-              backdrop-filter 0.4s ease,
-              -webkit-backdrop-filter 0.4s ease,
               border-bottom-color 0.4s ease;
 }
 
@@ -1609,9 +1560,15 @@ html:not(.cover-visible) *::after {
     border-color 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 排除 header 子树，避免 background-color 过渡破坏毛玻璃 */
+/* 排除 header 子树，避免全局主题过渡破坏毛玻璃及下拉动画 */
 #site-header, #site-header * {
   transition: none !important;
+}
+/* header 自身保留颜色过渡（主题切换时文字/边框渐变） */
+#site-header {
+  transition:
+    color 1s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 1s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* ── Reduced motion ── */

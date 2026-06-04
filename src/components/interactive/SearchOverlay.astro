@@ -396,9 +396,6 @@ const suggestions: Suggestion[] = [
       <div id="spotlight-empty" class="px-5 py-10 text-center text-sm text-muted-light/50 dark:text-muted-dark/50 hidden">
         {t('search.start_typing')}
       </div>
-      <div id="spotlight-loading" class="px-5 py-10 text-center text-sm text-muted-light/50 dark:text-muted-dark/50 hidden">
-        {t('search.searching')}
-      </div>
       <div id="spotlight-noresults" class="px-5 py-10 text-center text-sm text-muted-light/50 dark:text-muted-dark/50 hidden">
         {t('search.no_results')}
       </div>
@@ -429,14 +426,13 @@ const suggestions: Suggestion[] = [
   const results   = document.getElementById('spotlight-results');
   const suggEl    = document.getElementById('spotlight-suggestions');
   const emptyEl   = document.getElementById('spotlight-empty');
-  const loadingEl = document.getElementById('spotlight-loading');
   const noResEl   = document.getElementById('spotlight-noresults');
   const countEl   = document.getElementById('spotlight-count');
   if (!overlay || !input) return;
 
   let isOpen = false, debounceTimer = null, selectedIdx = -1, resultItems = [];
 
-  const allStates = () => [suggEl, emptyEl, loadingEl, noResEl];
+  const allStates = () => [suggEl, emptyEl, noResEl];
   function showOnly(id) {
     allStates().forEach(el => { if (el) el.classList.add('hidden'); });
     const t = document.getElementById('spotlight-' + id);
@@ -803,8 +799,15 @@ const suggestions: Suggestion[] = [
       e.preventDefault();
       const links = resultItems.filter(el => el.tagName === 'A');
       if (selectedIdx >= 0 && links[selectedIdx]) {
-        window.location.href = links[selectedIdx].href;
+        const href = links[selectedIdx].href;
         closeOverlay();
+        // 模拟 <a> 点击以触发 Astro View Transition
+        const a = document.createElement('a');
+        a.href = href;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
       }
     } else if (e.key === 'Escape') { closeOverlay(); }
   });

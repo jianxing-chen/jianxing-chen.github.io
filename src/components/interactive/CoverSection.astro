@@ -75,22 +75,6 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 <!-- ═══ 封面 UI 层（提出 cover-bg-layer 以逃脱 z-index 牢笼） ═══ -->
 <div id="cover-credit" class="cover-credit"></div>
 
-<!--
-<button id="cover-btn-prev" class="cover-nav-btn cover-nav-btn-prev"
-  aria-label={lang === 'zh' ? '上一张' : 'Previous photo'}>
-  <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-  </svg>
-</button>
-
-<button id="cover-btn-next" class="cover-nav-btn cover-nav-btn-next"
-  aria-label={lang === 'zh' ? '下一张' : 'Next photo'}>
-  <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-  </svg>
-</button>
--->
-
 <div
   id="cover-pagination"
   class="cover-pagination"
@@ -191,8 +175,6 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 
     const imgCurrent = document.getElementById('cover-img-current') as HTMLImageElement | null;
     const imgNext = document.getElementById('cover-img-next') as HTMLImageElement | null;
-    const btnPrev = document.getElementById('cover-btn-prev');
-    const btnNext = document.getElementById('cover-btn-next');
     const pagination = document.getElementById('cover-pagination');
     const backToCoverBtn = document.getElementById('back-to-cover-btn');
 
@@ -329,9 +311,11 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
       });
     }
 
-    btnPrev?.addEventListener('click', prevPhoto);
-    btnNext?.addEventListener('click', nextPhoto);
-    document.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') prevPhoto(); if (e.key === 'ArrowRight') nextPhoto(); });
+    document.addEventListener('keydown', (e) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as Element)?.isContentEditable) return;
+      if (e.key === 'ArrowLeft') prevPhoto();
+      if (e.key === 'ArrowRight') nextPhoto();
+    });
     createPagination();
     updatePagination(currentIndex);
 
