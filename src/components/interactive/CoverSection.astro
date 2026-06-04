@@ -64,14 +64,18 @@ const initialHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);  // 时针: (时*60+
 const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 ---
 
-<!-- ═══ 固定封面背景层 ═══ -->
-<div id="cover-bg-layer" class="cover-bg-layer">
-  <script type="application/json" id="cover-data" set:html={JSON.stringify({ photos: coverPhotos, startIndex: startIdx, lang })}></script>
+{coverPhotos.length === 0 ? (
+  <div id="cover-bg-layer" class="cover-bg-layer cover-hidden"></div>
+) : (
+  <>
+  <!-- ═══ 固定封面背景层 ═══ -->
+  <div id="cover-bg-layer" class="cover-bg-layer">
+    <script type="application/json" id="cover-data" set:html={JSON.stringify({ photos: coverPhotos, startIndex: startIdx, lang })}></script>
 
-  <img id="cover-img-current" class="cover-bg-img" src={coverPhotos[startIdx].desktop} alt="" role="presentation" style="opacity:1" />
-  <img id="cover-img-next" class="cover-bg-img" src="" alt="" role="presentation" style="opacity:0" />
-  <div class="cover-bg-overlay"></div>
-</div>
+    <img id="cover-img-current" class="cover-bg-img" src={coverPhotos[startIdx]!.desktop} alt="" role="presentation" style="opacity:1" />
+    <img id="cover-img-next" class="cover-bg-img" src="" alt="" role="presentation" style="opacity:0" />
+    <div class="cover-bg-overlay"></div>
+  </div>
 
 <!-- ═══ 封面 UI 层（提出 cover-bg-layer 以逃脱 z-index 牢笼） ═══ -->
 <div id="cover-credit" class="cover-credit"></div>
@@ -179,8 +183,10 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     }
 
     update();
-    // 每秒检查，但仅在分钟变化时更新 DOM（稳健兼容所有设备）
-    setInterval(update, 1000);
+    // 对齐到下一完整分钟，之后每分钟更新一次
+    const now = new Date();
+    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    setTimeout(() => { update(); setInterval(update, 60_000); }, msToNextMinute);
   })();
 
   function initCoverSection() {
@@ -211,6 +217,7 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     let activeImg = imgCurrent;
     let hiddenImg = imgNext;
     const warmedImageSources = new Set<string>();
+    const imageErrorCount = new Map<string, number>();
 
     function createPagination() {
       if (!pagination) return;
@@ -313,10 +320,15 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
         if (i !== index) {
           const src = getSrc(coverPhotos[i]);
           if (warmedImageSources.has(src)) return;
+          const errCount = imageErrorCount.get(src) || 0;
+          if (errCount >= 3) return; // give up after 3 consecutive failures
           warmedImageSources.add(src);
           const preloadImage = new Image();
           preloadImage.decoding = 'async';
-          preloadImage.onerror = () => { warmedImageSources.delete(src); };
+          preloadImage.onerror = () => {
+            warmedImageSources.delete(src);
+            imageErrorCount.set(src, (imageErrorCount.get(src) || 0) + 1);
+          };
           preloadImage.src = src;
         }
       });
@@ -517,3 +529,5 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
   initCoverSection();
   document.addEventListener('astro:after-swap', initCoverSection);
 </script>
+  </>
+)}

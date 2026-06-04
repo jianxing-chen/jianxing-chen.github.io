@@ -8,10 +8,11 @@
  * 用法示例：<GalleryOverview photos={photos} lang="zh" previewLimit={10} />
  */
 
-import { getGalleryThumbnail, getGalleryFullSize } from '@/utils/cloudinary';
+import { getGalleryFullSize } from '@/utils/cloudinary';
 import { buildGalleryCountries, getGalleryCountryPath, type GalleryPhoto } from '@/utils/gallery';
-import { computeRowLayout } from '@/utils/masonry';
+import { computeGroupedMasonryLayout } from '@/utils/masonry';
 import PhotoViewer from '@/components/interactive/PhotoViewer.astro';
+import GalleryCard from '@/components/ui/GalleryCard.astro';
 
 interface Props {
   photos: GalleryPhoto[];
@@ -30,7 +31,7 @@ const countryLayouts = countries.map((country) => {
   allPreviewPhotos.push(...country.previewPhotos);
   return {
     ...country,
-    columns: computeRowLayout(country.previewPhotos, masonryColumns),
+    columns: computeGroupedMasonryLayout(country.previewPhotos, masonryColumns),
   };
 });
 
@@ -69,31 +70,7 @@ const viewerPhotos = allPreviewPhotos.map((p) => ({
           {country.columns.map((col) => (
             <div class="gallery-masonry__column">
               {col.items.map((photo) => (
-                <button
-                  id={`photo-${photo.id}`}
-                  data-photo-id={photo.id}
-                  class="gallery-card group"
-                  type="button"
-                  aria-label={`${photo.title[lang as keyof typeof photo.title] || photo.title.en} — ${photo.region[lang as keyof typeof photo.region] || photo.region.en}`}
-                >
-                  <img
-                    src={getGalleryThumbnail(photo.cloudinaryId)}
-                    alt={photo.title[lang as keyof typeof photo.title] || photo.title.en}
-                    width={photo.width}
-                    height={photo.height}
-                    loading="lazy"
-                    class="gallery-card__image"
-                    style={`aspect-ratio:${photo.width}/${photo.height}`}
-                  />
-                  <div class="gallery-card__overlay">
-                    <p class="gallery-card__eyebrow">
-                      {photo.region[lang as keyof typeof photo.region] || photo.region.en}
-                    </p>
-                    <h3 class="gallery-card__title">
-                      {photo.title[lang as keyof typeof photo.title] || photo.title.en}
-                    </h3>
-                  </div>
-                </button>
+                <GalleryCard photo={photo} lang={lang} showId />
               ))}
             </div>
           ))}
@@ -102,30 +79,7 @@ const viewerPhotos = allPreviewPhotos.map((p) => ({
         <!-- 移动端：CSS columns 回退（隐藏于桌面端） -->
         <div class="gallery-masonry gallery-masonry--mobile">
           {country.previewPhotos.map((photo) => (
-            <button
-              data-photo-id={photo.id}
-              class="gallery-card group"
-              type="button"
-              aria-label={`${photo.title[lang as keyof typeof photo.title] || photo.title.en}`}
-            >
-              <img
-                src={getGalleryThumbnail(photo.cloudinaryId)}
-                alt={photo.title[lang as keyof typeof photo.title] || photo.title.en}
-                width={photo.width}
-                height={photo.height}
-                loading="lazy"
-                class="gallery-card__image"
-                style={`aspect-ratio:${photo.width}/${photo.height}`}
-              />
-              <div class="gallery-card__overlay">
-                <p class="gallery-card__eyebrow">
-                  {photo.region[lang as keyof typeof photo.region] || photo.region.en}
-                </p>
-                <h3 class="gallery-card__title">
-                  {photo.title[lang as keyof typeof photo.title] || photo.title.en}
-                </h3>
-              </div>
-            </button>
+            <GalleryCard photo={photo} lang={lang} />
           ))}
         </div>
       </div>

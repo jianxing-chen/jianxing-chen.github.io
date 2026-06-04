@@ -37,7 +37,6 @@ interface CatalogTableProps {
   downloadUrl?: string;
   downloadFileName?: string;
   lang?: string;
-  translations?: CatalogTableTranslations;
 }
 
 const i18nDefaults: Record<string, Record<string, string>> = {
@@ -77,10 +76,8 @@ export default function CatalogTable({
   downloadUrl,
   downloadFileName,
   lang = 'en',
-  translations,
 }: CatalogTableProps) {
-  const defaults = i18nDefaults[lang] || i18nDefaults.en;
-  const t = { ...defaults, ...translations };
+  const t = i18nDefaults[lang] || i18nDefaults.en;
 
   // Empty data state
   if (!data || data.length === 0) {

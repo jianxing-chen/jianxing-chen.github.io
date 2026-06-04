@@ -1,17 +1,5 @@
 ---
-interface Paper {
-  title: string;
-  authors: string[];
-  journal: string;
-  year: number;
-  volume: string;
-  pages: string;
-  doi: string;
-  arxiv: string;
-  ads: string;
-  highlight: boolean;
-  type: 'first-author' | 'co-author' | 'corresponding';
-}
+import type { Paper } from '@/types/publication';
 
 interface Props {
   paper: Paper;
@@ -24,7 +12,6 @@ import { SITE_CONFIG } from '@/config/site';
 const { paper, lang } = Astro.props;
 const t = useTranslations(lang);
 
-const isHighlighted = paper.type === 'first-author' || paper.type === 'corresponding';
 const selfPattern = SITE_CONFIG.selfPattern;
 
 function formatAuthors(authors: string[]): { name: string; isSelf: boolean }[] {

@@ -56,7 +56,7 @@
   {
     "id": "nasa-hubble-2021-m13",
     "title": { "en": "NASA — Hubble Discovers Hydrogen-Burning White Dwarfs Enjoying Slow Aging", "zh": "NASA：哈勃发现通过燃烧氢延缓衰老的白矮星" },
-    "source": "NASA",
+    "source": { "en": "NASA", "zh": "NASA" },
     "date": "2021-09-06",
     "url": "https://science.nasa.gov/missions/hubble/hubble-discovers-hydrogen-burning-white-dwarfs-enjoying-slow-aging/",
     "type": "media",
@@ -65,7 +65,7 @@
   {
     "id": "esa-hubble-2021-m13",
     "title": { "en": "ESA/Hubble — Hubble Discovers Hydrogen-Burning White Dwarfs Enjoying Slow Ageing", "zh": "ESA/Hubble：哈勃发现通过燃烧氢延缓衰老的白矮星" },
-    "source": "ESA/Hubble",
+    "source": { "en": "ESA/Hubble", "zh": "ESA/Hubble" },
     "date": "2021-09-06",
     "url": "https://esahubble.org/news/heic2108/",
     "type": "media",

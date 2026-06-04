@@ -1,5 +1,5 @@
 ---
-import { languages, getLangFromUrl } from '@/i18n/ui';
+import { languages } from '@/i18n/ui';
 
 interface Props {
   lang: string;
@@ -23,7 +23,6 @@ if (lang === 'en') {
 }
 const targetUrl = `${base}${newPath}`;
 
-const displayLang = lang === 'en' ? 'EN' : '中';
 const targetDisplayLang = targetLang === 'en' ? 'EN' : '中';
 ---
 
@@ -43,29 +42,18 @@ const targetDisplayLang = targetLang === 'en' ? 'EN' : '中';
 </a>
 
 <script>
-  function updateLanguageSwitchLinks() {
+  // Keep href in sync with hash/search changes during client-side navigation.
+  // (The server-rendered href is always correct after a full page swap.)
+  function updateLanguageSwitchHashes() {
     const links = document.querySelectorAll<HTMLAnchorElement>('.language-switch-link');
-    if (links.length === 0) return;
-
     links.forEach((link) => {
-      const base = link.dataset.base || '';
-      const currentLang = link.dataset.currentLang || 'en';
-      const pathname = window.location.pathname;
-      const search = window.location.search;
-      const hash = window.location.hash;
-      const stripped = base && pathname.startsWith(base) ? pathname.slice(base.length) || '/' : pathname;
-
-      let localizedPath: string;
-      if (currentLang === 'en') {
-        localizedPath = `/zh${stripped === '/' ? '/' : stripped}`;
-      } else {
-        localizedPath = stripped.replace(/^\/zh/, '') || '/';
-      }
-
-      link.href = `${base}${localizedPath}${search}${hash}`;
+      const url = new URL(link.href);
+      url.hash = window.location.hash;
+      url.search = window.location.search;
+      link.href = url.href;
     });
   }
 
-  updateLanguageSwitchLinks();
-  document.addEventListener('astro:after-swap', updateLanguageSwitchLinks);
+  window.addEventListener('hashchange', updateLanguageSwitchHashes);
+  document.addEventListener('astro:after-swap', updateLanguageSwitchHashes);
 </script>

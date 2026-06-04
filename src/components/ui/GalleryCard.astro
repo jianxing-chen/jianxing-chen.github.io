@@ -1,0 +1,46 @@
+---
+/**
+ * GalleryCard.astro — 共享图库卡片组件
+ * 用于 GalleryOverview（首页总览）和 GalleryGrid（国家详情页）。
+ */
+import { getGalleryThumbnail } from '@/utils/cloudinary';
+import type { GalleryPhoto } from '@/utils/gallery';
+
+interface Props {
+  photo: GalleryPhoto;
+  lang: string;
+  /** 是否在卡片上设置 id 属性（用于深链接 #photo-xxx） */
+  showId?: boolean;
+  /** 是否设置 data-region 属性（用于地区筛选） */
+  showRegion?: boolean;
+}
+
+const { photo, lang, showId = false, showRegion = false } = Astro.props;
+
+const titleText = photo.title[lang as 'en' | 'zh'] || photo.title.en;
+const regionText = photo.region[lang as 'en' | 'zh'] || photo.region.en;
+const ariaLabel = `${titleText} — ${regionText}`;
+---
+
+<button
+  {...(showId ? { id: `photo-${photo.id}` } : {})}
+  data-photo-id={photo.id}
+  {...(showRegion ? { 'data-region': photo.region.en } : {})}
+  class="gallery-card group"
+  type="button"
+  aria-label={ariaLabel}
+>
+  <img
+    src={getGalleryThumbnail(photo.cloudinaryId)}
+    alt={titleText}
+    width={photo.width}
+    height={photo.height}
+    loading="lazy"
+    class="gallery-card__image"
+    style={`aspect-ratio:${photo.width}/${photo.height}`}
+  />
+  <div class="gallery-card__overlay">
+    <p class="gallery-card__eyebrow">{regionText}</p>
+    <h3 class="gallery-card__title">{titleText}</h3>
+  </div>
+</button>

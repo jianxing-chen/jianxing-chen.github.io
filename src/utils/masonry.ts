@@ -66,7 +66,7 @@ export function computeMasonryLayout(
  * @param columns 目标列数
  * @returns 分列结果数组
  */
-export function computeRowLayout(
+export function computeGroupedMasonryLayout(
   photos: GalleryPhoto[],
   columns: number,
 ): MasonryColumn[] {
