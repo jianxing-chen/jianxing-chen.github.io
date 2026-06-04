@@ -449,48 +449,83 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
   initHeaderTransparency();
   document.addEventListener('astro:after-swap', initHeaderTransparency);
 
-  // ── 桌面端导航：触摸友好的下拉切换（iPad 等触摸屏优化） ──
+  // ── 桌面端导航：触摸友好的下拉切换（仅触控设备生效） ──
   function initDesktopDropdowns() {
     const groups = document.querySelectorAll('#site-header .group');
     if (groups.length === 0) return;
 
-    groups.forEach((group) => {
-      const link = group.querySelector(':scope > a') as HTMLAnchorElement | null;
-      if (!link) return;
+    // 检测主输入设备是否为触摸屏（iPad 等），鼠标设备依赖 CSS :hover
+    const touchQuery = window.matchMedia('(pointer: coarse)');
 
-      link.addEventListener('click', (e) => {
-        const isOpen = group.classList.contains('dropdown-open');
-        if (!isOpen) {
-          // 首次点击：打开下拉，阻止跳转
-          e.preventDefault();
-          groups.forEach((g) => g !== group && g.classList.remove('dropdown-open'));
-          group.classList.add('dropdown-open');
-        }
-        // 已打开时：允许正常跳转
-      });
-
-      // 点击子链接后关闭下拉
-      group.querySelectorAll('.desktop-dropdown-link').forEach((child) => {
-        child.addEventListener('click', () => {
-          group.classList.remove('dropdown-open');
+    function cleanup() {
+      groups.forEach((group) => {
+        const link = group.querySelector(':scope > a') as HTMLAnchorElement | null;
+        if (link) link.removeEventListener('click', handleDropdownClick);
+        group.querySelectorAll('.desktop-dropdown-link').forEach((child) => {
+          child.removeEventListener('click', handleChildClick);
         });
       });
-    });
+      document.removeEventListener('click', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscKey);
+    }
 
-    // 点击外部区域关闭所有下拉
-    document.addEventListener('click', (e) => {
+    function handleDropdownClick(this: HTMLElement, e: MouseEvent) {
+      const group = this.closest('.group');
+      if (!group) return;
+      const isOpen = group.classList.contains('dropdown-open');
+      if (!isOpen) {
+        // 首次点击：打开下拉，阻止跳转
+        e.preventDefault();
+        groups.forEach((g) => g !== group && g.classList.remove('dropdown-open'));
+        group.classList.add('dropdown-open');
+      }
+      // 已打开时：允许正常跳转
+    }
+
+    function handleChildClick(this: HTMLElement) {
+      const group = this.closest('.group');
+      if (group) group.classList.remove('dropdown-open');
+    }
+
+    function handleOutsideClick(e: Event) {
       const target = e.target as HTMLElement;
       if (!target.closest('.group')) {
         groups.forEach((g) => g.classList.remove('dropdown-open'));
       }
-    });
+    }
 
-    // ESC 关闭
-    document.addEventListener('keydown', (e) => {
+    function handleEscKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         groups.forEach((g) => g.classList.remove('dropdown-open'));
       }
-    });
+    }
+
+    function setup() {
+      cleanup(); // 先清理旧绑定
+
+      if (!touchQuery.matches) {
+        // 鼠标设备：移除残留的 dropdown-open，让 CSS :hover 接管
+        groups.forEach((g) => g.classList.remove('dropdown-open'));
+        return;
+      }
+
+      // 触控设备：拦截点击打开下拉
+      groups.forEach((group) => {
+        const link = group.querySelector(':scope > a') as HTMLAnchorElement | null;
+        if (link) link.addEventListener('click', handleDropdownClick);
+        group.querySelectorAll('.desktop-dropdown-link').forEach((child) => {
+          child.addEventListener('click', handleChildClick);
+        });
+      });
+
+      document.addEventListener('click', handleOutsideClick);
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    setup();
+
+    // 设备切换时重新绑定（如外接触控屏）
+    touchQuery.addEventListener('change', setup);
   }
 
   initDesktopDropdowns();

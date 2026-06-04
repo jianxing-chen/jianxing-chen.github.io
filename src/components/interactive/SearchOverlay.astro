@@ -43,6 +43,7 @@ interface SearchEntry {
   section: string;
   subsection?: string;
   meta?: string;         // 额外信息行（作者、日期、标签等）
+  description?: string;  // 可显示的描述文本（用于 snippet 截取）
   searchTerms: string;   // 所有可搜索文本（双语）
 }
 
@@ -164,6 +165,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
       section: t('nav.publications'),
       subsection: typeLabel,
       meta: `${p.journal} ${p.volume ? p.volume : ''} (${p.year})`,
+      description: p.authors.join(', '),
       searchTerms: [
         p.title,
         translateTerms(p.title),
@@ -188,6 +190,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
       kind: 'blog',
       section: t('nav.blog'),
       meta: p.data.tags.join(' · '),
+      description: p.data.description,
       searchTerms: [
         p.data.title,
         p.data.description,
@@ -208,6 +211,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
       section: t('nav.research'),
       subsection: p.data.status === 'ongoing' ? (l === 'zh' ? '进行中' : 'Ongoing') : (l === 'zh' ? '已完成' : 'Completed'),
       meta: p.data.tags.join(' · '),
+      description: p.data.description,
       searchTerms: [
         p.data.title,
         translateTerms(p.data.title + ' ' + p.data.tags.join(' ')),
@@ -235,6 +239,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
       section: l === 'zh' ? '新闻与报告' : 'News & Coverage',
       subsection: sourceText,
       meta: `${n.date} · ${typeLabel}`,
+      description: loc(n.title, l === 'zh' ? 'en' : 'zh'),
       searchTerms: [
         loc(n.title, 'en'), loc(n.title, 'zh'),
         loc(n.source, 'en'), loc(n.source, 'zh'),
@@ -258,6 +263,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
       section: t('nav.gallery'),
       subsection: locationText,
       meta: g.tags ? g.tags.join(' · ') : '',
+      description: descText || undefined,
       searchTerms: [
         loc(g.title, 'en'), loc(g.title, 'zh'),
         loc(g.description, 'en'), loc(g.description, 'zh'),
@@ -279,6 +285,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
       kind: 'catalog',
       section: t('nav.catalogs'),
       meta: p.data.columns.map(c => c.label).join(' · '),
+      description: p.data.description,
       searchTerms: [
         p.data.title,
         translateTerms(p.data.title + ' ' + p.data.description),
@@ -295,7 +302,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
 const searchIndex = buildSearchIndex(lang);
 const searchIndexJson = JSON.stringify(searchIndex);
 
-// ── 快捷导航建议 ──
+// ── 快捷导航建议（反映网站顶层架构） ──
 interface Suggestion {
   label: string;
   href: string;
@@ -305,11 +312,9 @@ interface Suggestion {
 const suggestions: Suggestion[] = [
   { label: t('nav.home'),         href: getLocalizedPath('/', lang),           icon: 'm2.25 12 8.954-8.955a1.126 1.126 0 0 1 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25' },
   { label: t('nav.about'),        href: getLocalizedPath('/about/', lang),     icon: 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z' },
-  { label: t('nav.publications'), href: getLocalizedPath('/publications', lang), icon: 'M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z' },
-  { label: t('nav.blog'),         href: getLocalizedPath('/blog/', lang),      icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
   { label: t('nav.research'),     href: getLocalizedPath('/research/', lang),  icon: 'M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.3 24.3 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5' },
+  { label: t('nav.blog'),         href: getLocalizedPath('/blog/', lang),      icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
   { label: t('nav.gallery'),      href: getLocalizedPath('/gallery/', lang),   icon: 'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Zm16.5-16.5H3.75' },
-  { label: t('nav.catalogs'),     href: getLocalizedPath('/catalogs/', lang),  icon: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v5.25c0 1.35-.9 2.7-2.625 3.469M3.75 11.625c0 2.278 3.694 4.125 8.25 4.125' },
 ];
 ---
 
@@ -498,17 +503,123 @@ const suggestions: Suggestion[] = [
     page:     '<path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955a1.126 1.126 0 0 1 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />',
   };
 
-  // ── 高亮匹配文本 ──
+  // ── 高亮匹配文本：优先精确子串，回退模糊逐字符 ──
   function hl(text, query) {
-    if (!query || query.length < 2) return esc(text);
-    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return esc(text).replace(new RegExp('(' + escaped + ')', 'gi'), '<mark class="shl">$1</mark>');
+    if (!text || !query || query.length < 2) return esc(text);
+    const q = query.toLowerCase().trim();
+    if (!q) return esc(text);
+
+    const lower = text.toLowerCase();
+
+    // 1) 精确子串匹配（整体高亮，最清晰）
+    const exactIdx = lower.indexOf(q);
+    if (exactIdx !== -1) {
+      return esc(text.slice(0, exactIdx)) +
+        '<mark class="shl">' + esc(text.slice(exactIdx, exactIdx + q.length)) + '</mark>' +
+        esc(text.slice(exactIdx + q.length));
+    }
+
+    // 2) 多词查询：逐词精确高亮
+    const words = q.split(/\s+/).filter(w => w.length > 0);
+    if (words.length > 1) {
+      let result = esc(text);
+      for (const w of words) {
+        const re = new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        result = result.replace(re, '<mark class="shl">$1</mark>');
+      }
+      if (result !== esc(text)) return result;
+    }
+
+    // 3) 单词模糊匹配：子序列逐字符高亮
+    let ti = 0;
+    const matched = [];
+    for (let qi = 0; qi < q.length; qi++) {
+      const idx = lower.indexOf(q[qi], ti);
+      if (idx === -1) return esc(text);
+      matched.push(idx);
+      ti = idx + 1;
+    }
+    // 连续位置合并为区间
+    const ranges = [];
+    for (const pos of matched) {
+      if (ranges.length && ranges[ranges.length - 1][1] === pos) {
+        ranges[ranges.length - 1][1] = pos + 1;
+      } else {
+        ranges.push([pos, pos + 1]);
+      }
+    }
+    let out = '', last = 0;
+    for (const [s, e] of ranges) {
+      out += esc(text.slice(last, s));
+      out += '<mark class="shl">' + esc(text.slice(s, e)) + '</mark>';
+      last = e;
+    }
+    return out + esc(text.slice(last));
   }
 
   function esc(s) {
     const d = document.createElement('div');
     d.textContent = s;
     return d.innerHTML;
+  }
+
+  // ── Snippet 提取：在文本中找到查询匹配位置，截取上下文并高亮 ──
+  function snippet(text, query, maxLen) {
+    if (!text || !query) return '';
+    maxLen = maxLen || 120;
+    const t = text.toLowerCase();
+    const q = query.toLowerCase().trim();
+    const words = q.split(/\s+/).filter(w => w.length > 0);
+
+    // 找最佳匹配位置：先试精确子串，再试逐词，最后子序列
+    let bestIdx = -1, bestLen = 0;
+    // 精确子串
+    const exactIdx = t.indexOf(q);
+    if (exactIdx !== -1) { bestIdx = exactIdx; bestLen = q.length; }
+    // 逐词精确
+    if (bestIdx === -1) {
+      for (const w of words) {
+        const idx = t.indexOf(w);
+        if (idx !== -1 && (bestIdx === -1 || w.length > bestLen)) {
+          bestIdx = idx; bestLen = w.length;
+        }
+      }
+    }
+    // 子序列模糊定位
+    if (bestIdx === -1) {
+      let ti = 0, firstMatch = -1, lastMatch = -1;
+      for (let qi = 0; qi < q.length; qi++) {
+        const idx = t.indexOf(q[qi], ti);
+        if (idx === -1) break;
+        if (firstMatch === -1) firstMatch = idx;
+        lastMatch = idx;
+        ti = idx + 1;
+      }
+      if (firstMatch !== -1) { bestIdx = firstMatch; bestLen = lastMatch - firstMatch + 1; }
+    }
+
+    // 无匹配 → 截取开头
+    if (bestIdx === -1) {
+      return text.length <= maxLen ? esc(text) : esc(text.slice(0, maxLen)) + '…';
+    }
+    // 计算截取窗口（以匹配为中心）
+    const half = Math.floor(maxLen / 2);
+    let start = Math.max(0, bestIdx - half);
+    let end = Math.min(text.length, start + maxLen);
+    if (end - start < maxLen) start = Math.max(0, end - maxLen);
+    let s = text.slice(start, end);
+    let prefix = start > 0 ? '…' : '';
+    let suffix = end < text.length ? '…' : '';
+    // 避免截断单词（英文场景）
+    if (start > 0) {
+      const sp = s.indexOf(' ');
+      if (sp > 0 && sp < 10) { s = s.slice(sp + 1); prefix = '…'; }
+    }
+    if (end < text.length) {
+      const sp = s.lastIndexOf(' ');
+      if (sp > s.length - 10) { s = s.slice(0, sp); suffix = '…'; }
+    }
+    return prefix + hl(s, query) + suffix;
   }
 
   // ── 模糊匹配评分 ──
@@ -568,106 +679,109 @@ const suggestions: Suggestion[] = [
     return _idx;
   }
 
-  // ── 搜索 ──
+  // ── 搜索（无闪烁：先计算再替换，不经过 loading 中间态） ──
   function doSearch(query) {
     if (!query || query.length < 2) { showSuggestions(); return; }
+
+    // 同步计算结果
+    const index = getIndex();
+    const scored = [];
+
+    for (const entry of index) {
+      const titleScore = fuzzyScore(entry.title, query) * 3;
+      const termScore = fuzzyScore(entry.searchTerms, query);
+      const sectionScore = fuzzyScore(entry.section + ' ' + (entry.subsection || ''), query) * 1.5;
+      const metaScore = entry.meta ? fuzzyScore(entry.meta, query) * 1.2 : 0;
+
+      const total = titleScore + termScore + sectionScore + metaScore;
+      if (total < 40) continue;
+      scored.push({ ...entry, score: total });
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+
+    const kindOrder = { paper: 0, research: 1, blog: 2, catalog: 3, news: 4, photo: 5, page: 6 };
+    scored.sort((a, b) => {
+      const ko = (kindOrder[a.kind] || 9) - (kindOrder[b.kind] || 9);
+      if (ko !== 0) return ko;
+      return b.score - a.score;
+    });
+
+    const top = scored.slice(0, 20);
+
+    // 一次性替换：先清空旧结果，再渲染新结果，不经过任何中间态
     clearResults();
-    showOnly('loading');
 
-    setTimeout(() => {
-      const index = getIndex();
-      const scored = [];
+    if (!top.length) {
+      showOnly('noresults');
+      if (countEl) countEl.classList.add('hidden');
+      return;
+    }
 
-      for (const entry of index) {
-        // 标题权重最高
-        const titleScore = fuzzyScore(entry.title, query) * 3;
-        // 搜索文本权重
-        const termScore = fuzzyScore(entry.searchTerms, query);
-        // section 权重
-        const sectionScore = fuzzyScore(entry.section + ' ' + (entry.subsection || ''), query) * 1.5;
-        // meta 权重
-        const metaScore = entry.meta ? fuzzyScore(entry.meta, query) * 1.2 : 0;
+    // 显示结果计数
+    if (countEl) {
+      countEl.textContent = scored.length + ' results';
+      countEl.classList.remove('hidden');
+    }
 
-        const total = titleScore + termScore + sectionScore + metaScore;
-        // 过滤掉弱匹配（仅子序列匹配分数太低）
-        if (total < 40) continue;
-        scored.push({ ...entry, score: total });
+    // 按 kind 分组渲染
+    let lastKind = '';
+    const kindLabels = {
+      paper: '📄 Papers', research: '🔬 Research', blog: '📝 Blog',
+      catalog: '📊 Catalogs', news: '📰 News', photo: '🖼 Photos', page: '📌 Pages',
+    };
+
+    top.forEach((item, idx) => {
+      if (item.kind !== lastKind) {
+        lastKind = item.kind;
+        const groupEl = document.createElement('div');
+        groupEl.className = 'spotlight-result search-group-header px-5 pt-3 pb-1';
+        groupEl.innerHTML = '<span class="text-[10px] font-semibold uppercase tracking-wider text-muted-light/40 dark:text-muted-dark/40">' +
+          (kindLabels[item.kind] || item.kind) + '</span>';
+        results.appendChild(groupEl);
       }
 
-      scored.sort((a, b) => b.score - a.score);
+      const el = document.createElement('a');
+      el.href = item.href;
+      el.className = 'spotlight-result block px-5 py-2.5 hover:bg-primary-light/[0.04] dark:hover:bg-primary-dark/[0.06] transition-colors cursor-pointer no-underline';
+      el.setAttribute('data-spotlight-idx', String(idx));
 
-      // 按 kind 分组排序：papers > research > blog > news > catalog > photo > page
-      const kindOrder = { paper: 0, research: 1, blog: 2, catalog: 3, news: 4, photo: 5, page: 6 };
-      scored.sort((a, b) => {
-        const ko = (kindOrder[a.kind] || 9) - (kindOrder[b.kind] || 9);
-        if (ko !== 0) return ko;
-        return b.score - a.score;
-      });
+      const icon = kindIcons[item.kind] || kindIcons.page;
+      const titleHtml = hl(item.title, query);
 
-      const top = scored.slice(0, 20);
-
-      if (!top.length) { showOnly('noresults'); if (countEl) countEl.classList.add('hidden'); return; }
-
-      // 显示结果计数
-      if (countEl) {
-        countEl.textContent = scored.length + ' results';
-        countEl.classList.remove('hidden');
+      let breadcrumb = '<span class="sbc">' + hl(item.section, query) + '</span>';
+      if (item.subsection) {
+        breadcrumb += '<span class="sbc-sep">›</span><span class="sbc-sub">' + hl(item.subsection, query) + '</span>';
       }
 
-      // 按 kind 分组渲染
-      let lastKind = '';
-      const kindLabels = {
-        paper: '📄 Papers', research: '🔬 Research', blog: '📝 Blog',
-        catalog: '📊 Catalogs', news: '📰 News', photo: '🖼 Photos', page: '📌 Pages',
-      };
+      let metaHtml = '';
+      if (item.meta) {
+        metaHtml = '<div class="s-meta">' + hl(item.meta, query) + '</div>';
+      }
 
-      top.forEach((item, idx) => {
-        // 分组标题
-        if (item.kind !== lastKind) {
-          lastKind = item.kind;
-          const groupEl = document.createElement('div');
-          groupEl.className = 'spotlight-result search-group-header px-5 pt-3 pb-1';
-          groupEl.innerHTML = '<span class="text-[10px] font-semibold uppercase tracking-wider text-muted-light/40 dark:text-muted-dark/40">' +
-            (kindLabels[item.kind] || item.kind) + '</span>';
-          results.appendChild(groupEl);
-        }
+      // Snippet：从 description 中提取匹配上下文
+      let snippetHtml = '';
+      if (item.description) {
+        const sn = snippet(item.description, query, 120);
+        if (sn) snippetHtml = '<div class="s-snippet">' + sn + '</div>';
+      }
 
-        const el = document.createElement('a');
-        el.href = item.href;
-        el.className = 'spotlight-result block px-5 py-2.5 hover:bg-primary-light/[0.04] dark:hover:bg-primary-dark/[0.06] transition-colors cursor-pointer no-underline';
-        el.setAttribute('data-spotlight-idx', String(idx));
+      el.innerHTML =
+        '<div class="flex items-start gap-3">' +
+          '<svg class="s-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">' + icon + '</svg>' +
+          '<div class="flex-1 min-w-0">' +
+            '<p class="s-title">' + titleHtml + '</p>' +
+            '<div class="s-breadcrumb">' + breadcrumb + '</div>' +
+            metaHtml +
+            snippetHtml +
+          '</div>' +
+        '</div>';
 
-        const icon = kindIcons[item.kind] || kindIcons.page;
-        const titleHtml = hl(item.title, query);
+      resultItems.push(el);
+      results.appendChild(el);
+    });
 
-        // 面包屑: section › subsection
-        let breadcrumb = '<span class="sbc">' + hl(item.section, query) + '</span>';
-        if (item.subsection) {
-          breadcrumb += '<span class="sbc-sep">›</span><span class="sbc-sub">' + hl(item.subsection, query) + '</span>';
-        }
-
-        // meta 行
-        let metaHtml = '';
-        if (item.meta) {
-          metaHtml = '<div class="s-meta">' + hl(item.meta, query) + '</div>';
-        }
-
-        el.innerHTML =
-          '<div class="flex items-start gap-3">' +
-            '<svg class="s-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">' + icon + '</svg>' +
-            '<div class="flex-1 min-w-0">' +
-              '<p class="s-title">' + titleHtml + '</p>' +
-              '<div class="s-breadcrumb">' + breadcrumb + '</div>' +
-              metaHtml +
-            '</div>' +
-          '</div>';
-
-        resultItems.push(el);
-        results.appendChild(el);
-      });
-
-      allStates().forEach(el => { if (el) el.classList.add('hidden'); });
-    }, 50);
+    allStates().forEach(el => { if (el) el.classList.add('hidden'); });
   }
 
   // ── 选择导航 ──
@@ -835,6 +949,19 @@ const suggestions: Suggestion[] = [
     white-space: nowrap;
   }
   .dark .s-meta { color: var(--color-muted-dark); }
+
+  .s-snippet {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--color-muted-light);
+    opacity: 0.75;
+    margin-top: 3px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .dark .s-snippet { color: var(--color-muted-dark); }
 
   /* ── 搜索高亮 ── */
   .shl {

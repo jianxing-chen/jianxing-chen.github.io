@@ -89,7 +89,7 @@ import galleryData from '@/data/gallery.json';
             <a href={getLocalizedPath('/publications', lang)}
                class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap
                       transition-colors duration-200">
-              {t('home.view_all')} →
+              {t('home.view_all')}
             </a>
           </div>
           <div class="grid gap-4 reveal-stagger">
@@ -107,7 +107,10 @@ import galleryData from '@/data/gallery.json';
             <a href={getLocalizedPath('/blog', lang)}
                class="text-sm font-medium text-primary-light dark:text-primary-dark hover:underline underline-offset-4 whitespace-nowrap
                       transition-colors duration-200">
-              {t('home.view_all')} →
+              {t('home.view_all')}
+            </a>
+          </div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 reveal-stagger">
             {recentPosts.map((post) => (
               <BlogPostCard post={post} lang={lang} />
             ))}
