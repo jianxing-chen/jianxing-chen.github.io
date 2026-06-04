@@ -258,7 +258,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
     entries.push({
       id: `photo-${g.id}`,
       title: titleText,
-      href: getLocalizedPath('/gallery/', l),
+      href: getLocalizedPath('/gallery/', l) + `#photo-${g.id}`,
       kind: 'photo',
       section: t('nav.gallery'),
       subsection: locationText,

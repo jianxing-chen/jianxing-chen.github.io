@@ -79,7 +79,7 @@ const viewerPhotos = allPreviewPhotos.map((p) => ({
         <!-- 移动端：CSS columns 回退（隐藏于桌面端） -->
         <div class="gallery-masonry gallery-masonry--mobile">
           {country.previewPhotos.map((photo) => (
-            <GalleryCard photo={photo} lang={lang} />
+            <GalleryCard photo={photo} lang={lang} showId />
           ))}
         </div>
       </div>

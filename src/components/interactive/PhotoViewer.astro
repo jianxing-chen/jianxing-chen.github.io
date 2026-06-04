@@ -305,6 +305,53 @@
       }
     });
 
+    // ── Hash 深链接：从搜索框跳转时自动定位并打开照片 ──
+    function handleHash() {
+      const hash = window.location.hash;
+      if (!hash || !hash.startsWith('#photo-')) return;
+      const photoId = hash.slice(7); // remove '#photo-'
+      if (!photoId) return;
+
+      // 等照片数据加载完毕后再打开
+      const tryOpen = (retries: number) => {
+        const photos = (viewer as any).photos as PhotoData[] | undefined;
+        if (!photos || photos.length === 0) {
+          if (retries > 0) setTimeout(() => tryOpen(retries - 1), 100);
+          return;
+        }
+        const idx = photos.findIndex((p: PhotoData) => p.id === photoId);
+        if (idx !== -1) {
+          // 先滚动到卡片位置
+          const card = document.getElementById(`photo-${photoId}`);
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          // 短暂延迟后打开 viewer（等滚动动画启动）
+          setTimeout(() => viewer.open(photoId), 300);
+        } else {
+          // 照片不在当前预览集中，尝试滚动到对应位置
+          const card = document.getElementById(`photo-${photoId}`) ||
+                       document.querySelector(`[data-photo-id="${photoId}"]`);
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // 添加高亮闪烁效果
+            (card as HTMLElement).style.outline = '3px solid var(--color-primary-light, #3d69bf)';
+            (card as HTMLElement).style.outlineOffset = '3px';
+            setTimeout(() => {
+              (card as HTMLElement).style.outline = '';
+              (card as HTMLElement).style.outlineOffset = '';
+            }, 2500);
+          }
+        }
+      };
+      tryOpen(20);
+    }
+
+    // 页面加载时检查 hash
+    handleHash();
+    // 监听 hash 变化（同页面内导航）
+    window.addEventListener('hashchange', handleHash);
+
     // 暴露到全局供调试
     (window as any).__photoViewer = viewer;
   }
