@@ -7,8 +7,8 @@ export interface Paper {
   volume: string;
   pages: string;
   doi: string;
-  arxiv: string;
-  ads: string;
+  arxiv?: string;
+  ads?: string;
   highlight: boolean;
   type: 'first-author' | 'co-author' | 'corresponding';
 }

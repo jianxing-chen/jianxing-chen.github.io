@@ -2,6 +2,8 @@
 import '@/styles/global.css';
 import Header from '@/components/layout/Header.astro';
 import Footer from '@/components/layout/Footer.astro';
+import BackToTop from '@/components/ui/BackToTop.astro';
+import SearchOverlay from '@/components/interactive/SearchOverlay.astro';
 import { defaultLang } from '@/i18n/ui';
 import { SITE_CONFIG } from '@/config/site';
 
@@ -98,6 +100,14 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
       })();
     </script>
 
+    {/* Pagefind — preload in head; force main-thread to avoid worker issues */}
+    <script type="module">
+      import('/pagefind/pagefind.js').then(m => {
+        m.options({ noWorker: true });
+        window.__pagefind = m;
+      });
+    </script>
+
     {/* Umami Analytics */}
     {umamiWebsiteId && (
       <script is:inline defer src={umamiScriptUrl} data-website-id={umamiWebsiteId}></script>
@@ -140,6 +150,9 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     )}
 
     <Footer lang={lang} isHomepage={isHomepage} />
+
+    <BackToTop />
+    <SearchOverlay lang={lang} />
 
     <!-- Scroll reveal observer -->
     <script is:inline>

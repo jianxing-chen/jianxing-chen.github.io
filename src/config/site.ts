@@ -9,6 +9,14 @@ export const SITE_CONFIG = {
     ads: '#',
     email: 'mailto:jxchen_cn@outlook.com',
   },
+  /** Cloudinary IDs for the homepage cover slideshow */
+  coverPhotoIds: [
+    'c1_DSC1418_tswqii',
+    'DSC08917_ergsmw',
+    'DSC02071_q8ozmv',
+    'DSC07667_vh5stg',
+    'DSC02388_rlk6od',
+  ],
 } as const;
 
 export type Lang = 'en' | 'zh';

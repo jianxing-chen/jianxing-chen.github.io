@@ -1,0 +1,847 @@
+---
+/**
+ * SearchOverlay.astro — 全面搜索系统 v4
+ *
+ * 从真实数据源构建完整搜索索引：
+ * - 论文 (papers.json): 标题、作者、期刊、年份、类型
+ * - 博客 (blog collection): 标题、描述、标签
+ * - 研究项目 (research collection): 标题、描述、标签、状态
+ * - 新闻/报告 (news.json): 标题、来源、类型
+ * - 相册 (gallery.json): 标题、描述、标签、地点
+ * - 星表 (catalogs collection): 标题、描述
+ * - 静态页面: 首页、关于、出版物等
+ *
+ * 搜索算法：客户端模糊匹配（子序列 + 词级匹配 + 评分排序）
+ * Trigger: 点击搜索图标 或 Cmd+K / Ctrl+K
+ */
+import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { getCollection } from 'astro:content';
+import { extractSlug } from '@/utils/slug';
+import papers from '@/content/publications/papers.json';
+import type { Paper } from '@/types/publication';
+import newsData from '@/data/news.json';
+import galleryData from '@/data/gallery.json';
+
+interface Props {
+  lang: string;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+// ── 加载所有内容集合 ──
+const blogPosts = await getCollection('blog');
+const researchPages = await getCollection('research');
+const catalogPages = await getCollection('catalogs');
+
+// ── 搜索索引条目结构 ──
+interface SearchEntry {
+  id: string;
+  title: string;
+  href: string;
+  kind: 'paper' | 'blog' | 'research' | 'news' | 'photo' | 'catalog' | 'page';
+  section: string;
+  subsection?: string;
+  meta?: string;         // 额外信息行（作者、日期、标签等）
+  searchTerms: string;   // 所有可搜索文本（双语）
+}
+
+function loc(obj: string | { en: string; zh: string }, l: string): string {
+  return typeof obj === 'object' ? (obj[l] || obj.en) : obj;
+}
+
+// ── 天文术语中英翻译字典 ──
+const astroTermsEN2ZH: Record<string, string> = {
+  'white dwarf': '白矮星', 'white dwarfs': '白矮星',
+  'globular cluster': '球状星团', 'globular clusters': '球状星团',
+  'variable star': '变星', 'variable stars': '变星', 'variable': '变星',
+  'millisecond pulsar': '毫秒脉冲星', 'pulsar': '脉冲星', 'pulsars': '脉冲星',
+  'spectroscopy': '光谱学', 'spectroscopic': '光谱', 'spectra': '光谱',
+  'photometry': '测光', 'photometric': '测光',
+  'open cluster': '疏散星团', 'open clusters': '疏散星团',
+  'red giant': '红巨星', 'red giants': '红巨星',
+  'main sequence': '主序', 'main-sequence': '主序',
+  'cooling sequence': '冷却序列',
+  'hydrogen burning': '氢燃烧', 'hydrogen-burning': '氢燃烧',
+  'chemical abundance': '化学丰度', 'chemical abundances': '化学丰度',
+  'stellar evolution': '恒星演化',
+  'stellar parameter': '恒星参数', 'stellar parameters': '恒星参数', 'stellar atmospheric': '恒星大气',
+  'neutron star': '中子星', 'neutron stars': '中子星',
+  'binary': '双星', 'binaries': '双星', 'eclipsing binary': '食双星',
+  'exoplanet': '系外行星', 'planet': '行星',
+  'galactic bulge': '银心', 'Galactic bulge': '银心',
+  'time-domain': '时域', 'time domain': '时域',
+  'stellar population': '恒星族', 'stellar populations': '恒星族',
+  'black hole': '黑洞',
+  'supernova': '超新星',
+  'gravitational wave': '引力波',
+  'dark matter': '暗物质',
+  'dark energy': '暗能量',
+  'X-ray': 'X射线',
+  'XGBoost': 'XGBoost', 'machine learning': '机器学习', 'neural network': '神经网络',
+  'data-driven': '数据驱动',
+  'cross-match': '交叉匹配', 'cross-matching': '交叉匹配',
+  'LAMOST': 'LAMOST 郭守敬望远镜',
+  'CSST': 'CSST 中国空间站望远镜',
+  'HST': 'HST 哈勃', 'Hubble': '哈勃',
+  'FAST': 'FAST 天眼',
+  'Gaia': 'Gaia 盖亚',
+  'RR Lyrae': '天琴RR变星',
+  'Cepheid': '造父变星',
+  'ZZ Ceti': 'ZZ Ceti 脉动白矮星',
+  'bulge': '银心 核球',
+  'M13': 'M13 球状星团',
+  'M5': 'M5 球状星团',
+  'M4': 'M4 球状星团',
+  'NGC 6652': 'NGC 6652',
+  'NGC 6752': 'NGC 6752',
+  'PSR J1835': 'PSR J1835 脉冲星',
+  'G132-12': 'G132-12 变星',
+};
+
+function translateTerms(text: string): string {
+  const lower = text.toLowerCase();
+  const translations = new Set<string>();
+  for (const [en, zh] of Object.entries(astroTermsEN2ZH)) {
+    if (lower.includes(en.toLowerCase())) {
+      // Extract only the Chinese part
+      const zhPart = zh.split(' ')[0];
+      translations.add(zhPart);
+    }
+  }
+  return Array.from(translations).join(' ');
+}
+
+function buildSearchIndex(l: string): SearchEntry[] {
+  const entries: SearchEntry[] = [];
+  const typedPapers = papers as Paper[];
+
+  // ── 1. 静态页面 ──
+  entries.push({
+    id: 'home', title: t('nav.home'), href: getLocalizedPath('/', l),
+    kind: 'page', section: t('nav.home'),
+    searchTerms: 'home 首页 personal website 个人主页 Jianxing Chen 陈剑星 astronomy 天文学 astrophysics 天体物理',
+  });
+  entries.push({
+    id: 'about', title: t('nav.about'), href: getLocalizedPath('/about/', l),
+    kind: 'page', section: t('nav.about'),
+    subsection: l === 'zh' ? '简历与联系' : 'CV & Contact',
+    searchTerms: 'about 关于 CV 简历 curriculum vitae education 教育 experience 工作经历 contact 联系方式 email 邮箱 Beijing Normal University 北京师范大学 postdoc 博士后',
+  });
+  entries.push({
+    id: 'publications', title: t('nav.publications'), href: getLocalizedPath('/publications', l),
+    kind: 'page', section: t('nav.publications'),
+    searchTerms: 'publications 论文 papers 文章 articles academic 学术 first author 第一作者 corresponding 通讯',
+  });
+  entries.push({
+    id: 'blog', title: t('nav.blog'), href: getLocalizedPath('/blog/', l),
+    kind: 'page', section: t('nav.blog'),
+    searchTerms: 'blog 博客 posts 文章 writing 写作 thoughts 思考',
+  });
+  entries.push({
+    id: 'research', title: t('nav.research'), href: getLocalizedPath('/research/', l),
+    kind: 'page', section: t('nav.research'),
+    searchTerms: 'research 研究 projects 项目 science 科学 astronomy 天文学',
+  });
+  entries.push({
+    id: 'gallery', title: t('nav.gallery'), href: getLocalizedPath('/gallery/', l),
+    kind: 'page', section: t('nav.gallery'),
+    searchTerms: 'gallery 相册 photos 照片 photography 摄影 travel 旅行',
+  });
+
+  // ── 2. 论文 (papers.json) ──
+  typedPapers.forEach((p, i) => {
+    const typeLabel = p.type === 'first-author'
+      ? (l === 'zh' ? '第一作者' : 'First Author')
+      : p.type === 'corresponding'
+        ? (l === 'zh' ? '通讯作者' : 'Corresponding')
+        : (l === 'zh' ? '合作' : 'Co-author');
+    entries.push({
+      id: `paper-${i}`,
+      title: p.title,
+      href: getLocalizedPath('/publications', l),
+      kind: 'paper',
+      section: t('nav.publications'),
+      subsection: typeLabel,
+      meta: `${p.journal} ${p.volume ? p.volume : ''} (${p.year})`,
+      searchTerms: [
+        p.title,
+        translateTerms(p.title),
+        p.authors.join(', '),
+        p.journal,
+        String(p.year),
+        p.type,
+        p.doi,
+        typeLabel,
+        '论文 paper article publication',
+      ].join(' '),
+    });
+  });
+
+  // ── 3. 博客文章 ──
+  blogPosts.filter(p => p.data.lang === l && !p.data.draft).forEach(p => {
+    const slug = extractSlug(p.id);
+    entries.push({
+      id: `blog-${p.id}`,
+      title: p.data.title,
+      href: getLocalizedPath(`/blog/${slug}`, l),
+      kind: 'blog',
+      section: t('nav.blog'),
+      meta: p.data.tags.join(' · '),
+      searchTerms: [
+        p.data.title,
+        p.data.description,
+        ...p.data.tags,
+        'blog post 博客 文章',
+      ].join(' '),
+    });
+  });
+
+  // ── 4. 研究项目 ──
+  researchPages.filter(p => p.id.startsWith(`${l}/`) && !p.data.draft).forEach(p => {
+    const slug = extractSlug(p.id);
+    entries.push({
+      id: `research-${p.id}`,
+      title: p.data.title,
+      href: getLocalizedPath(`/research/${slug}`, l),
+      kind: 'research',
+      section: t('nav.research'),
+      subsection: p.data.status === 'ongoing' ? (l === 'zh' ? '进行中' : 'Ongoing') : (l === 'zh' ? '已完成' : 'Completed'),
+      meta: p.data.tags.join(' · '),
+      searchTerms: [
+        p.data.title,
+        translateTerms(p.data.title + ' ' + p.data.tags.join(' ')),
+        p.data.description,
+        translateTerms(p.data.description),
+        ...p.data.tags,
+        p.data.status,
+        'research project 研究 项目',
+      ].join(' '),
+    });
+  });
+
+  // ── 5. 新闻/报告/媒体报道 ──
+  newsData.forEach(n => {
+    const titleText = loc(n.title, l);
+    const sourceText = loc(n.source, l);
+    const typeLabel = n.type === 'talk'
+      ? (l === 'zh' ? '学术报告' : 'Talk')
+      : (l === 'zh' ? '媒体报道' : 'Media');
+    entries.push({
+      id: `news-${n.id}`,
+      title: titleText,
+      href: getLocalizedPath('/about/news', l),
+      kind: 'news',
+      section: l === 'zh' ? '新闻与报告' : 'News & Coverage',
+      subsection: sourceText,
+      meta: `${n.date} · ${typeLabel}`,
+      searchTerms: [
+        loc(n.title, 'en'), loc(n.title, 'zh'),
+        loc(n.source, 'en'), loc(n.source, 'zh'),
+        n.type, typeLabel,
+        'news talk media 新闻 报告 媒体 学术报告 邀请报告',
+      ].join(' '),
+    });
+  });
+
+  // ── 6. 相册照片 ──
+  galleryData.forEach(g => {
+    const titleText = loc(g.title, l);
+    const descText = loc(g.description, l);
+    const locationText = loc(g.location, l);
+    const regionText = loc(g.region, l);
+    entries.push({
+      id: `photo-${g.id}`,
+      title: titleText,
+      href: getLocalizedPath('/gallery/', l),
+      kind: 'photo',
+      section: t('nav.gallery'),
+      subsection: locationText,
+      meta: g.tags ? g.tags.join(' · ') : '',
+      searchTerms: [
+        loc(g.title, 'en'), loc(g.title, 'zh'),
+        loc(g.description, 'en'), loc(g.description, 'zh'),
+        loc(g.location, 'en'), loc(g.location, 'zh'),
+        loc(g.region, 'en'), loc(g.region, 'zh'),
+        ...(g.tags || []),
+        'photo gallery 照片 相册 摄影 photography',
+      ].join(' '),
+    });
+  });
+
+  // ── 7. 星表 ──
+  catalogPages.filter(p => p.id.startsWith(`${l}/`) && !p.data.draft).forEach(p => {
+    const slug = extractSlug(p.id);
+    entries.push({
+      id: `catalog-${p.id}`,
+      title: p.data.title,
+      href: getLocalizedPath(`/catalogs/${slug}`, l),
+      kind: 'catalog',
+      section: t('nav.catalogs'),
+      meta: p.data.columns.map(c => c.label).join(' · '),
+      searchTerms: [
+        p.data.title,
+        translateTerms(p.data.title + ' ' + p.data.description),
+        p.data.description,
+        ...p.data.columns.map(c => c.label),
+        'catalog data table 星表 数据表 目录 download 下载',
+      ].join(' '),
+    });
+  });
+
+  return entries;
+}
+
+const searchIndex = buildSearchIndex(lang);
+const searchIndexJson = JSON.stringify(searchIndex);
+
+// ── 快捷导航建议 ──
+interface Suggestion {
+  label: string;
+  href: string;
+  icon: string;
+}
+
+const suggestions: Suggestion[] = [
+  { label: t('nav.home'),         href: getLocalizedPath('/', lang),           icon: 'm2.25 12 8.954-8.955a1.126 1.126 0 0 1 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25' },
+  { label: t('nav.about'),        href: getLocalizedPath('/about/', lang),     icon: 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z' },
+  { label: t('nav.publications'), href: getLocalizedPath('/publications', lang), icon: 'M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z' },
+  { label: t('nav.blog'),         href: getLocalizedPath('/blog/', lang),      icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
+  { label: t('nav.research'),     href: getLocalizedPath('/research/', lang),  icon: 'M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.3 24.3 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5' },
+  { label: t('nav.gallery'),      href: getLocalizedPath('/gallery/', lang),   icon: 'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Zm16.5-16.5H3.75' },
+  { label: t('nav.catalogs'),     href: getLocalizedPath('/catalogs/', lang),  icon: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v5.25c0 1.35-.9 2.7-2.625 3.469M3.75 11.625c0 2.278 3.694 4.125 8.25 4.125' },
+];
+---
+
+<!-- ═══ 液态玻璃背景遮罩 ═══ -->
+<div
+  id="spotlight-overlay"
+  class="fixed inset-0 z-[9998] flex items-start justify-center pt-[12vh]
+         bg-black/30 dark:bg-black/50
+         opacity-0 pointer-events-none
+         transition-opacity duration-300 ease-out"
+  aria-hidden="true"
+>
+  <div
+    id="spotlight-panel"
+    class="spotlight-glass w-full max-w-2xl mx-4 rounded-2xl
+           border border-white/[0.15] dark:border-white/[0.06]
+           shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(255,255,255,0.05)_inset]
+           dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.03)_inset]
+           scale-95 transition-transform duration-300 ease-out
+           overflow-hidden"
+  >
+    <!-- 搜索输入行 -->
+    <div class="flex items-center gap-3 px-5 py-4
+                border-b border-black/[0.06] dark:border-white/[0.06]">
+      <svg class="w-5 h-5 shrink-0 text-muted-light/70 dark:text-muted-dark/70"
+           fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+      </svg>
+      <input
+        id="spotlight-input"
+        type="text"
+        placeholder={t('search.placeholder')}
+        class="flex-1 bg-transparent border-none outline-none text-base
+               text-text-light dark:text-text-dark
+               placeholder:text-muted-light/50 dark:placeholder:text-muted-dark/50"
+        autocomplete="off"
+      />
+      <span id="spotlight-count" class="text-[11px] text-muted-light/40 dark:text-muted-dark/40 hidden"></span>
+      <kbd class="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md
+               bg-black/[0.04] dark:bg-white/[0.06]
+               border border-black/[0.08] dark:border-white/[0.06]
+               text-[11px] font-medium text-muted-light/60 dark:text-muted-dark/60 font-mono"
+      >&#8984;K</kbd>
+      <button id="spotlight-close" type="button"
+        class="inline-flex items-center justify-center w-6 h-6 rounded-md
+               text-muted-light/50 dark:text-muted-dark/50
+               hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors"
+        aria-label={lang === 'zh' ? '关闭' : 'Close'}
+      >&times;</button>
+    </div>
+
+    <!-- ═══ 结果区域 ═══ -->
+    <div id="spotlight-results"
+      class="max-h-[60vh] overflow-y-auto overscroll-contain"
+      aria-live="polite">
+
+      <!-- 默认：快捷导航 -->
+      <div id="spotlight-suggestions" class="py-2">
+        <p class="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider
+                  text-muted-light/40 dark:text-muted-dark/40">
+          {t('search.suggestions')}
+        </p>
+        {suggestions.map((s) => (
+          <a href={s.href}
+            class="spotlight-suggestion flex items-center gap-3 px-5 py-2.5
+                   text-sm text-text-light/80 dark:text-text-dark/80
+                   hover:bg-primary-light/[0.06] dark:hover:bg-primary-dark/[0.08]
+                   hover:text-primary-light dark:hover:text-primary-dark
+                   transition-colors cursor-pointer">
+            <svg class="w-4 h-4 shrink-0 opacity-60" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d={s.icon} />
+            </svg>
+            <span>{s.label}</span>
+          </a>
+        ))}
+      </div>
+
+      <div id="spotlight-empty" class="px-5 py-10 text-center text-sm text-muted-light/50 dark:text-muted-dark/50 hidden">
+        {t('search.start_typing')}
+      </div>
+      <div id="spotlight-loading" class="px-5 py-10 text-center text-sm text-muted-light/50 dark:text-muted-dark/50 hidden">
+        {t('search.searching')}
+      </div>
+      <div id="spotlight-noresults" class="px-5 py-10 text-center text-sm text-muted-light/50 dark:text-muted-dark/50 hidden">
+        {t('search.no_results')}
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex items-center justify-between px-5 py-2.5
+                border-t border-black/[0.04] dark:border-white/[0.04]
+                text-[11px] text-muted-light/40 dark:text-muted-dark/40">
+      <span>
+        <kbd class="font-mono">&#8593;&#8595;</kbd> {t('search.navigate')} &ensp;
+        <kbd class="font-mono">&#8629;</kbd> {t('search.open')} &ensp;
+        <kbd class="font-mono">Esc</kbd> {t('search.close')}
+      </span>
+      <a href={lang === 'zh' ? '/zh/search/' : '/search/'}
+         id="spotlight-full-link"
+         class="text-primary-light/70 dark:text-primary-dark/70 hover:text-primary-light dark:hover:text-primary-dark hover:underline transition-colors"
+      >{t('search.full_search')} &#8594;</a>
+    </div>
+  </div>
+</div>
+
+<!-- 搜索索引 JSON -->
+<script type="application/json" data-fallback-index set:html={searchIndexJson}></script>
+
+<script is:inline>
+(function () {
+  const overlay   = document.getElementById('spotlight-overlay');
+  const panel     = document.getElementById('spotlight-panel');
+  const input     = document.getElementById('spotlight-input');
+  const closeBtn  = document.getElementById('spotlight-close');
+  const results   = document.getElementById('spotlight-results');
+  const suggEl    = document.getElementById('spotlight-suggestions');
+  const emptyEl   = document.getElementById('spotlight-empty');
+  const loadingEl = document.getElementById('spotlight-loading');
+  const noResEl   = document.getElementById('spotlight-noresults');
+  const countEl   = document.getElementById('spotlight-count');
+  if (!overlay || !input) return;
+
+  let isOpen = false, debounceTimer = null, selectedIdx = -1, resultItems = [];
+
+  const allStates = () => [suggEl, emptyEl, loadingEl, noResEl];
+  function showOnly(id) {
+    allStates().forEach(el => { if (el) el.classList.add('hidden'); });
+    const t = document.getElementById('spotlight-' + id);
+    if (t) t.classList.remove('hidden');
+  }
+
+  function open() {
+    if (isOpen) return;
+    isOpen = true;
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    panel.style.transform = 'scale(1)';
+    // 同时锁定 html 和 body（首页 fixed cover 场景必须两者都锁）
+    document.documentElement.classList.add('home-scroll-lock');
+    document.body.classList.add('home-scroll-lock');
+    showSuggestions();
+    setTimeout(() => input.focus(), 150);
+  }
+
+  function closeOverlay() {
+    if (!isOpen) return;
+    isOpen = false;
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+    panel.style.transform = 'scale(0.95)';
+    document.documentElement.classList.remove('home-scroll-lock');
+    document.body.classList.remove('home-scroll-lock');
+    input.value = '';
+    selectedIdx = -1;
+    resultItems = [];
+    clearResults();
+    showSuggestions();
+    if (countEl) countEl.classList.add('hidden');
+    clearTimeout(debounceTimer);
+  }
+
+  function showSuggestions() {
+    clearResults();
+    if (suggEl) suggEl.classList.remove('hidden');
+    allStates().forEach(el => { if (el && el !== suggEl) el.classList.add('hidden'); });
+    if (countEl) countEl.classList.add('hidden');
+  }
+
+  function clearResults() {
+    results.querySelectorAll('.spotlight-result').forEach(el => el.remove());
+    resultItems = [];
+    if (suggEl) suggEl.classList.add('hidden');
+  }
+
+  // ── Kind 图标映射 ──
+  const kindIcons = {
+    paper:    '<path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z" />',
+    blog:     '<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />',
+    research: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.3 24.3 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />',
+    news:     '<path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5v3m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />',
+    photo:    '<path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Zm16.5-16.5H3.75" />',
+    catalog:  '<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v5.25c0 1.35-.9 2.7-2.625 3.469M3.75 11.625c0 2.278 3.694 4.125 8.25 4.125" />',
+    page:     '<path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955a1.126 1.126 0 0 1 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />',
+  };
+
+  // ── 高亮匹配文本 ──
+  function hl(text, query) {
+    if (!query || query.length < 2) return esc(text);
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return esc(text).replace(new RegExp('(' + escaped + ')', 'gi'), '<mark class="shl">$1</mark>');
+  }
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ── 模糊匹配评分 ──
+  function fuzzyScore(text, query) {
+    const t = text.toLowerCase();
+    const q = query.toLowerCase().trim();
+    if (!q) return 0;
+
+    // 完全包含 → 最高分
+    if (t.includes(q)) return 200 + (200 - q.length / t.length * 50);
+
+    // 按空格分词
+    const words = q.split(/\s+/).filter(w => w.length > 0);
+    if (words.length > 1) {
+      let allMatch = true, score = 0;
+      for (const w of words) {
+        if (t.includes(w)) {
+          score += 80 + (80 - w.length / t.length * 20);
+        } else {
+          // 子序列匹配
+          let ti = 0, subMatch = false;
+          for (let qi = 0; qi < w.length; qi++) {
+            ti = t.indexOf(w[qi], ti);
+            if (ti === -1) { subMatch = false; break; }
+            ti++;
+            subMatch = true;
+          }
+          if (subMatch) score += 20;
+          else allMatch = false;
+        }
+      }
+      return allMatch ? score : score * 0.5;
+    }
+
+    // 单词：子序列匹配
+    let ti = 0;
+    let consecutiveBonus = 0;
+    for (let qi = 0; qi < q.length; qi++) {
+      const found = t.indexOf(q[qi], ti);
+      if (found === -1) return 0;
+      if (found === ti) consecutiveBonus += 5; // 连续匹配加分
+      ti = found + 1;
+    }
+    // 长文本中的短查询子序列匹配惩罚
+    const lengthPenalty = Math.min(20, Math.floor(t.length / q.length / 5));
+    return Math.max(5, 30 + consecutiveBonus - lengthPenalty);
+  }
+
+  // ── 加载搜索索引 ──
+  let _idx = null;
+  function getIndex() {
+    if (_idx) return _idx;
+    try {
+      const el = document.querySelector('script[data-fallback-index]');
+      _idx = el ? JSON.parse(el.textContent || '[]') : [];
+    } catch(e) { _idx = []; }
+    return _idx;
+  }
+
+  // ── 搜索 ──
+  function doSearch(query) {
+    if (!query || query.length < 2) { showSuggestions(); return; }
+    clearResults();
+    showOnly('loading');
+
+    setTimeout(() => {
+      const index = getIndex();
+      const scored = [];
+
+      for (const entry of index) {
+        // 标题权重最高
+        const titleScore = fuzzyScore(entry.title, query) * 3;
+        // 搜索文本权重
+        const termScore = fuzzyScore(entry.searchTerms, query);
+        // section 权重
+        const sectionScore = fuzzyScore(entry.section + ' ' + (entry.subsection || ''), query) * 1.5;
+        // meta 权重
+        const metaScore = entry.meta ? fuzzyScore(entry.meta, query) * 1.2 : 0;
+
+        const total = titleScore + termScore + sectionScore + metaScore;
+        // 过滤掉弱匹配（仅子序列匹配分数太低）
+        if (total < 40) continue;
+        scored.push({ ...entry, score: total });
+      }
+
+      scored.sort((a, b) => b.score - a.score);
+
+      // 按 kind 分组排序：papers > research > blog > news > catalog > photo > page
+      const kindOrder = { paper: 0, research: 1, blog: 2, catalog: 3, news: 4, photo: 5, page: 6 };
+      scored.sort((a, b) => {
+        const ko = (kindOrder[a.kind] || 9) - (kindOrder[b.kind] || 9);
+        if (ko !== 0) return ko;
+        return b.score - a.score;
+      });
+
+      const top = scored.slice(0, 20);
+
+      if (!top.length) { showOnly('noresults'); if (countEl) countEl.classList.add('hidden'); return; }
+
+      // 显示结果计数
+      if (countEl) {
+        countEl.textContent = scored.length + ' results';
+        countEl.classList.remove('hidden');
+      }
+
+      // 按 kind 分组渲染
+      let lastKind = '';
+      const kindLabels = {
+        paper: '📄 Papers', research: '🔬 Research', blog: '📝 Blog',
+        catalog: '📊 Catalogs', news: '📰 News', photo: '🖼 Photos', page: '📌 Pages',
+      };
+
+      top.forEach((item, idx) => {
+        // 分组标题
+        if (item.kind !== lastKind) {
+          lastKind = item.kind;
+          const groupEl = document.createElement('div');
+          groupEl.className = 'spotlight-result search-group-header px-5 pt-3 pb-1';
+          groupEl.innerHTML = '<span class="text-[10px] font-semibold uppercase tracking-wider text-muted-light/40 dark:text-muted-dark/40">' +
+            (kindLabels[item.kind] || item.kind) + '</span>';
+          results.appendChild(groupEl);
+        }
+
+        const el = document.createElement('a');
+        el.href = item.href;
+        el.className = 'spotlight-result block px-5 py-2.5 hover:bg-primary-light/[0.04] dark:hover:bg-primary-dark/[0.06] transition-colors cursor-pointer no-underline';
+        el.setAttribute('data-spotlight-idx', String(idx));
+
+        const icon = kindIcons[item.kind] || kindIcons.page;
+        const titleHtml = hl(item.title, query);
+
+        // 面包屑: section › subsection
+        let breadcrumb = '<span class="sbc">' + hl(item.section, query) + '</span>';
+        if (item.subsection) {
+          breadcrumb += '<span class="sbc-sep">›</span><span class="sbc-sub">' + hl(item.subsection, query) + '</span>';
+        }
+
+        // meta 行
+        let metaHtml = '';
+        if (item.meta) {
+          metaHtml = '<div class="s-meta">' + hl(item.meta, query) + '</div>';
+        }
+
+        el.innerHTML =
+          '<div class="flex items-start gap-3">' +
+            '<svg class="s-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">' + icon + '</svg>' +
+            '<div class="flex-1 min-w-0">' +
+              '<p class="s-title">' + titleHtml + '</p>' +
+              '<div class="s-breadcrumb">' + breadcrumb + '</div>' +
+              metaHtml +
+            '</div>' +
+          '</div>';
+
+        resultItems.push(el);
+        results.appendChild(el);
+      });
+
+      allStates().forEach(el => { if (el) el.classList.add('hidden'); });
+    }, 50);
+  }
+
+  // ── 选择导航 ──
+  function updateSelection() {
+    const items = resultItems.filter(el => el.tagName === 'A');
+    items.forEach((el, i) => {
+      el.classList.toggle('spotlight-selected', i === selectedIdx);
+      if (i === selectedIdx) el.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  // ── 事件 ──
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    selectedIdx = -1;
+    debounceTimer = setTimeout(() => doSearch(input.value.trim()), 150);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); selectedIdx = Math.min(selectedIdx + 1, resultItems.length - 1); updateSelection(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); selectedIdx = Math.max(selectedIdx - 1, 0); updateSelection(); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const links = resultItems.filter(el => el.tagName === 'A');
+      if (selectedIdx >= 0 && links[selectedIdx]) {
+        window.location.href = links[selectedIdx].href;
+        closeOverlay();
+      }
+    } else if (e.key === 'Escape') { closeOverlay(); }
+  });
+
+  // ── 阻止滚动穿透 ──
+  overlay.addEventListener('wheel', (e) => {
+    if (!isOpen) return;
+    const scrollEl = results;
+    const atTop = scrollEl.scrollTop === 0 && e.deltaY < 0;
+    const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1 && e.deltaY > 0;
+    // 在遮罩背景区域滚动 → 阻止；在结果区域到边界 → 阻止
+    if (!results.contains(e.target) || atTop || atBottom) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  overlay.addEventListener('touchmove', (e) => {
+    if (!isOpen) return;
+    const scrollEl = results;
+    const touch = e.touches[0];
+    if (!touch) return;
+    // 检查是否在可滚动的结果区域内
+    if (results.contains(e.target)) {
+      const atTop = scrollEl.scrollTop === 0;
+      const atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 1;
+      if (atTop || atBottom) {
+        e.preventDefault();
+      }
+    } else {
+      // 在遮罩背景上 → 完全阻止
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+  if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+  if (suggEl) suggEl.addEventListener('click', (e) => { if (e.target.closest('a')) closeOverlay(); });
+  results.addEventListener('click', (e) => { if (e.target.closest('a')) closeOverlay(); });
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); isOpen ? closeOverlay() : open(); }
+    if (e.key === 'Escape' && isOpen) { closeOverlay(); }
+  });
+
+  window.__toggleSpotlight = () => { isOpen ? closeOverlay() : open(); };
+})();
+</script>
+
+<style is:global>
+  /* ── 液态玻璃面板 ── */
+  .spotlight-glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+  .dark .spotlight-glass {
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+  }
+
+  /* ── 防止背景滚动（同时锁定 html + body，解决首页 fixed cover 场景） ── */
+  html.home-scroll-lock,
+  body.home-scroll-lock {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+
+  /* ── 选中高亮 ── */
+  .spotlight-selected {
+    background-color: rgba(61, 105, 191, 0.1) !important;
+  }
+  .dark .spotlight-selected {
+    background-color: rgba(123, 147, 219, 0.15) !important;
+  }
+
+  /* ── 分组标题 ── */
+  .search-group-header {
+    pointer-events: none;
+  }
+
+  /* ── 结果条目样式 ── */
+  .s-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.45;
+    margin-top: 2px;
+    color: var(--color-primary-light);
+  }
+  .dark .s-icon { color: var(--color-primary-dark); }
+
+  .s-title {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--color-text-light);
+    margin: 0 0 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dark .s-title { color: var(--color-text-dark); }
+
+  .s-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 4px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+  .sbc {
+    color: var(--color-muted-light);
+    font-weight: 500;
+  }
+  .dark .sbc { color: var(--color-muted-dark); }
+  .sbc-sep {
+    color: var(--color-muted-light);
+    opacity: 0.4;
+    margin: 0 1px;
+  }
+  .dark .sbc-sep { color: var(--color-muted-dark); }
+  .sbc-sub {
+    color: var(--color-primary-light);
+    font-weight: 400;
+    opacity: 0.7;
+  }
+  .dark .sbc-sub { color: var(--color-primary-dark); }
+
+  .s-meta {
+    font-size: 11px;
+    color: var(--color-muted-light);
+    opacity: 0.6;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dark .s-meta { color: var(--color-muted-dark); }
+
+  /* ── 搜索高亮 ── */
+  .shl {
+    background-color: rgba(251, 191, 36, 0.3);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  .dark .shl { background-color: rgba(251, 191, 36, 0.35); }
+</style>

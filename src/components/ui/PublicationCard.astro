@@ -1,5 +1,6 @@
 ---
 import type { Paper } from '@/types/publication';
+import { generateBibTeX } from '@/utils/bibtex';
 
 interface Props {
   paper: Paper;
@@ -20,6 +21,8 @@ function formatAuthors(authors: string[]): { name: string; isSelf: boolean }[] {
 
 const authorList = formatAuthors(paper.authors);
 const doiUrl = `https://doi.org/${paper.doi}`;
+const bibtex = generateBibTeX(paper);
+const bibtexJson = JSON.stringify(bibtex);
 ---
 
 <article
@@ -70,7 +73,93 @@ const doiUrl = `https://doi.org/${paper.doi}`;
       </span>
     )}
   </p>
+
+  {/* Action row: DOI + Copy BibTeX + arXiv */}
+  <div class="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-white/[0.05]">
+    <a href={doiUrl} target="_blank" rel="noopener noreferrer"
+       class="pub-link-btn" title="View on DOI">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+      </svg>
+      DOI
+    </a>
+    <button
+      type="button"
+      class="pub-link-btn pub-copy-btn"
+      data-bibtex={bibtexJson}
+      title={lang === 'zh' ? '复制 BibTeX 引用' : 'Copy BibTeX citation'}
+    >
+      <svg class="w-3.5 h-3.5 pub-copy-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+      </svg>
+      <span class="pub-copy-label">BibTeX</span>
+      <svg class="w-3.5 h-3.5 pub-copy-check hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+    </button>
+    {paper.arxiv && (
+      <a href={`https://arxiv.org/abs/${paper.arxiv}`} target="_blank" rel="noopener noreferrer"
+         class="pub-link-btn" title="View on arXiv">
+        arXiv
+      </a>
+    )}
+  </div>
 </article>
+
+<script>
+  // Delegated BibTeX copy handler — one listener for all cards
+  function initBibtexCopy() {
+    if ((document as any).__bibtexCopyInit) return;
+    (document as any).__bibtexCopyInit = true;
+
+    document.addEventListener('click', async (e: Event) => {
+      const btn = (e.target as HTMLElement).closest('.pub-copy-btn') as HTMLElement | null;
+      if (!btn) return;
+
+      // Prevent double-clicks during animation
+      if (btn.dataset.copying === 'true') return;
+      btn.dataset.copying = 'true';
+
+      const bibtex = JSON.parse(btn.dataset.bibtex || '""');
+      const icon = btn.querySelector('.pub-copy-icon')!;
+      const check = btn.querySelector('.pub-copy-check')!;
+      const label = btn.querySelector('.pub-copy-label')!;
+
+      // Copy to clipboard
+      try {
+        await navigator.clipboard.writeText(bibtex);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = bibtex;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+
+      // Show checkmark briefly
+      icon.classList.add('hidden');
+      check.classList.remove('hidden');
+      label.textContent = label.textContent === 'BibTeX' ? 'Copied!' : '已复制!';
+      btn.classList.add('pub-copy-done');
+
+      setTimeout(() => {
+        icon.classList.remove('hidden');
+        check.classList.add('hidden');
+        label.textContent = 'BibTeX';
+        btn.classList.remove('pub-copy-done');
+        btn.dataset.copying = 'false';
+      }, 1800);
+    });
+  }
+
+  initBibtexCopy();
+  document.addEventListener('astro:after-swap', () => {
+    (document as any).__bibtexCopyInit = false;
+    initBibtexCopy();
+  });
+</script>
 
 <style>
   .pub-link-btn {
@@ -101,5 +190,27 @@ const doiUrl = `https://doi.org/${paper.doi}`;
     background-color: #60A5FA;
     color: #0F172A;
     border-color: #60A5FA;
+  }
+
+  /* Button reset */
+  button.pub-link-btn {
+    cursor: pointer;
+    background: transparent;
+    font-family: inherit;
+  }
+
+  /* Copied feedback */
+  .pub-copy-btn.pub-copy-done,
+  .pub-copy-btn.pub-copy-done:hover {
+    background-color: var(--color-success, #059669) !important;
+    border-color: var(--color-success, #059669) !important;
+    color: #fff !important;
+  }
+
+  :global(.dark) .pub-copy-btn.pub-copy-done,
+  :global(.dark) .pub-copy-btn.pub-copy-done:hover {
+    background-color: #34D399 !important;
+    border-color: #34D399 !important;
+    color: #0F172A !important;
   }
 </style>

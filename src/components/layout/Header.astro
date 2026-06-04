@@ -82,6 +82,20 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       <span class="hamburger-line bot-line"></span>
     </button>
     <div class="flex items-center gap-1 ml-auto">
+      <button
+        type="button"
+        onclick="window.__toggleSpotlight?.()"
+        class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg
+               text-text-light dark:text-text-dark
+               hover:bg-black/5 dark:hover:bg-white/10
+               transition-colors duration-200 cursor-pointer"
+        aria-label={lang === 'zh' ? '搜索' : 'Search'}
+        title={lang === 'zh' ? '搜索 (⌘K)' : 'Search (⌘K)'}
+      >
+        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      </button>
       <LanguageSwitch lang={lang} />
       <ThemeToggle />
     </div>
@@ -159,6 +173,20 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
 
     <!-- Desktop utilities -->
     <div class="hidden md:flex items-center gap-1 ml-1">
+      <button
+        type="button"
+        onclick="window.__toggleSpotlight?.()"
+        class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg
+               text-text-light dark:text-text-dark
+               hover:bg-black/5 dark:hover:bg-white/10
+               transition-colors duration-200 cursor-pointer"
+        aria-label={lang === 'zh' ? '搜索' : 'Search'}
+        title={lang === 'zh' ? '搜索 (⌘K)' : 'Search (⌘K)'}
+      >
+        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      </button>
       <LanguageSwitch lang={lang} />
       <ThemeToggle />
     </div>
@@ -315,9 +343,15 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       menuEl.style.overflowY = 'hidden';
       menuSurfaceEl.style.opacity = '0';
       menuSurfaceEl.style.transform = 'translateY(-0.35rem)';
+      // 移除滚动锁定
+      document.documentElement.classList.remove('home-scroll-lock');
+      document.body.classList.remove('home-scroll-lock');
     }
 
     function openMenu() {
+      // 锁定背景滚动（同时锁 html + body，解决首页 fixed cover 场景）
+      document.documentElement.classList.add('home-scroll-lock');
+      document.body.classList.add('home-scroll-lock');
       menuEl.classList.add('menu-open-panel');
       menuEl.style.maxHeight = `${getMobileMenuMaxHeight()}px`;
       menuEl.style.overflowY = 'auto';

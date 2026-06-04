@@ -116,5 +116,15 @@
   "catalogs.noResults": "无匹配结果",
   "catalogs.emptyData": "暂无数据",
   "news.type.talk": "学术报告",
-  "news.type.media": "媒体报道"
+  "news.type.media": "媒体报道",
+  "search.placeholder": "搜索…",
+  "search.start_typing": "输入关键词开始搜索…",
+  "search.searching": "搜索中…",
+  "search.no_results": "未找到结果。",
+  "search.unavailable": "搜索暂不可用。",
+  "search.navigate": "导航",
+  "search.open": "打开",
+  "search.close": "关闭",
+  "search.suggestions": "快捷导航",
+  "search.full_search": "完整搜索"
 }

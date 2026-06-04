@@ -116,5 +116,15 @@
   "catalogs.noResults": "No matching results",
   "catalogs.emptyData": "No data available",
   "news.type.talk": "Talk",
-  "news.type.media": "Media"
+  "news.type.media": "Media",
+  "search.placeholder": "Search…",
+  "search.start_typing": "Start typing to search…",
+  "search.searching": "Searching…",
+  "search.no_results": "No results found.",
+  "search.unavailable": "Search is currently unavailable.",
+  "search.navigate": "navigate",
+  "search.open": "open",
+  "search.close": "close",
+  "search.suggestions": "Quick Links",
+  "search.full_search": "Full search"
 }

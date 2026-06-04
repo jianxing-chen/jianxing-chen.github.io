@@ -6,9 +6,10 @@ import newsData from '@/data/news.json';
 type NewsItem = {
   id: string;
   title: Record<string, string>;
-  source: string;
+  source: Record<string, string>;
   date: string;
   url: string;
+  type?: string;
   highlight: boolean;
 };
 

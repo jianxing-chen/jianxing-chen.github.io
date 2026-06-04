@@ -3,7 +3,11 @@
  * 环境变量：PUBLIC_CLOUDINARY_CLOUD_NAME
  */
 
-const cloudName = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME || 'your-cloud-name';
+const cloudName = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+if (!cloudName && import.meta.env.PROD) {
+  throw new Error('[cloudinary] PUBLIC_CLOUDINARY_CLOUD_NAME environment variable is not set.');
+}
 
 interface CloudinaryOptions {
   width?: number;

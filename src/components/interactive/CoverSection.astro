@@ -11,6 +11,7 @@
 
 import { getCoverImage, getCoverImageMobile } from '@/utils/cloudinary';
 import { getGalleryPhotoDetailPath, type GalleryPhoto } from '@/utils/gallery';
+import { SITE_CONFIG } from '@/config/site';
 
 interface Props {
   photos: GalleryPhoto[];
@@ -19,13 +20,7 @@ interface Props {
 
 const { photos, lang } = Astro.props;
 
-const fixedCoverIds = [
-  'c1_DSC1418_tswqii',
-  'DSC08917_ergsmw',
-  'DSC02071_q8ozmv',
-  'DSC07667_vh5stg',
-  'DSC02388_rlk6od',
-];
+const fixedCoverIds = [...SITE_CONFIG.coverPhotoIds];
 
 const fixedCoverPhotos = fixedCoverIds
   .map((id) => photos.find((p) => p.cloudinaryId === id))
@@ -460,7 +455,18 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 
     enterCoverState();
 
+    // ── 检查是否被模态浮层（搜索/移动菜单）占用 ──
+    function isModalOpen(): boolean {
+      const spotlight = document.getElementById('spotlight-overlay');
+      if (spotlight && spotlight.getAttribute('aria-hidden') === 'false') return true;
+      const menuBtn = document.getElementById('mobile-menu-btn');
+      if (menuBtn && menuBtn.classList.contains('menu-open')) return true;
+      return false;
+    }
+
     window.addEventListener('wheel', (e) => {
+      // 当搜索浮层或移动菜单打开时，不响应封面翻页
+      if (isModalOpen()) return;
       // 忽略下拉菜单内的滚动
       if ((e.target as HTMLElement).closest('.desktop-dropdown-panel')) return;
       if (currentState === 'cover' && e.deltaY > 0) {
@@ -475,7 +481,7 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     }, { passive: false });
 
     scrollIndicator?.addEventListener('click', () => {
-      if (currentState === 'cover') transitionToContent();
+      if (currentState === 'cover' && !isModalOpen()) transitionToContent();
     });
 
     backToCoverBtn?.addEventListener('click', () => {
@@ -488,11 +494,13 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     let gestureStartX = 0;
     let gestureStartY = 0;
     document.addEventListener('touchstart', (e) => {
+      if (isModalOpen()) return;
       gestureStartX = e.touches[0].clientX;
       gestureStartY = e.touches[0].clientY;
     }, { passive: true });
 
     document.addEventListener('touchend', (e) => {
+      if (isModalOpen()) return;
       const dx = e.changedTouches[0].clientX - gestureStartX;
       const dy = e.changedTouches[0].clientY - gestureStartY;
 

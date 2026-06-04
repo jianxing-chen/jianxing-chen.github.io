@@ -6,19 +6,7 @@ import { SITE_CONFIG } from '@/config/site';
 import papers from '@/content/publications/papers.json';
 import newsData from '@/data/news.json';
 
-type Paper = {
-  title: string;
-  authors: string[];
-  journal: string;
-  year: number;
-  volume: string;
-  pages: string;
-  doi: string;
-  arxiv: string;
-  ads: string;
-  highlight: boolean;
-  type: 'first-author' | 'co-author' | 'corresponding';
-};
+import type { Paper } from '@/types/publication';
 const typedPapers = papers as Paper[];
 
 const lang = 'zh';
@@ -37,27 +25,6 @@ const researchInterests = [
   '测光',
   '变星',
   '毫秒脉冲星',
-];
-
-const education = [
-//   {
-//     degree: '天体物理学博士',
-//     school: '占位大学',
-//     years: '2018 – 2023',
-//     field: '恒星光谱学与数据驱动方法',
-//   },
-//   {
-//     degree: '天文学硕士',
-//     school: '占位理工大学',
-//     years: '2016 – 2018',
-//     field: '变星分类研究',
-//   },
-//   {
-//     degree: '物理学学士',
-//     school: '占位国立大学',
-//     years: '2012 – 2016',
-//     field: '基础物理与数学',
-//   },
 ];
 
 const experience = [
