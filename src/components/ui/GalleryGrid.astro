@@ -81,52 +81,78 @@ const viewerPhotos = sortedPhotos.map((p) => ({
 <PhotoViewer />
 
 <script>
-  // ── 地区筛选（筛选后切换为 CSS Grid 从左到右、从上到下）──
-  const filterBar = document.querySelector('[data-gallery-region-filters]');
-  if (filterBar) {
+  // ── 地区筛选：hide + 贪心重排可见卡片，消除列间空隙 ──
+  (function initGalleryFilter() {
+    const filterBar = document.querySelector('[data-gallery-region-filters]');
+    if (!filterBar) return;
+
+    const gallery = document.getElementById('country-gallery')!;
+    const masonryDesktop = gallery.querySelector('.gallery-masonry--desktop')!;
+    const cols = [...masonryDesktop.querySelectorAll<HTMLElement>('.gallery-masonry__column')];
+    // 只取桌面端卡片（移动端有独立副本，CSS 控制显隐）
+    const allCards = masonryDesktop.querySelectorAll<HTMLElement>('.gallery-card');
+
+    // 保存原始列 HTML，切回 All 时直接还原
+    const savedColumns = cols.map(col => col.innerHTML);
+
+    function cardRatio(card: HTMLElement): number {
+      const img = card.querySelector('img');
+      if (img) {
+        const w = Number(img.getAttribute('width'));
+        const h = Number(img.getAttribute('height'));
+        if (w && h) return h / w;
+      }
+      return 1;
+    }
+
+    function redistribute(visibleCards: HTMLElement[]) {
+      cols.forEach(col => col.innerHTML = '');
+      if (visibleCards.length === 0) return;
+      const heights = new Array(cols.length).fill(0);
+      for (const card of visibleCards) {
+        let minIdx = 0;
+        for (let i = 1; i < heights.length; i++) {
+          if (heights[i] < heights[minIdx]) minIdx = i;
+        }
+        cols[minIdx].appendChild(card);
+        heights[minIdx] += cardRatio(card);
+      }
+    }
+
     filterBar.addEventListener('click', (e: Event) => {
       const button = (e.target as HTMLElement).closest('.gallery-region-filter') as HTMLButtonElement | null;
       if (!button) return;
 
       const region = button.dataset.region;
 
-      // 更新 active 状态
-      filterBar.querySelectorAll('.gallery-region-filter').forEach((btn) => btn.classList.remove('is-active'));
+      filterBar.querySelectorAll('.gallery-region-filter').forEach(btn => btn.classList.remove('is-active'));
       button.classList.add('is-active');
 
-      const gallery = document.getElementById('country-gallery')!;
-      const masonryDesktop = gallery.querySelector('.gallery-masonry--desktop') as HTMLElement;
-      const masonryMobile = gallery.querySelector('.gallery-masonry--mobile') as HTMLElement;
+      // 移动端：直接 hide/show
+      const mobileCards = gallery.querySelectorAll<HTMLElement>('.gallery-masonry--mobile .gallery-card');
+      mobileCards.forEach(card => {
+        card.hidden = !!(region && region !== 'all' && card.dataset.region !== region);
+      });
 
-      // "全部地区" → 显示所有卡片，恢复原始布局
+      // 桌面端
       if (!region || region === 'all') {
-        gallery.classList.remove('is-filtered');
-        [...masonryDesktop.children, ...masonryMobile.children].forEach((card) => {
-          (card as HTMLElement).hidden = false;
-        });
+        // 还原原始列布局
+        cols.forEach((col, i) => { col.innerHTML = savedColumns[i]; });
+        mobileCards.forEach(card => { card.hidden = false; });
         return;
       }
 
-      // 首次筛选：将列内卡片摊平到桌面 masonry 容器中，切换为 CSS Grid
-      if (!gallery.classList.contains('is-filtered')) {
-        const cols = [...masonryDesktop.querySelectorAll('.gallery-masonry__column')];
-        const desktopCards = cols.flatMap((col) => [...col.children] as HTMLElement[]);
-        masonryDesktop.innerHTML = '';
-        desktopCards.forEach((card) => masonryDesktop.appendChild(card));
-        gallery.classList.add('is-filtered');
-      }
-
-      // 筛选桌面端卡片
-      const desktopCards = [...masonryDesktop.children] as HTMLElement[];
-      desktopCards.forEach((card) => {
-        card.hidden = card.dataset.region !== region;
+      // 筛选：收集可见卡片，贪心重排
+      const visible: HTMLElement[] = [];
+      allCards.forEach(card => {
+        if (card.dataset.region === region) {
+          card.hidden = false;
+          visible.push(card);
+        } else {
+          card.hidden = true;
+        }
       });
-
-      // 筛选移动端卡片
-      const mobileCards = [...masonryMobile.children] as HTMLElement[];
-      mobileCards.forEach((card) => {
-        card.hidden = card.dataset.region !== region;
-      });
+      redistribute(visible);
     });
-  }
+  })();
 </script>

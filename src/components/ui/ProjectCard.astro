@@ -3,13 +3,11 @@ interface Props {
   title: string;
   description: string;
   cover?: string;
-  status: string;
   tags: string[];
   href: string;
-  statusLabel?: string;
 }
 
-const { title, description, cover, status, tags, href, statusLabel } = Astro.props;
+const { title, description, cover, tags, href } = Astro.props;
 ---
 
 <a href={href} class="project-card group block rounded-xl overflow-hidden
