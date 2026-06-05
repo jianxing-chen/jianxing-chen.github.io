@@ -737,9 +737,8 @@ const suggestions: Suggestion[] = [
       countEl.classList.remove('hidden');
     }
 
-    // 按 section + subsection 分组渲染
+    // 按 kind 分组渲染
     let lastSection = '';
-    let lastSubsection = '';
     const kindLabels = {
       paper: '📄 Papers', research: '🔬 Research', blog: '📝 Blog',
       news: '📰 News', photo: '🖼 Photos', page: '📌 Pages',
@@ -747,29 +746,15 @@ const suggestions: Suggestion[] = [
 
     top.forEach((item, idx) => {
       const sectionKey = item.kind;
-      const subsectionKey = item.subsection || '';
 
-      // Kind（顶层 section）变更
+      // Kind 变更 → 插入分组标题行
       if (sectionKey !== lastSection) {
         lastSection = sectionKey;
-        lastSubsection = '';
         const groupEl = document.createElement('div');
         groupEl.className = 'spotlight-result search-group-header px-5 pt-3 pb-1';
         groupEl.innerHTML = '<span class="text-[10px] font-semibold uppercase tracking-wider text-muted-light/40 dark:text-muted-dark/40">' +
           (kindLabels[sectionKey] || sectionKey) + '</span>';
         results.appendChild(groupEl);
-      }
-
-      // Subsection（research 内部的 Programs / Data Products）变更
-      if (subsectionKey && subsectionKey !== lastSubsection && sectionKey === 'research') {
-        lastSubsection = subsectionKey;
-        const subEl = document.createElement('div');
-        subEl.className = 'spotlight-result search-subsection-header px-5 pt-1 pb-0.5';
-        subEl.innerHTML = '<span class="text-[10px] font-medium tracking-wide text-primary-light/60 dark:text-primary-dark/50">' +
-          esc(subsectionKey) + '</span>';
-        results.appendChild(subEl);
-      } else if (!subsectionKey) {
-        lastSubsection = '';
       }
 
       const el = document.createElement('a');
@@ -782,7 +767,7 @@ const suggestions: Suggestion[] = [
 
       let breadcrumb = '<span class="sbc">' + hl(item.section, query) + '</span>';
       if (item.subsection) {
-        breadcrumb += '<span class="sbc-sep">›</span><span class="sbc-sub">' + hl(item.subsection, query) + '</span>';
+        breadcrumb += '<span class="sbc-sep"> &gt; </span><span class="sbc-sub">' + hl(item.subsection, query) + '</span>';
       }
 
       let metaHtml = '';
@@ -950,11 +935,6 @@ const suggestions: Suggestion[] = [
     pointer-events: none;
   }
 
-  /* ── Research 子 section 标题 ── */
-  .search-subsection-header {
-    pointer-events: none;
-  }
-
   /* ── 结果条目样式 ── */
   .s-icon {
     width: 16px;
@@ -993,8 +973,9 @@ const suggestions: Suggestion[] = [
   .dark .sbc { color: var(--color-muted-dark); }
   .sbc-sep {
     color: var(--color-muted-light);
-    opacity: 0.4;
-    margin: 0 1px;
+    opacity: 0.5;
+    margin: 0 2px;
+    font-weight: 300;
   }
   .dark .sbc-sep { color: var(--color-muted-dark); }
   .sbc-sub {
