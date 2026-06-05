@@ -17,6 +17,7 @@
 import { useTranslations, getLocalizedPath } from '@/i18n/ui';
 import { getCollection } from 'astro:content';
 import { extractSlug } from '@/utils/slug';
+import { getGalleryPhotoDetailPath, type GalleryPhoto } from '@/utils/gallery';
 import papers from '@/content/publications/papers.json';
 import type { Paper } from '@/types/publication';
 import newsData from '@/data/news.json';
@@ -209,7 +210,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
       href: getLocalizedPath(`/research/${slug}`, l),
       kind: 'research',
       section: t('nav.research'),
-      subsection: p.data.status === 'ongoing' ? (l === 'zh' ? '进行中' : 'Ongoing') : (l === 'zh' ? '已完成' : 'Completed'),
+      subsection: t('nav.research.programs'),
       meta: p.data.tags.join(' · '),
       description: p.data.description,
       searchTerms: [
@@ -258,7 +259,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
     entries.push({
       id: `photo-${g.id}`,
       title: titleText,
-      href: getLocalizedPath('/gallery/', l) + `#photo-${g.id}`,
+      href: getGalleryPhotoDetailPath(g as GalleryPhoto, l),
       kind: 'photo',
       section: t('nav.gallery'),
       subsection: locationText,
@@ -275,15 +276,16 @@ function buildSearchIndex(l: string): SearchEntry[] {
     });
   });
 
-  // ── 7. 星表 ──
+  // ── 7. 星表（归入 Research 的 Data Products 子 section）──
   catalogPages.filter(p => p.id.startsWith(`${l}/`) && !p.data.draft).forEach(p => {
     const slug = extractSlug(p.id);
     entries.push({
       id: `catalog-${p.id}`,
       title: p.data.title,
       href: getLocalizedPath(`/catalogs/${slug}`, l),
-      kind: 'catalog',
-      section: t('nav.catalogs'),
+      kind: 'research',
+      section: t('nav.research'),
+      subsection: t('nav.research.data_products'),
       meta: p.data.columns.map(c => c.label).join(' · '),
       description: p.data.description,
       searchTerms: [
@@ -323,8 +325,7 @@ const suggestions: Suggestion[] = [
   id="spotlight-overlay"
   class="fixed inset-0 z-[9998] flex items-start justify-center pt-[12vh]
          bg-black/30 dark:bg-black/50
-         opacity-0 pointer-events-none
-         transition-opacity duration-300 ease-out"
+         pointer-events-none"
   aria-hidden="true"
 >
   <div
@@ -333,7 +334,6 @@ const suggestions: Suggestion[] = [
            border border-white/[0.15] dark:border-white/[0.06]
            shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(255,255,255,0.05)_inset]
            dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.03)_inset]
-           scale-95 transition-transform duration-300 ease-out
            overflow-hidden"
   >
     <!-- 搜索输入行 -->
@@ -443,25 +443,40 @@ const suggestions: Suggestion[] = [
     if (isOpen) return;
     isOpen = true;
     overlay.setAttribute('aria-hidden', 'false');
-    overlay.style.opacity = '1';
-    overlay.style.pointerEvents = 'auto';
-    panel.style.transform = 'scale(1)';
-    // body position:fixed 锁滚动，保存滚动位置
+
+    // 🔑 预渲染 backdrop-filter：停过渡 → opacity=0.01 → 强制重排 → 恢复过渡淡入
+    overlay.style.transition = 'none';
+    panel.style.transition = 'none';
+    overlay.style.opacity = '0.01';
+    // panel 保持 scale(0.95)
+
+    // 锁定滚动
     const scrollY = window.scrollY;
     document.body.style.top = `-${scrollY}px`;
     document.documentElement.classList.add('home-scroll-lock');
     document.body.classList.add('home-scroll-lock');
     showSuggestions();
-    setTimeout(() => input.focus(), 150);
+
+    // 强制同步重排：让浏览器立即合成 backdrop-filter 纹理
+    void overlay.offsetHeight;
+
+    overlay.style.transition = 'opacity 0.2s ease-out';
+    panel.style.transition = 'transform 0.2s ease-out';
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'auto';
+    panel.style.transform = 'scale(1)';
+    setTimeout(() => input.focus(), 100);
   }
 
   function closeOverlay() {
     if (!isOpen) return;
     isOpen = false;
     overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.transition = 'opacity 0.18s ease-out';
+    panel.style.transition = 'transform 0.18s ease-out';
     overlay.style.opacity = '0';
-    overlay.style.pointerEvents = 'none';
     panel.style.transform = 'scale(0.95)';
+    overlay.style.pointerEvents = 'none';
     // 恢复滚动位置
     const scrollY = parseInt(document.body.style.top || '0', 10);
     document.documentElement.classList.remove('home-scroll-lock');
@@ -698,7 +713,7 @@ const suggestions: Suggestion[] = [
 
     scored.sort((a, b) => b.score - a.score);
 
-    const kindOrder = { paper: 0, research: 1, blog: 2, catalog: 3, news: 4, photo: 5, page: 6 };
+    const kindOrder = { paper: 0, research: 1, blog: 2, news: 3, photo: 4, page: 5 };
     scored.sort((a, b) => {
       const ko = (kindOrder[a.kind] || 9) - (kindOrder[b.kind] || 9);
       if (ko !== 0) return ko;
@@ -722,21 +737,39 @@ const suggestions: Suggestion[] = [
       countEl.classList.remove('hidden');
     }
 
-    // 按 kind 分组渲染
-    let lastKind = '';
+    // 按 section + subsection 分组渲染
+    let lastSection = '';
+    let lastSubsection = '';
     const kindLabels = {
       paper: '📄 Papers', research: '🔬 Research', blog: '📝 Blog',
-      catalog: '📊 Catalogs', news: '📰 News', photo: '🖼 Photos', page: '📌 Pages',
+      news: '📰 News', photo: '🖼 Photos', page: '📌 Pages',
     };
 
     top.forEach((item, idx) => {
-      if (item.kind !== lastKind) {
-        lastKind = item.kind;
+      const sectionKey = item.kind;
+      const subsectionKey = item.subsection || '';
+
+      // Kind（顶层 section）变更
+      if (sectionKey !== lastSection) {
+        lastSection = sectionKey;
+        lastSubsection = '';
         const groupEl = document.createElement('div');
         groupEl.className = 'spotlight-result search-group-header px-5 pt-3 pb-1';
         groupEl.innerHTML = '<span class="text-[10px] font-semibold uppercase tracking-wider text-muted-light/40 dark:text-muted-dark/40">' +
-          (kindLabels[item.kind] || item.kind) + '</span>';
+          (kindLabels[sectionKey] || sectionKey) + '</span>';
         results.appendChild(groupEl);
+      }
+
+      // Subsection（research 内部的 Programs / Data Products）变更
+      if (subsectionKey && subsectionKey !== lastSubsection && sectionKey === 'research') {
+        lastSubsection = subsectionKey;
+        const subEl = document.createElement('div');
+        subEl.className = 'spotlight-result search-subsection-header px-5 pt-1 pb-0.5';
+        subEl.innerHTML = '<span class="text-[10px] font-medium tracking-wide text-primary-light/60 dark:text-primary-dark/50">' +
+          esc(subsectionKey) + '</span>';
+        results.appendChild(subEl);
+      } else if (!subsectionKey) {
+        lastSubsection = '';
       }
 
       const el = document.createElement('a');
@@ -863,16 +896,35 @@ const suggestions: Suggestion[] = [
 </script>
 
 <style is:global>
+  /* ── 覆盖层初始状态（JS inline style 驱动过渡）── */
+  #spotlight-overlay {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #spotlight-panel {
+    transform: scale(0.95);
+  }
+
+  /* 去除搜索输入框的蓝色 focus 环 */
+  #spotlight-input:focus-visible {
+    outline: none;
+  }
+
   /* ── 液态玻璃面板 ── */
   .spotlight-glass {
     background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
+    /* 强制 GPU 合成层，减少 backdrop-filter 首帧延迟 */
+    transform: translateZ(0);
+    will-change: transform, opacity;
   }
   .dark .spotlight-glass {
     background: rgba(15, 23, 42, 0.78);
     backdrop-filter: blur(24px) saturate(140%);
     -webkit-backdrop-filter: blur(24px) saturate(140%);
+    transform: translateZ(0);
+    will-change: transform, opacity;
   }
 
   /* ── 防止背景滚动（body position:fixed 锁滚动，html 仅防溢出） ── */
@@ -895,6 +947,11 @@ const suggestions: Suggestion[] = [
 
   /* ── 分组标题 ── */
   .search-group-header {
+    pointer-events: none;
+  }
+
+  /* ── Research 子 section 标题 ── */
+  .search-subsection-header {
     pointer-events: none;
   }
 

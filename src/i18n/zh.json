@@ -58,6 +58,7 @@
   "publications.arxiv": "arXiv",
   "publications.doi": "DOI",
   "publications.pdf": "PDF",
+  "publications.empty": "此分类暂无论文。",
   "publications.all": "全部",
   "publications.filter_first_author": "第一作者",
   "publications.corresponding": "通讯作者",

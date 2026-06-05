@@ -10,8 +10,6 @@ interface Props {
 }
 
 const { title, description, cover, status, tags, href, statusLabel } = Astro.props;
-
-const isOngoing = status === 'ongoing';
 ---
 
 <a href={href} class="project-card group block rounded-xl overflow-hidden
@@ -42,22 +40,7 @@ const isOngoing = status === 'ongoing';
 
   {/* Content */}
   <div class="p-5">
-    {/* Status badge — hidden for now
-    <div class="mb-3">
-      <span class:list={[
-        'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium',
-        isOngoing
-          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400'
-          : 'bg-slate-100 text-slate-500 dark:bg-white/[0.05] dark:text-slate-400',
-      ]}>
-        <span class:list={[
-          'w-1.5 h-1.5 rounded-full mr-1.5',
-          isOngoing ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500',
-        ]}></span>
-        {statusLabel || (isOngoing ? 'Ongoing' : 'Completed')}
-      </span>
-    </div>
-    */}
+
 
     {/* Title */}
     <h3 class="text-base font-semibold text-heading-light dark:text-heading-dark mb-2

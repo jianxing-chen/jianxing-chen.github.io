@@ -58,6 +58,7 @@
   "publications.arxiv": "arXiv",
   "publications.doi": "DOI",
   "publications.pdf": "PDF",
+  "publications.empty": "No publications in this category.",
   "publications.all": "All",
   "publications.filter_first_author": "First Author",
   "publications.corresponding": "Corresponding",

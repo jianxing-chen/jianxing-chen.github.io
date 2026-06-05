@@ -43,7 +43,7 @@ export interface GalleryCountryGroup {
   regions: GalleryRegionGroup[];
 }
 
-function getLocalizedText(value: LocalizedText, lang: string): string {
+export function getLocalizedText(value: LocalizedText, lang: string): string {
   return value[lang as keyof LocalizedText] || value.en;
 }
 
