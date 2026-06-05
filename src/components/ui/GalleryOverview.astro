@@ -20,7 +20,7 @@ interface Props {
   previewLimit?: number;
 }
 
-const { photos, lang, previewLimit = 10 } = Astro.props;
+const { photos, lang, previewLimit = 100 } = Astro.props;
 const countries = buildGalleryCountries(photos, lang, previewLimit);
 const moreLabel = lang === 'zh' ? '更多' : 'More';
 const masonryColumns = 3;
