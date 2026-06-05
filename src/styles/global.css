@@ -1230,6 +1230,12 @@ html.cover-visible.dark .desktop-dropdown-panel::before {
   break-inside: avoid;
 }
 
+/* ── 超宽全景图跨两列 ── */
+.gallery-card--wide {
+  width: calc(200% + 0.25rem) !important;
+  z-index: 2;
+}
+
 .gallery-card:hover {
   opacity: 0.92;
 }
@@ -1567,6 +1573,34 @@ html:not(.cover-visible) *::after {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── 透明滚动条（下拉菜单 / 搜索结果）── */
+.desktop-dropdown-scroll,
+#spotlight-results {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.12) transparent;
+}
+
+.desktop-dropdown-scroll::-webkit-scrollbar,
+#spotlight-results::-webkit-scrollbar {
+  width: 4px;
+}
+
+.desktop-dropdown-scroll::-webkit-scrollbar-track,
+#spotlight-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.desktop-dropdown-scroll::-webkit-scrollbar-thumb,
+#spotlight-results::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 2px;
+}
+
+.dark .desktop-dropdown-scroll::-webkit-scrollbar-thumb,
+.dark #spotlight-results::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
 }
 
 /* ── Print styles ── */

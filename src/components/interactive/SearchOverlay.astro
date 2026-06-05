@@ -49,7 +49,7 @@ interface SearchEntry {
 }
 
 function loc(obj: string | { en: string; zh: string }, l: string): string {
-  return typeof obj === 'object' ? (obj[l] || obj.en) : obj;
+  return typeof obj === 'object' ? (obj[l as 'en' | 'zh'] || obj.en) : obj;
 }
 
 // ── 天文术语中英翻译字典 ──
