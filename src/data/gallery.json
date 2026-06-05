@@ -27,7 +27,7 @@
     "id": "big-ben-westminster",
     "cloudinaryId": "DSC02288_sbhrnr",
     "title": { "en": "Big Ben & Westminster Bridge", "zh": "大本钟与威斯敏斯特桥" },
-    "description": { "en": "The iconic Big Ben and Westminster Bridge under a clear London sky", "zh": "伦敦晴朗天空下，标志性的大本钟与威斯敏斯特桥" },
+    "description": { "en": "The iconic Big Ben and Westminster Bridge under an overcast London sky", "zh": "伦敦阴天之下，标志性的大本钟与威斯敏斯特桥" },
     "tags": ["London", "landmark", "bridge", "UK"],
     "location": { "en": "United Kingdom", "zh": "英国" },
     "region": { "en": "London", "zh": "伦敦" },
