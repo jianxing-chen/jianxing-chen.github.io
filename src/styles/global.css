@@ -222,9 +222,12 @@ h3 { line-height: 1.3; }
   box-shadow: var(--shadow-lg);
 }
 
-html.home-scroll-lock,
-body.home-scroll-lock {
+html.home-scroll-lock {
   overflow: hidden;
+}
+body.home-scroll-lock {
+  position: fixed;
+  width: 100%;
   overscroll-behavior: none;
 }
 

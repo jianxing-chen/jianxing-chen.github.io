@@ -446,7 +446,9 @@ const suggestions: Suggestion[] = [
     overlay.style.opacity = '1';
     overlay.style.pointerEvents = 'auto';
     panel.style.transform = 'scale(1)';
-    // 同时锁定 html 和 body（首页 fixed cover 场景必须两者都锁）
+    // body position:fixed 锁滚动，保存滚动位置
+    const scrollY = window.scrollY;
+    document.body.style.top = `-${scrollY}px`;
     document.documentElement.classList.add('home-scroll-lock');
     document.body.classList.add('home-scroll-lock');
     showSuggestions();
@@ -460,8 +462,12 @@ const suggestions: Suggestion[] = [
     overlay.style.opacity = '0';
     overlay.style.pointerEvents = 'none';
     panel.style.transform = 'scale(0.95)';
+    // 恢复滚动位置
+    const scrollY = parseInt(document.body.style.top || '0', 10);
     document.documentElement.classList.remove('home-scroll-lock');
     document.body.classList.remove('home-scroll-lock');
+    document.body.style.removeProperty('top');
+    window.scrollTo(0, -scrollY || 0);
     input.value = '';
     selectedIdx = -1;
     resultItems = [];
@@ -869,10 +875,13 @@ const suggestions: Suggestion[] = [
     -webkit-backdrop-filter: blur(24px) saturate(140%);
   }
 
-  /* ── 防止背景滚动（同时锁定 html + body，解决首页 fixed cover 场景） ── */
-  html.home-scroll-lock,
-  body.home-scroll-lock {
+  /* ── 防止背景滚动（body position:fixed 锁滚动，html 仅防溢出） ── */
+  html.home-scroll-lock {
     overflow: hidden !important;
+  }
+  body.home-scroll-lock {
+    position: fixed !important;
+    width: 100% !important;
     overscroll-behavior: none !important;
   }
 

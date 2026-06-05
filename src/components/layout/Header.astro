@@ -321,17 +321,18 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
     const btn = document.getElementById('mobile-menu-btn');
     const menu = document.getElementById('mobile-menu');
     const menuSurface = menu?.querySelector('.mobile-menu-surface') as HTMLElement | null;
-    const nav = document.querySelector('#site-header nav') as HTMLElement | null;
     if (!btn || !menu || !menuSurface) return;
 
     const btnEl = btn;
     const menuEl = menu;
     const menuSurfaceEl = menuSurface;
+    const mobileBar = document.querySelector('.mobile-header-bar') as HTMLElement | null;
 
     function getMobileMenuMaxHeight() {
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-      const navHeight = nav?.getBoundingClientRect().height ?? 64;
-      return Math.max(Math.round(viewportHeight - navHeight), 240);
+      // 使用移动端 header bar 高度（桌面端 nav 在手机上 display:none 高度为 0）
+      const barHeight = mobileBar?.getBoundingClientRect().height ?? 48;
+      return Math.max(Math.round(viewportHeight - barHeight), 240);
     }
 
     // Close mobile menu helper
@@ -343,13 +344,18 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       menuEl.style.overflowY = 'hidden';
       menuSurfaceEl.style.opacity = '0';
       menuSurfaceEl.style.transform = 'translateY(-0.35rem)';
-      // 移除滚动锁定
+      // 恢复滚动位置（body position:fixed 锁滚动模式）
+      const scrollY = parseInt(document.body.style.top || '0', 10);
       document.documentElement.classList.remove('home-scroll-lock');
       document.body.classList.remove('home-scroll-lock');
+      document.body.style.removeProperty('top');
+      window.scrollTo(0, -scrollY || 0);
     }
 
     function openMenu() {
-      // 锁定背景滚动（同时锁 html + body，解决首页 fixed cover 场景）
+      // 锁定背景滚动：body position:fixed 保存滚动位置，不重置页面
+      const scrollY = window.scrollY;
+      document.body.style.top = `-${scrollY}px`;
       document.documentElement.classList.add('home-scroll-lock');
       document.body.classList.add('home-scroll-lock');
       menuEl.classList.add('menu-open-panel');

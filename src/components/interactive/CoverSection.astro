@@ -332,6 +332,14 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     const transitionDuration = 800;
 
     function setScrollLocked(locked: boolean) {
+      if (locked) {
+        const scrollY = window.scrollY;
+        document.body.style.top = `-${scrollY}px`;
+      } else {
+        const scrollY = parseInt(document.body.style.top || '0', 10);
+        document.body.style.removeProperty('top');
+        window.scrollTo(0, -scrollY || 0);
+      }
       document.documentElement.classList.toggle('home-scroll-lock', locked);
       document.body.classList.toggle('home-scroll-lock', locked);
     }
