@@ -447,12 +447,14 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 
     enterCoverState();
 
-    // ── 检查是否被模态浮层（搜索/移动菜单）占用 ──
+    // ── 检查是否被模态浮层（搜索/移动菜单/桌面端下拉）占用 ──
     function isModalOpen(): boolean {
       const spotlight = document.getElementById('spotlight-overlay');
       if (spotlight && spotlight.getAttribute('aria-hidden') === 'false') return true;
       const menuBtn = document.getElementById('mobile-menu-btn');
       if (menuBtn && menuBtn.classList.contains('menu-open')) return true;
+      // 桌面端下拉菜单打开时（iPad 等触控设备）
+      if (document.querySelector('.group.dropdown-open')) return true;
       return false;
     }
 
@@ -485,13 +487,21 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 
     let gestureStartX = 0;
     let gestureStartY = 0;
+    let gestureActive = false;
     document.addEventListener('touchstart', (e) => {
+      gestureActive = false;
       if (isModalOpen()) return;
+      const target = e.target as HTMLElement;
+      // 跳过桌面端下拉菜单、移动端菜单、header 内的触摸，避免手势穿透
+      if (target.closest('.desktop-dropdown-wrapper') || target.closest('#mobile-menu') || target.closest('.mobile-header-bar')) return;
+      gestureActive = true;
       gestureStartX = e.touches[0].clientX;
       gestureStartY = e.touches[0].clientY;
     }, { passive: true });
 
     document.addEventListener('touchend', (e) => {
+      if (!gestureActive) return;
+      gestureActive = false;
       if (isModalOpen()) return;
       const dx = e.changedTouches[0].clientX - gestureStartX;
       const dy = e.changedTouches[0].clientY - gestureStartY;

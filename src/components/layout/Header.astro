@@ -291,6 +291,13 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
   /* Mobile menu: smooth scrolling on iOS */
   #mobile-menu {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Desktop dropdown: prevent scroll bleed-through on touch devices (iPad) */
+  .desktop-dropdown-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .mobile-menu-surface {
