@@ -1,5 +1,29 @@
 [
   {
+    "id": "doha-corniche-night",
+    "cloudinaryId": "_DSC2981_1_p4gvnd",
+    "title": { "en": "Doha Corniche at Night", "zh": "多哈滨海大道夜景" },
+    "description": { "en": "The glittering night skyline of Doha along the Corniche, reflecting on the waters of the Persian Gulf", "zh": "多哈滨海大道夜色，波斯湾畔灯火辉煌" },
+    "tags": ["Qatar", "night", "city", "skyline"],
+    "location": { "en": "Qatar", "zh": "卡塔尔" },
+    "region": { "en": "Doha", "zh": "多哈" },
+    "width": 2048,
+    "height": 1152,
+    "featured": true
+  },
+  {
+    "id": "schiphol-dawn",
+    "cloudinaryId": "IMG_20191028_104242_3_voxiaj",
+    "title": { "en": "Dawn at Schiphol", "zh": "史基浦机场的清晨" },
+    "description": { "en": "An early morning at Amsterdam Schiphol Airport after a light rain, en route from Guangzhou to Bologna, October 2019", "zh": "2019年10月28日清晨，一场小雨过后，阿姆斯特丹史基浦机场，从广州转机去博洛尼亚的路上" },
+    "tags": ["Netherlands", "airport", "travel", "dawn"],
+    "location": { "en": "Netherlands", "zh": "荷兰" },
+    "region": { "en": "Amsterdam", "zh": "阿姆斯特丹" },
+    "width": 3936,
+    "height": 2625,
+    "featured": true
+  },
+  {
     "id": "ancona-passetto",
     "cloudinaryId": "DSC07162_x4vf9k",
     "title": { "en": "Cliffs of Passetto", "zh": "Passetto 海崖" },
