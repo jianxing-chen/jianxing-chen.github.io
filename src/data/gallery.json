@@ -1,5 +1,17 @@
 [
   {
+    "id": "rosenheim-station",
+    "cloudinaryId": "IMG_20211113_115220_wncabs",
+    "title": { "en": "Rosenheim in Winter", "zh": "冬日罗森海姆" },
+    "description": { "en": "A cold winter day at Rosenheim station, a brief stop on the journey from Innsbruck to Salzburg — the only German city I've set foot in", "zh": "因斯布鲁克去萨尔茨堡途中经停罗森海姆转车，阴冷的冬日，唯一踏足过的德国城市" },
+    "tags": ["Germany", "winter", "train", "travel"],
+    "location": { "en": "Germany", "zh": "德国" },
+    "region": { "en": "Rosenheim", "zh": "罗森海姆" },
+    "width": 4000,
+    "height": 3000,
+    "featured": true
+  },
+  {
     "id": "doha-corniche-night",
     "cloudinaryId": "_DSC2981_1_p4gvnd",
     "title": { "en": "Doha Corniche at Night", "zh": "多哈滨海大道夜景" },
