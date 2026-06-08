@@ -1,5 +1,41 @@
 [
   {
+    "id": "ensenada-bufadora-2",
+    "cloudinaryId": "680x_kkaclc",
+    "title": { "en": "La Bufadora Eruption", "zh": "La Bufadora 海洋喷泉" },
+    "description": { "en": "Seawater erupting skyward at La Bufadora, Ensenada's famous marine geyser", "zh": "恩森那达 La Bufadora，海水喷涌如海洋喷泉直冲天际" },
+    "tags": ["Mexico", "coast", "nature"],
+    "location": { "en": "Mexico", "zh": "墨西哥" },
+    "region": { "en": "Ensenada", "zh": "恩森那达" },
+    "width": 2592,
+    "height": 4608,
+    "featured": true
+  },
+  {
+    "id": "ensenada-palms",
+    "cloudinaryId": "680x_1_bijocj",
+    "title": { "en": "Palms of Ensenada", "zh": "恩森那达的椰子树" },
+    "description": { "en": "Towering palm trees in downtown Ensenada against the Mexican sky", "zh": "恩森那达市中心，高耸的椰子树直入墨西哥的蓝天" },
+    "tags": ["Mexico", "palm", "city"],
+    "location": { "en": "Mexico", "zh": "墨西哥" },
+    "region": { "en": "Ensenada", "zh": "恩森那达" },
+    "width": 2592,
+    "height": 4608,
+    "featured": true
+  },
+  {
+    "id": "ensenada-bufadora",
+    "cloudinaryId": "680x_2_ut7rl4",
+    "title": { "en": "La Bufadora", "zh": "La Bufadora 喷水孔" },
+    "description": { "en": "Crowds watching the dramatic seawater eruption at La Bufadora blowhole, Ensenada", "zh": "恩森那达 La Bufadora 海洋喷水孔，众人围观海水喷涌而出的壮观景象" },
+    "tags": ["Mexico", "coast", "nature"],
+    "location": { "en": "Mexico", "zh": "墨西哥" },
+    "region": { "en": "Ensenada", "zh": "恩森那达" },
+    "width": 4608,
+    "height": 2592,
+    "featured": true
+  },
+  {
     "id": "rosenheim-station",
     "cloudinaryId": "IMG_20211113_115220_wncabs",
     "title": { "en": "Rosenheim in Winter", "zh": "冬日罗森海姆" },
