@@ -147,6 +147,10 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
                     </a>
                   ))}
                 </div>
+                <!-- 滚动溢出提示箭头 -->
+                <div class="dropdown-scroll-indicator" aria-hidden="true">
+                  <svg width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M1 1.5l7 7 7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
               </div>
             </div>
           </div>
@@ -543,4 +547,35 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
 
   initDesktopDropdowns();
   document.addEventListener('astro:after-swap', initDesktopDropdowns);
+
+  // ── 桌面端下拉溢出滚动指示器 ──
+  function initDropdownScrollIndicators() {
+    const dropdownGroups = document.querySelectorAll('#site-header .group');
+
+    dropdownGroups.forEach((group) => {
+      const panel = group.querySelector('.desktop-dropdown-panel') as HTMLElement | null;
+      const scroll = group.querySelector('.desktop-dropdown-scroll') as HTMLElement | null;
+      if (!panel || !scroll) return;
+
+      function checkOverflow() {
+        const hasOverflow = scroll!.scrollHeight > scroll!.clientHeight + 1;
+        panel!.classList.toggle('has-overflow', hasOverflow);
+        // 初始状态下未滚动到底部
+        panel!.classList.remove('scrolled-to-bottom');
+      }
+
+      function onScroll() {
+        const atBottom = scroll!.scrollTop + scroll!.clientHeight >= scroll!.scrollHeight - 2;
+        panel!.classList.toggle('scrolled-to-bottom', atBottom);
+      }
+
+      // 鼠标悬停 / 触摸打开时检测溢出
+      group.addEventListener('mouseenter', checkOverflow);
+      group.addEventListener('focusin', checkOverflow);
+      scroll.addEventListener('scroll', onScroll, { passive: true });
+    });
+  }
+
+  initDropdownScrollIndicators();
+  document.addEventListener('astro:after-swap', initDropdownScrollIndicators);
 </script>

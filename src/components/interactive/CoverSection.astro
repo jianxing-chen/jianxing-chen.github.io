@@ -312,7 +312,7 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     }
 
     document.addEventListener('keydown', (e) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as Element)?.isContentEditable) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || (e.target as HTMLElement)?.isContentEditable) return;
       if (e.key === 'ArrowLeft') prevPhoto();
       if (e.key === 'ArrowRight') nextPhoto();
     });

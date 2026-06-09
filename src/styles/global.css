@@ -903,6 +903,47 @@ html.cover-visible #page-bottom {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── 下拉菜单溢出滚动提示箭头 ── */
+.dropdown-scroll-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 2px;
+  color: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.dropdown-scroll-indicator svg {
+  width: 14px;
+  height: 8px;
+  opacity: 0.55;
+  animation: scroll-indicator-bounce 1.6s ease-in-out infinite;
+}
+
+/* 首页封面态：箭头跟随 Hero 白色文字 */
+html.cover-visible .dropdown-scroll-indicator {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes scroll-indicator-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2.5px); }
+}
+
+.desktop-dropdown-panel.has-overflow .dropdown-scroll-indicator {
+  opacity: 1;
+}
+
+.desktop-dropdown-panel.scrolled-to-bottom .dropdown-scroll-indicator {
+  opacity: 0;
+}
+
 .dark .desktop-dropdown-panel {
   background: rgba(15, 23, 42, 0.5);
   border-color: rgba(255, 255, 255, 0.12) !important;
