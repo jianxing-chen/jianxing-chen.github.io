@@ -911,24 +911,83 @@ html.cover-visible #page-bottom {
   right: 0;
   z-index: 3;
   display: flex;
-  justify-content: center;
-  padding-bottom: 2px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 3px;
+  height: 42px;
   color: inherit;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.3s ease;
+  /* 渐变遮罩：从透明到面板底色，暗示下方还有内容 */
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.7) 40%,
+    rgba(255, 255, 255, 0.95) 100%
+  );
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
 .dropdown-scroll-indicator svg {
-  width: 14px;
-  height: 8px;
-  opacity: 0.55;
-  animation: scroll-indicator-bounce 1.6s ease-in-out infinite;
+  width: 16px;
+  height: 9px;
+  opacity: 0.7;
+  animation: scroll-indicator-bounce 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.08));
 }
 
-/* 首页封面态：箭头跟随 Hero 白色文字 */
-html.cover-visible .dropdown-scroll-indicator {
-  color: rgba(255, 255, 255, 0.6);
+/* ── 非首页 · 亮色 ── */
+/* 默认即为非首页亮色，渐变已写在基础规则中 */
+
+/* ── 非首页 · 暗色 ── */
+.dark .dropdown-scroll-indicator {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(15, 23, 42, 0.7) 40%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
+}
+
+.dark .dropdown-scroll-indicator svg {
+  opacity: 0.65;
+  filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.2));
+}
+
+/* ── 首页封面态 · 亮色（cover 可见 + 非 dark）── */
+/* 面板是深色半透明玻璃 + 白色文字，渐变用深色调匹配 */
+html.cover-visible:not(.dark) .dropdown-scroll-indicator {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(15, 23, 42, 0.7) 40%,
+    rgba(15, 23, 42, 0.95) 100%
+  ) !important;
+  color: rgba(226, 232, 240, 0.9) !important;
+}
+
+html.cover-visible:not(.dark) .dropdown-scroll-indicator svg {
+  opacity: 0.75;
+  filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.25));
+}
+
+/* ── 首页封面态 · 暗色（cover 可见 + dark）── */
+/* 与非首页暗色浓度一致 */
+html.cover-visible.dark .dropdown-scroll-indicator {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(15, 23, 42, 0.7) 40%,
+    rgba(15, 23, 42, 0.95) 100%
+  ) !important;
+  color: rgba(226, 232, 240, 0.85) !important;
+}
+
+html.cover-visible.dark .dropdown-scroll-indicator svg {
+  opacity: 0.7;
+  filter: drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.25));
 }
 
 @keyframes scroll-indicator-bounce {
@@ -1604,6 +1663,11 @@ html:not(.cover-visible) *::after {
   transition:
     color 1s cubic-bezier(0.4, 0, 0.2, 1),
     border-color 1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 滚动指示器保留 opacity 过渡（不被 header 子树 transition:none 覆盖） */
+#site-header .dropdown-scroll-indicator {
+  transition: opacity 0.3s ease !important;
 }
 
 /* ── Reduced motion ── */
