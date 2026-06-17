@@ -207,7 +207,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
     entries.push({
       id: `research-${p.id}`,
       title: p.data.title,
-      href: getLocalizedPath(`/research/${slug}`, l),
+      href: getLocalizedPath(`/research/programs/${slug}`, l),
       kind: 'research',
       section: t('nav.research'),
       subsection: t('nav.research.programs'),
@@ -282,7 +282,7 @@ function buildSearchIndex(l: string): SearchEntry[] {
     entries.push({
       id: `catalog-${p.id}`,
       title: p.data.title,
-      href: getLocalizedPath(`/catalogs/${slug}`, l),
+      href: getLocalizedPath(`/research/data-products/${slug}`, l),
       kind: 'research',
       section: t('nav.research'),
       subsection: t('nav.research.data_products'),

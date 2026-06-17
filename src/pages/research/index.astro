@@ -34,7 +34,7 @@ const catalogs = allCatalogs.filter((c) => c.id.startsWith('en/') && !c.data.dra
               description={project.data.description}
               cover={project.data.cover}
               tags={project.data.tags}
-              href={getLocalizedPath(`/research/${slug}`, lang)}
+              href={getLocalizedPath(`/research/programs/${slug}`, lang)}
             />
           );
         })}
@@ -60,7 +60,7 @@ const catalogs = allCatalogs.filter((c) => c.id.startsWith('en/') && !c.data.dra
         const slug = catalog.id.replace('en/', '');
         return (
           <a
-            href={getLocalizedPath(`/catalogs/${slug}`, lang)}
+            href={getLocalizedPath(`/research/data-products/${slug}`, lang)}
             class="block group border border-slate-200/80 dark:border-white/[0.06] rounded-xl p-6
                    hover:border-primary-light dark:hover:border-primary-dark
                    hover:shadow-md transition-all duration-200
