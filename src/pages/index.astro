@@ -15,7 +15,9 @@ const t = useTranslations(lang);
 
 import papers from '@/content/publications/papers.json';
 import type { Paper } from '@/types/publication';
-const recentPapers = (papers as Paper[]).slice(0, 3);
+const recentPapers = (papers as Paper[])
+  .sort((a, b) => b.year - a.year)
+  .slice(0, 3);
 
 const allPosts = await getCollection('blog', ({ data }) => data.lang === 'en' && !data.draft);
 const recentPosts = allPosts.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()).slice(0, 3);
