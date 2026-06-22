@@ -102,13 +102,13 @@ export default function CatalogTable({
             justify-content: center;
             gap: 1rem;
             padding: 3rem 1rem;
-            color: #64748b;
-            border: 1px dashed #d1d5db;
+            color: #4a6a8a;
+            border: 1px dashed #b8c9dc;
             border-radius: 0.5rem;
           }
           .dark .catalog-empty-state {
-            color: #94a3b8;
-            border-color: #374151;
+            color: #6a8aaa;
+            border-color: #1a3a5c;
           }
         `}</style>
       </div>
@@ -303,7 +303,7 @@ export default function CatalogTable({
         .catalog-search-input {
           width: 100%;
           padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-          border: 1px solid #d1d5db;
+          border: 1px solid #b8c9dc;
           border-radius: 0.5rem;
           font-size: 0.875rem;
           background: transparent;
@@ -311,14 +311,14 @@ export default function CatalogTable({
           transition: border-color 0.2s;
         }
         .dark .catalog-search-input {
-          border-color: #374151;
+          border-color: #1a3a5c;
         }
         .catalog-search-input:focus {
           outline: none;
-          border-color: #2563EB;
+          border-color: #0f4c81;
         }
         .dark .catalog-search-input:focus {
-          border-color: #60A5FA;
+          border-color: #5B9BD5;
         }
 
         .catalog-download-btn {
@@ -326,7 +326,7 @@ export default function CatalogTable({
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 1rem;
-          background: #2563EB;
+          background: #0f4c81;
           color: #fff;
           border-radius: 0.5rem;
           font-size: 0.875rem;
@@ -336,23 +336,23 @@ export default function CatalogTable({
           white-space: nowrap;
         }
         .dark .catalog-download-btn {
-          background: #60A5FA;
-          color: #0F172A;
+          background: #5B9BD5;
+          color: #0f2a42;
         }
         .catalog-download-btn:hover {
-          background: #1d4ed8;
+          background: #082f52;
         }
         .dark .catalog-download-btn:hover {
-          background: #93bbfd;
+          background: #7CB8E8;
         }
 
         .catalog-table-scroll {
           overflow-x: auto;
-          border: 1px solid #e5e7eb;
+          border: 1px solid #c8d8e8;
           border-radius: 0.5rem;
         }
         .dark .catalog-table-scroll {
-          border-color: #1e293b;
+          border-color: #0f2a42;
         }
 
         .catalog-table {
@@ -369,14 +369,14 @@ export default function CatalogTable({
           font-weight: 600;
           font-family: 'Inter', 'Noto Sans SC', sans-serif;
           font-size: 0.8125rem;
-          background: #f1f5f9;
-          border-bottom: 2px solid #e2e8f0;
-          color: #334155;
+          background: #e4edf5;
+          border-bottom: 2px solid #c2d4e6;
+          color: #1e3a5f;
         }
         .dark .catalog-th {
-          background: #1e293b;
-          border-bottom-color: #334155;
-          color: #e2e8f0;
+          background: #0f2a42;
+          border-bottom-color: #1a3a5c;
+          color: #c2d4e6;
         }
 
         .catalog-th-content {
@@ -391,32 +391,32 @@ export default function CatalogTable({
         }
 
         .catalog-row:nth-child(even) {
-          background: #f8fafc;
+          background: #f0f5fa;
         }
         .dark .catalog-row:nth-child(even) {
-          background: #1a2332;
+          background: #091929;
         }
         .catalog-row:hover {
-          background: #eff6ff;
+          background: #dce8f3;
         }
         .dark .catalog-row:hover {
-          background: #1e3a5f;
+          background: #133555;
         }
 
         .catalog-td {
           padding: 0.5rem 0.75rem;
-          border-bottom: 1px solid #f1f5f9;
-          color: #475569;
+          border-bottom: 1px solid #e4edf5;
+          color: #2a4a6b;
         }
         .dark .catalog-td {
-          border-bottom-color: #1e293b;
-          color: #cbd5e1;
+          border-bottom-color: #0f2a42;
+          color: #a8bdd4;
         }
 
         .catalog-empty {
           padding: 2rem;
           text-align: center;
-          color: #94a3b8;
+          color: #6a8aaa;
         }
 
         .catalog-pagination {
@@ -430,10 +430,10 @@ export default function CatalogTable({
         }
 
         .catalog-page-info {
-          color: #64748b;
+          color: #4a6a8a;
         }
         .dark .catalog-page-info {
-          color: #94a3b8;
+          color: #6a8aaa;
         }
 
         .catalog-page-controls {
@@ -444,14 +444,14 @@ export default function CatalogTable({
 
         .catalog-page-select {
           padding: 0.375rem 0.5rem;
-          border: 1px solid #d1d5db;
+          border: 1px solid #b8c9dc;
           border-radius: 0.375rem;
           font-size: 0.8125rem;
           background: transparent;
           color: inherit;
         }
         .dark .catalog-page-select {
-          border-color: #374151;
+          border-color: #1a3a5c;
         }
 
         .catalog-page-buttons {
@@ -462,7 +462,7 @@ export default function CatalogTable({
 
         .catalog-page-btn {
           padding: 0.375rem 0.625rem;
-          border: 1px solid #d1d5db;
+          border: 1px solid #b8c9dc;
           border-radius: 0.375rem;
           background: transparent;
           color: inherit;
@@ -472,13 +472,13 @@ export default function CatalogTable({
           transition: background 0.15s;
         }
         .dark .catalog-page-btn {
-          border-color: #374151;
+          border-color: #1a3a5c;
         }
         .catalog-page-btn:hover:not(:disabled) {
-          background: #f1f5f9;
+          background: #e4edf5;
         }
         .dark .catalog-page-btn:hover:not(:disabled) {
-          background: #1e293b;
+          background: #0f2a42;
         }
         .catalog-page-btn:disabled {
           opacity: 0.3;
@@ -487,10 +487,10 @@ export default function CatalogTable({
 
         .catalog-page-number {
           padding: 0 0.5rem;
-          color: #64748b;
+          color: #4a6a8a;
         }
         .dark .catalog-page-number {
-          color: #94a3b8;
+          color: #6a8aaa;
         }
       `}</style>
     </div>
