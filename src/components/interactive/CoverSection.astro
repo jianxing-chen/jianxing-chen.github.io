@@ -83,6 +83,13 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
   aria-label={lang === 'zh' ? '封面轮播分页' : 'Cover carousel pagination'}
 ></div>
 
+<!-- 天气（封面左上角，与北京时间对称） -->
+<div id="cover-weather" class="cover-weather"
+     style="font-family: 'Space Grotesk', 'Inter', sans-serif;">
+  <span id="cover-weather-icon" style="opacity:0.4">⛅</span>
+  <span id="cover-weather-temp">--°</span>
+</div>
+
 <!-- 北京时间（封面右上角，跟随封面层消失） -->
 <div id="cover-beijing-time" class="cover-beijing-time"
      style="font-family: 'Space Grotesk', 'Inter', sans-serif;">
@@ -166,6 +173,48 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     const now = new Date();
     const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     setTimeout(() => { update(); setInterval(update, 60_000); }, msToNextMinute);
+  })();
+
+  // ── 天气信息 — wttr.in API（支持 CORS）──
+  (function initWeather() {
+    const iconEl = document.getElementById('cover-weather-icon');
+    const tempEl = document.getElementById('cover-weather-temp');
+    if (!iconEl || !tempEl) return;
+
+    // wttr.in 天气代码 → emoji
+    const weatherEmoji: Record<string, string> = {
+      '113': '☀️', '116': '⛅', '119': '☁️', '122': '☁️',
+      '143': '🌫️', '176': '🌦️', '179': '🌨️', '182': '🌨️',
+      '185': '🌨️', '200': '⛈️', '227': '🌨️', '230': '🌨️',
+      '248': '🌫️', '260': '🌫️', '263': '🌦️', '266': '🌦️',
+      '281': '🌨️', '284': '🌨️', '293': '🌦️', '296': '🌧️',
+      '299': '🌧️', '302': '🌧️', '305': '🌧️', '308': '🌧️',
+      '311': '🌨️', '314': '🌨️', '317': '🌨️', '320': '🌨️',
+      '323': '🌨️', '326': '🌨️', '329': '❄️', '332': '❄️',
+      '335': '❄️', '338': '❄️', '350': '🌨️', '353': '🌦️',
+      '356': '🌧️', '359': '🌧️', '362': '🌨️', '365': '🌨️',
+      '368': '🌨️', '371': '❄️', '374': '🌨️', '377': '🌨️',
+      '386': '⛈️', '389': '⛈️', '392': '⛈️', '395': '❄️',
+    };
+
+    async function fetchWeather() {
+      try {
+        const res = await fetch('https://wttr.in/Beijing?format=j1');
+        if (!res.ok) return;
+        const data = await res.json();
+        const current = data.current_condition?.[0];
+        if (!current || !iconEl || !tempEl) return;
+        const code = current.weatherCode as string;
+        const emoji = weatherEmoji[code] || '🌤️';
+        const temp = parseInt(current.temp_C as string, 10);
+        iconEl.textContent = emoji;
+        iconEl.style.opacity = '1';
+        tempEl.textContent = `${temp}°`;
+      } catch { /* silently ignore */ }
+    }
+
+    fetchWeather();
+    setInterval(fetchWeather, 1800000); // 30min
   })();
 
   // 上一次 init 创建的 AbortController：新 init 或页面切换前 abort，
@@ -416,9 +465,11 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
       // ── 在滑动手势/按键瞬间就开始渐隐 credit 文字 ──
       const creditEl = document.getElementById('cover-credit');
       if (creditEl) creditEl.classList.add('cover-credit-fading');
-      // ── 北京时间同步渐隐 ──
+      // ── 北京时间与天气同步渐隐 ──
       const timeEl = document.getElementById('cover-beijing-time');
       if (timeEl) timeEl.classList.add('cover-time-fading');
+      const weatherEl = document.getElementById('cover-weather');
+      if (weatherEl) weatherEl.classList.add('cover-time-fading');
       // ── 菜单栏文字与 hero 同步变色，不再等 800ms 动画 ──
       const header = document.getElementById('site-header');
       if (header) header.classList.remove('header-transparent');
@@ -443,6 +494,8 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
       if (creditEl) creditEl.classList.remove('cover-credit-fading');
       const timeEl = document.getElementById('cover-beijing-time');
       if (timeEl) timeEl.classList.remove('cover-time-fading');
+      const weatherEl = document.getElementById('cover-weather');
+      if (weatherEl) weatherEl.classList.remove('cover-time-fading');
       const header = document.getElementById('site-header');
       if (header) header.classList.add('header-transparent');
       currentState = 'transitioning-to-cover';
