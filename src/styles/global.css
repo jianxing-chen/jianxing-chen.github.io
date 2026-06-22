@@ -841,6 +841,17 @@ html.cover-visible #page-bottom {
   transition: opacity 0.6s ease;
 }
 
+/* 地点标签与天气之间的分隔符（location 在天气右侧） */
+.cover-weather #cover-weather-location {
+  opacity: 0.75;
+}
+
+.cover-weather #cover-weather-location::before {
+  content: '·';
+  margin: 0 0.25rem;
+  opacity: 0.6;
+}
+
 .cover-time-fading {
   opacity: 0;
 }
@@ -855,6 +866,12 @@ html.cover-visible #page-bottom {
 .bj-clock-hand {
   transform-origin: 12px 12px;
   transition: transform 1s ease-out;
+}
+
+/* 月相 SVG（精确绘制，替换 emoji） */
+.bj-moon-svg {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 
 .header-transparent .desktop-dropdown-panel {

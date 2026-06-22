@@ -57,6 +57,38 @@ const initialTimeLabel = lang === 'zh' ? '北京' : 'Beijing';
 const bjTotalMin = bjH * 60 + bjNow.getMinutes();
 const initialHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);  // 时针: (时*60+分)/720*360
 const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
+
+// ── 当天月相（SVG 精确绘制，基于 SunCalc 天文算法） ──
+// SunCalc 基于 Jean Meeus《Astronomical Algorithms》ch.47-48，精度远高于平均朔望月算法
+import { getMoonIllumination } from 'suncalc';
+const moonIllum = getMoonIllumination(bjNow);
+const moonFraction = moonIllum.fraction; // 0=新月, 1=满月
+const moonWaxing = moonIllum.waxing;     // true=盈月(新→满), false=亏月(满→新)
+
+// 月相名称（按 8 段划分，用于 tooltip）
+const moonPhaseNamesZh = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
+const moonPhaseNamesEn = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
+const moonIdx = Math.floor(moonIllum.phase * 8) % 8;
+const initialMoonName = lang === 'zh' ? moonPhaseNamesZh[moonIdx] : moonPhaseNamesEn[moonIdx];
+
+/**
+ * 生成月相亮面 SVG path（北半球标准月相）
+ * fraction: SunCalc 照明比例 0~1（0=新月, 1=满月）
+ * waxing: true=盈月(新→满,亮面在右), false=亏月(满→新,亮面在左)
+ * 算法：rx = R·|1-2·fraction|（亮面面积的几何依据）
+ *      亮面 path = 亮侧半圆轮廓 + 交界椭圆弧
+ *      SVG 用 scaleX(-1) 镜像使盈月亮面在右侧（经像素采样验证方向与面积正确）
+ */
+function moonPhaseLitPath(fraction: number, waxing: boolean, r = 10): string {
+  const rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 1e-6);
+  const contourSweep = waxing ? 0 : 1;
+  const termSweep = waxing
+    ? (fraction < 0.5 ? 1 : 0)
+    : (fraction < 0.5 ? 0 : 1);
+  return `M 12 ${12 - r} A ${r} ${r} 0 0 ${contourSweep} 12 ${12 + r} A ${rx} ${r} 0 0 ${termSweep} 12 ${12 - r} Z`;
+}
+
+const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
 ---
 
 {coverPhotos.length === 0 ? (
@@ -88,6 +120,7 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
      style="font-family: 'Space Grotesk', 'Inter', sans-serif;">
   <span id="cover-weather-icon" style="opacity:0.4">⛅</span>
   <span id="cover-weather-temp">--°</span>
+  <span id="cover-weather-location">{initialTimeLabel}</span>
 </div>
 
 <!-- 北京时间（封面右上角，跟随封面层消失） -->
@@ -109,7 +142,14 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     </g>
   </svg>
   <span id="bj-time-text">{initialTimeText}</span>
-  <span id="bj-time-label" style="opacity: 0.75;">{initialTimeLabel}</span>
+  <svg id="bj-moon-svg" class="bj-moon-svg" viewBox="0 0 24 24" width="0.95rem" height="0.95rem"
+       role="img" aria-label={initialMoonName}>
+    <title>{initialMoonName}</title>
+    <g style="transform: scaleX(-1); transform-origin: 12px 12px;">
+      <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
+      <path id="bj-moon-lit" d={initialMoonLitPath} fill="rgba(255,255,255,0.95)" stroke="none"/>
+    </g>
+  </svg>
 </div>
 
 <button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
@@ -130,18 +170,54 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
   // ── 北京时间 — 独立运行，最早执行，不依赖封面初始化 ──
   (function initBeijingTime() {
     const timeEl = document.getElementById('bj-time-text');
-    const labelEl = document.getElementById('bj-time-label');
+    const moonSvg = document.getElementById('bj-moon-svg');
+    const moonLit = document.getElementById('bj-moon-lit');
+    const moonTitle = moonSvg?.querySelector('title');
     const hourHandEl = document.getElementById('bj-hour-hand');
     const minuteHandEl = document.getElementById('bj-minute-hand');
-    if (!timeEl || !labelEl) return;
+    if (!timeEl) return;
 
     // 读取语言：优先 pagination 上的 data-lang，fallback 到 html lang
     const pagination = document.getElementById('cover-pagination');
     const lang = pagination?.dataset.lang || document.documentElement.lang || 'en';
     const isZh = lang === 'zh';
 
+    // ── 月相名称（8 段，用于 tooltip） ──
+    const moonNamesZh = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
+    const moonNamesEn = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
+
+    /**
+     * 生成月相亮面 SVG path（与服务端算法一致，需配合 scaleX(-1) 镜像）
+     * fraction: SunCalc 照明比例 0~1
+     * waxing: true=盈月, false=亏月
+     */
+    function moonPhaseLitPath(fraction: number, waxing: boolean, r = 10): string {
+      const rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 1e-6);
+      const contourSweep = waxing ? 0 : 1;
+      const termSweep = waxing
+        ? (fraction < 0.5 ? 1 : 0)
+        : (fraction < 0.5 ? 0 : 1);
+      return `M 12 ${12 - r} A ${r} ${r} 0 0 ${contourSweep} 12 ${12 + r} A ${rx} ${r} 0 0 ${termSweep} 12 ${12 - r} Z`;
+    }
+
+    // 异步加载 SunCalc 计算精确月相（基于 Jean Meeus 天文算法）
+    let moonCalcFn: ((date: Date) => { fraction: number; phase: number; waxing: boolean }) | null = null;
+    async function updateMoon() {
+      if (!moonCalcFn) {
+        const mod = await import('suncalc');
+        moonCalcFn = mod.getMoonIllumination.bind(mod);
+      }
+      if (!moonCalcFn) return;
+      const il = moonCalcFn(new Date());
+      const idx = Math.floor(il.phase * 8) % 8;
+      const name = isZh ? moonNamesZh[idx] : moonNamesEn[idx];
+      if (moonLit) moonLit.setAttribute('d', moonPhaseLitPath(il.fraction, il.waxing));
+      if (moonSvg) moonSvg.setAttribute('aria-label', name);
+      if (moonTitle) moonTitle.textContent = name;
+    }
+
     function update() {
-      if (!timeEl || !labelEl) return;
+      if (!timeEl) return;
       const now = new Date();
       const bj = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
       let h = bj.getHours();
@@ -155,7 +231,6 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
         : `${h}:${mm} ${ampm}`;
       if (timeEl.textContent !== newText) {
         timeEl.textContent = newText;
-        labelEl.textContent = isZh ? '北京' : 'Beijing';
       }
 
       // 指针每分钟更新（仅含分精度）
@@ -169,10 +244,13 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     }
 
     update();
+    updateMoon();
     // 对齐到下一完整分钟，之后每分钟更新一次
     const now = new Date();
     const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     setTimeout(() => { update(); setInterval(update, 60_000); }, msToNextMinute);
+    // 月相每小时刷新一次（一天内基本不变，但保持健壮）
+    setInterval(updateMoon, 3_600_000);
   })();
 
   // ── 天气信息 — wttr.in API（支持 CORS）──
