@@ -214,7 +214,19 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
     }
 
     fetchWeather();
-    setInterval(fetchWeather, 1800000); // 30min
+    // 标签页可见时才定时刷新，避免后台无意义请求
+    let weatherTimer: ReturnType<typeof setTimeout> | null = null;
+    function scheduleWeather() {
+      if (weatherTimer) clearTimeout(weatherTimer);
+      if (document.hidden) return;
+      weatherTimer = setTimeout(() => { fetchWeather(); scheduleWeather(); }, 1800000); // 30min
+    }
+    scheduleWeather();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (weatherTimer) { clearTimeout(weatherTimer); weatherTimer = null; }
+      } else { fetchWeather(); scheduleWeather(); }
+    });
   })();
 
   // 上一次 init 创建的 AbortController：新 init 或页面切换前 abort，
