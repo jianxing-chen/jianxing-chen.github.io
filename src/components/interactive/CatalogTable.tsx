@@ -108,7 +108,7 @@ export default function CatalogTable({
           }
           .dark .catalog-empty-state {
             color: #6a8aaa;
-            border-color: #1a3a5c;
+            border-color: #3a7cb8;
           }
         `}</style>
       </div>
@@ -311,11 +311,11 @@ export default function CatalogTable({
           transition: border-color 0.2s;
         }
         .dark .catalog-search-input {
-          border-color: #1a3a5c;
+          border-color: #3a7cb8;
         }
         .catalog-search-input:focus {
           outline: none;
-          border-color: #0f4c81;
+          border-color: #0E3F75;
         }
         .dark .catalog-search-input:focus {
           border-color: #5B9BD5;
@@ -326,7 +326,7 @@ export default function CatalogTable({
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 1rem;
-          background: #0f4c81;
+          background: #0E3F75;
           color: #fff;
           border-radius: 0.5rem;
           font-size: 0.875rem;
@@ -337,7 +337,7 @@ export default function CatalogTable({
         }
         .dark .catalog-download-btn {
           background: #5B9BD5;
-          color: #0f2a42;
+          color: #1a5c94;
         }
         .catalog-download-btn:hover {
           background: #082f52;
@@ -352,7 +352,7 @@ export default function CatalogTable({
           border-radius: 0.5rem;
         }
         .dark .catalog-table-scroll {
-          border-color: #0f2a42;
+          border-color: #1a5c94;
         }
 
         .catalog-table {
@@ -374,8 +374,8 @@ export default function CatalogTable({
           color: #1e3a5f;
         }
         .dark .catalog-th {
-          background: #0f2a42;
-          border-bottom-color: #1a3a5c;
+          background: #1a5c94;
+          border-bottom-color: #3a7cb8;
           color: #c2d4e6;
         }
 
@@ -394,7 +394,7 @@ export default function CatalogTable({
           background: #f0f5fa;
         }
         .dark .catalog-row:nth-child(even) {
-          background: #091929;
+          background: #0E3F75;
         }
         .catalog-row:hover {
           background: #dce8f3;
@@ -409,7 +409,7 @@ export default function CatalogTable({
           color: #2a4a6b;
         }
         .dark .catalog-td {
-          border-bottom-color: #0f2a42;
+          border-bottom-color: #1a5c94;
           color: #a8bdd4;
         }
 
@@ -451,7 +451,7 @@ export default function CatalogTable({
           color: inherit;
         }
         .dark .catalog-page-select {
-          border-color: #1a3a5c;
+          border-color: #3a7cb8;
         }
 
         .catalog-page-buttons {
@@ -472,13 +472,13 @@ export default function CatalogTable({
           transition: background 0.15s;
         }
         .dark .catalog-page-btn {
-          border-color: #1a3a5c;
+          border-color: #3a7cb8;
         }
         .catalog-page-btn:hover:not(:disabled) {
           background: #e4edf5;
         }
         .dark .catalog-page-btn:hover:not(:disabled) {
-          background: #0f2a42;
+          background: #1a5c94;
         }
         .catalog-page-btn:disabled {
           opacity: 0.3;
