@@ -89,14 +89,20 @@ if (isHomepage) {
   } = await import('@/utils/moon');
   const moonIllum = getMoonIllumination(bjNowH);
   const moonPos = getMoonPosition(bjNowH, 39.9, 116.4);
-  // 天文倾角起始值
-  const hdrMoonTilt = moonIllum.angle - moonPos.parallacticAngle;
-  const hdrAmplitude = Math.abs(hdrMoonTilt);
-  const hdrTotalSwing = 360 - 2 * hdrAmplitude;
-  const hdrHourFrac = bjNowH.getHours() + bjNowH.getMinutes() / 60;
-  headerMoonTiltDeg = (hdrHourFrac <= 12
-    ? hdrMoonTilt - hdrTotalSwing * (hdrHourFrac / 12)
-    : hdrMoonTilt - hdrTotalSwing + hdrTotalSwing * ((hdrHourFrac - 12) / 12)).toFixed(2);
+  // 搜索当天 tilt 真实极值（每30秒采样）
+  const _start = new Date(bjNowH); _start.setHours(0,0,0,0);
+  let _minT = Infinity, _maxT = -Infinity;
+  for (let _m = 0; _m < 2880; _m++) {
+    const _d = new Date(_start.getTime() + _m * 30_000);
+    const _t = getMoonIllumination(_d).angle - getMoonPosition(_d, 39.9, 116.4).parallacticAngle;
+    if (_t < _minT) _minT = _t;
+    if (_t > _maxT) _maxT = _t;
+  }
+  const tiltAstroNow = moonIllum.angle - moonPos.parallacticAngle;
+  const tiltRange = _maxT - _minT;
+  const totalSwing = 360 - 2 * Math.abs(_minT);
+  const scaleR = tiltRange !== 0 ? totalSwing / tiltRange : 1;
+  headerMoonTiltDeg = (_minT - (tiltAstroNow - _minT) * scaleR).toFixed(2);
   const moonIdx = moonPhaseNameIndex(moonIllum.phase);
   headerMoonName =
     lang === 'zh'

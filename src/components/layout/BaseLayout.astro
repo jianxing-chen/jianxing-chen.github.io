@@ -47,6 +47,45 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     <meta name="theme-color" content="#0E3F75" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E3F75" />
     <link rel="icon" type="image/svg+xml" id="favicon-link" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <!-- 动态月相 favicon：提前到 head 秒级替换 -->
+    <script is:inline>
+      (function updateMoonFavicon() {
+        var favicon = document.getElementById('favicon-link');
+        if (!favicon) return;
+
+        function moonLitPath(fraction, waxing, r) {
+          r = r || 10;
+          var rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 0.000001);
+          var contourSweep = waxing ? 0 : 1;
+          var termSweep = waxing
+            ? (fraction < 0.5 ? 1 : 0)
+            : (fraction < 0.5 ? 0 : 1);
+          return 'M 12 ' + (12 - r) + ' A ' + r + ' ' + r + ' 0 0 ' + contourSweep +
+            ' 12 ' + (12 + r) + ' A ' + rx + ' ' + r + ' 0 0 ' + termSweep + ' 12 ' + (12 - r) + ' Z';
+        }
+
+        function update() {
+          var avgSynodic = 29.530588853;
+          var jd = Date.now() / 86400000 + 2440587.5;
+          var daysSinceJ2000 = jd - 2451549.5;
+          var lunations = Math.round((daysSinceJ2000 - 0.1) / avgSynodic);
+          var lastNewMoonJD = 2451550.1 + lunations * avgSynodic;
+          var phase = (jd - lastNewMoonJD) / avgSynodic;
+          var fraction = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
+          var waxing = phase < 0.5;
+          var path = moonLitPath(fraction, waxing);
+          var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+            '<circle cx="12" cy="12" r="12" fill="#0E3F75"/>' +
+            '<g transform="matrix(-1,0,0,1,24,0)">' +
+            '<path d="' + path + '" fill="white" stroke="none"/>' +
+            '</g></svg>';
+          favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+        }
+
+        update();
+        setInterval(update, 3600000);
+      })();
+    </script>
     <meta name="generator" content={Astro.generator} />
 
     <!-- SEO -->
@@ -177,45 +216,5 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
       })();
     </script>
 
-    <!-- Dynamic moon favicon: is:inline 零依赖，全站可靠 -->
-    <script is:inline>
-      (function updateMoonFavicon() {
-        var favicon = document.getElementById('favicon-link');
-        if (!favicon) return;
-
-        // path 算法与 CoverSection 完全一致
-        function moonLitPath(fraction, waxing, r) {
-          r = r || 10;
-          var rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 0.000001);
-          var contourSweep = waxing ? 0 : 1;
-          var termSweep = waxing
-            ? (fraction < 0.5 ? 1 : 0)
-            : (fraction < 0.5 ? 0 : 1);
-          return 'M 12 ' + (12 - r) + ' A ' + r + ' ' + r + ' 0 0 ' + contourSweep +
-            ' 12 ' + (12 + r) + ' A ' + rx + ' ' + r + ' 0 0 ' + termSweep + ' 12 ' + (12 - r) + ' Z';
-        }
-
-        function update() {
-          var avgSynodic = 29.530588853;
-          var jd = Date.now() / 86400000 + 2440587.5;
-          var daysSinceJ2000 = jd - 2451549.5;
-          // 动态最近新月（JDE = 2451550.1 + N * 29.530588853，Meeus ch.49）
-          var lunations = Math.round((daysSinceJ2000 - 0.1) / avgSynodic);
-          var lastNewMoonJD = 2451550.1 + lunations * avgSynodic;
-          var phase = (jd - lastNewMoonJD) / avgSynodic;
-          var fraction = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
-          var waxing = phase < 0.5;
-          var path = moonLitPath(fraction, waxing);
-          var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-            '<circle cx="12" cy="12" r="12" fill="#0E3F75"/>' +
-            '<path d="' + path + '" fill="white" stroke="none"/>' +
-            '</svg>';
-          favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
-        }
-
-        update();
-        setInterval(update, 3600000);
-      })();
-    </script>
   </body>
 </html>

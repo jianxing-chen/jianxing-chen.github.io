@@ -69,15 +69,25 @@ import {
 
 const moonIllum = getMoonIllumination(bjNow);
 const moonPos = getMoonPosition(bjNow, 39.9, 116.4);
-// 天文倾角：angle − pa（SunCalc 2.0 返回度数）
-const midnightTilt = moonIllum.angle - moonPos.parallacticAngle;
-const amplitudeDeg = Math.abs(midnightTilt);
-const totalSwingDeg = 360 - 2 * amplitudeDeg;
-// 锯齿波旋转：0→12 CCW递减，12→24 CW递增
-const hourFraction = bjNow.getHours() + bjNow.getMinutes() / 60;
-const initialMoonRotation = hourFraction <= 12
-  ? midnightTilt - totalSwingDeg * (hourFraction / 12)
-  : midnightTilt - totalSwingDeg + totalSwingDeg * ((hourFraction - 12) / 12);
+
+// 搜索当天 tilt 真实极值（每30秒采样，~0.1° 精度）
+function findDailyTiltExtremes(date: Date) {
+  const start = new Date(date); start.setHours(0,0,0,0);
+  let minT = Infinity, maxT = -Infinity;
+  for (let m = 0; m < 2880; m++) { // 2880 × 30s = 24h
+    const d = new Date(start.getTime() + m * 30_000);
+    const t = getMoonIllumination(d).angle - getMoonPosition(d, 39.9, 116.4).parallacticAngle;
+    if (t < minT) minT = t;
+    if (t > maxT) maxT = t;
+  }
+  return { min: minT, max: maxT, range: maxT - minT };
+}
+
+const { min: tiltMin, max: tiltMax, range: tiltRange } = findDailyTiltExtremes(bjNow);
+const tiltAstroNow = moonIllum.angle - moonPos.parallacticAngle;
+const totalSwing = 360 - 2 * Math.abs(tiltMin);
+const scaleR = tiltRange !== 0 ? totalSwing / tiltRange : 1;
+const initialMoonRotation = tiltMin - (tiltAstroNow - tiltMin) * scaleR;
 const initialMoonTiltDeg = initialMoonRotation.toFixed(2);
 const moonIdx = moonPhaseNameIndex(moonIllum.phase);
 const initialMoonName =
@@ -198,19 +208,35 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
     }
 
     let sunCalcMod: any = null;
+    // 缓存当天 tilt 极值（一天内不变，首次计算后重用）
+    let cachedExtremes: { min: number; max: number; range: number; date: string } | null = null;
+
+    function findDailyExtremes(sunCalc: any, todayStart: Date) {
+      let minT = Infinity, maxT = -Infinity;
+      for (let m = 0; m < 2880; m++) {
+        const d = new Date(todayStart.getTime() + m * 30_000);
+        const t = sunCalc.getMoonIllumination(d).angle - sunCalc.getMoonPosition(d, 39.9, 116.4).parallacticAngle;
+        if (t < minT) minT = t;
+        if (t > maxT) maxT = t;
+      }
+      return { min: minT, max: maxT, range: maxT - minT };
+    }
+
     async function updateMoon() {
       if (!sunCalcMod) { sunCalcMod = await import('suncalc'); }
       const bjNow = new Date();
+      const todayStr = bjNow.toDateString();
+      if (!cachedExtremes || cachedExtremes.date !== todayStr) {
+        const start = new Date(bjNow); start.setHours(0,0,0,0);
+        cachedExtremes = { ...findDailyExtremes(sunCalcMod, start), date: todayStr };
+      }
+      const { min: tiltMin, max: tiltMax, range: tiltRange } = cachedExtremes;
       const il = sunCalcMod.getMoonIllumination(bjNow);
       const pos = sunCalcMod.getMoonPosition(bjNow, 39.9, 116.4);
-      // 锯齿波旋转：0→12 CCW递减，12→24 CW递增
-      const midnightTilt = il.angle - pos.parallacticAngle;
-      const amplitude = Math.abs(midnightTilt);
-      const totalSwing = 360 - 2 * amplitude;
-      const hourFrac = bjNow.getHours() + bjNow.getMinutes() / 60;
-      const rotation = hourFrac <= 12
-        ? midnightTilt - totalSwing * (hourFrac / 12)
-        : midnightTilt - totalSwing + totalSwing * ((hourFrac - 12) / 12);
+      const tiltNow = il.angle - pos.parallacticAngle;
+      const totalSwing = 360 - 2 * Math.abs(tiltMin);
+      const scaleR = tiltRange !== 0 ? totalSwing / tiltRange : 1;
+      const rotation = tiltMin - (tiltNow - tiltMin) * scaleR;
       const idx = Math.floor(il.phase * 8) % 8;
       const name = isZh ? MOON_ZH[idx] : MOON_EN[idx];
       const path = moonPhaseLitPath(il.fraction, il.waxing);
@@ -251,8 +277,8 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
     const now = new Date();
     const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     setTimeout(() => { update(); setInterval(update, 60_000); }, msToNextMinute);
-    // 月相每 5 分钟刷新一次（倾角变化 ~1.25°/5min，使旋转更实时）
-    setInterval(updateMoon, 300_000);
+    // 月相每 30 分钟刷新一次
+    setInterval(updateMoon, 1_800_000);
   })();
 
   // ── 天气信息 — wttr.in API（支持 CORS）──
