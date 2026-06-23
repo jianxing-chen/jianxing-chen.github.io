@@ -42,10 +42,10 @@ const coverPhotos = selectedCoverPhotos.map((p) => ({
 
 const startIdx = coverPhotos.length > 0 ? Math.floor(Math.random() * coverPhotos.length) : 0;
 
-// 服务端预渲染北京时间，避免页面加载后 JS 才显示造成延迟
-const bjNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-const bjH = bjNow.getHours();
-const bjM = bjNow.getMinutes().toString().padStart(2, '0');
+// 服务端预渲染北京时间（UTC+8），避免 toLocaleString 时区歧义
+const now = new Date();
+const bjH = (now.getUTCHours() + 8) % 24;
+const bjM = now.getUTCMinutes().toString().padStart(2, '0');
 const bjIsPM = bjH >= 12;
 const bjHour12 = bjH % 12 || 12;
 const initialTimeText = lang === 'zh'
@@ -54,9 +54,9 @@ const initialTimeText = lang === 'zh'
 const initialTimeLabel = lang === 'zh' ? '北京' : 'Beijing';
 
 // 时钟指针初始旋转角度
-const bjTotalMin = bjH * 60 + bjNow.getMinutes();
-const initialHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);  // 时针: (时*60+分)/720*360
-const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
+const bjTotalMin = bjH * 60 + Number(bjM);
+const initialHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);
+const initialMinDeg = (Number(bjM) * 6).toFixed(1);
 
 // ── 当天月相（SunCalc 精确天文算法）──
 import { getMoonIllumination, getMoonPosition } from 'suncalc';
@@ -67,12 +67,16 @@ import {
   moonPhaseLitPath,
 } from '@/utils/moon';
 
-const moonIllum = getMoonIllumination(bjNow);
-const moonPos = getMoonPosition(bjNow, 39.9, 116.4);
+// SunCalc 使用绝对时刻（UTC），与构建机时区无关
+const moonIllum = getMoonIllumination(now);
+const moonPos = getMoonPosition(now, 39.9, 116.4);
 
-// 搜索当天 tilt 真实极值（每30秒采样，~0.1° 精度）
-function findDailyTiltExtremes(date: Date) {
-  const start = new Date(date); start.setHours(0,0,0,0);
+// 北京当天零点 = 最近的 UTC 16:00
+const utc16Today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 16, 0, 0);
+const bjMidnight = new Date(now.getTime() >= utc16Today ? utc16Today : utc16Today - 86_400_000);
+
+// 搜索当天 tilt 真实极值（每30秒采样，从北京零点开始）
+function findDailyTiltExtremes(start: Date) {
   let minT = Infinity, maxT = -Infinity;
   for (let m = 0; m < 2880; m++) { // 2880 × 30s = 24h
     const d = new Date(start.getTime() + m * 30_000);
@@ -83,7 +87,7 @@ function findDailyTiltExtremes(date: Date) {
   return { min: minT, max: maxT, range: maxT - minT };
 }
 
-const { min: tiltMin, max: tiltMax, range: tiltRange } = findDailyTiltExtremes(bjNow);
+const { min: tiltMin, max: tiltMax, range: tiltRange } = findDailyTiltExtremes(bjMidnight);
 const tiltAstroNow = moonIllum.angle - moonPos.parallacticAngle;
 const totalSwing = 360 - 2 * Math.abs(tiltMin);
 const scaleR = tiltRange !== 0 ? totalSwing / tiltRange : 1;
@@ -225,10 +229,12 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
     async function updateMoon() {
       if (!sunCalcMod) { sunCalcMod = await import('suncalc'); }
       const bjNow = new Date();
-      const todayStr = bjNow.toDateString();
+      // 北京当天零点 = 最近的 UTC 16:00
+      const utc16 = Date.UTC(bjNow.getUTCFullYear(), bjNow.getUTCMonth(), bjNow.getUTCDate(), 16, 0, 0);
+      const bjMidnight = new Date(bjNow.getTime() >= utc16 ? utc16 : utc16 - 86_400_000);
+      const todayStr = bjMidnight.toISOString().slice(0, 10); // 用北京日期做缓存键
       if (!cachedExtremes || cachedExtremes.date !== todayStr) {
-        const start = new Date(bjNow); start.setHours(0,0,0,0);
-        cachedExtremes = { ...findDailyExtremes(sunCalcMod, start), date: todayStr };
+        cachedExtremes = { ...findDailyExtremes(sunCalcMod, bjMidnight), date: todayStr };
       }
       const { min: tiltMin, max: tiltMax, range: tiltRange } = cachedExtremes;
       const il = sunCalcMod.getMoonIllumination(bjNow);

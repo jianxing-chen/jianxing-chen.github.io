@@ -66,18 +66,18 @@ let headerMoonName = '';
 let headerMoonLitPath = '';
 let headerMoonTiltDeg = '0';
 if (isHomepage) {
-  const bjNowH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-  const bjHH = bjNowH.getHours();
-  const bjMM = bjNowH.getMinutes().toString().padStart(2, '0');
+  const now = new Date();
+  const bjHH = (now.getUTCHours() + 8) % 24;
+  const bjMM = now.getUTCMinutes().toString().padStart(2, '0');
   const bjIsPM = bjHH >= 12;
   const bjH12 = bjHH % 12 || 12;
   headerTimeText = lang === 'zh'
     ? `${bjIsPM ? '下午' : '上午'}${bjH12}:${bjMM}`
     : `${bjH12}:${bjMM} ${bjIsPM ? 'PM' : 'AM'}`;
   headerTimeLabel = lang === 'zh' ? '北京' : 'Beijing';
-  const bjTotalMin = bjHH * 60 + bjNowH.getMinutes();
+  const bjTotalMin = bjHH * 60 + now.getUTCMinutes();
   headerHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);
-  headerMinDeg = (bjNowH.getMinutes() * 6).toFixed(1);
+  headerMinDeg = (now.getUTCMinutes() * 6).toFixed(1);
 
   // 月相（共享模块 @/utils/moon.ts + SunCalc）
   const { getMoonIllumination, getMoonPosition } = await import('suncalc');
@@ -87,13 +87,16 @@ if (isHomepage) {
     moonPhaseNameIndex,
     moonPhaseLitPath,
   } = await import('@/utils/moon');
-  const moonIllum = getMoonIllumination(bjNowH);
-  const moonPos = getMoonPosition(bjNowH, 39.9, 116.4);
-  // 搜索当天 tilt 真实极值（每30秒采样）
-  const _start = new Date(bjNowH); _start.setHours(0,0,0,0);
+  // SunCalc 使用绝对 UTC 时刻
+  const moonIllum = getMoonIllumination(now);
+  const moonPos = getMoonPosition(now, 39.9, 116.4);
+  // 北京当天零点 = 最近的 UTC 16:00
+  const utc16 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 16, 0, 0);
+  const bjMidnight = new Date(now.getTime() >= utc16 ? utc16 : utc16 - 86_400_000);
+  // 搜索当天 tilt 真实极值（每30秒采样，从北京零点开始）
   let _minT = Infinity, _maxT = -Infinity;
   for (let _m = 0; _m < 2880; _m++) {
-    const _d = new Date(_start.getTime() + _m * 30_000);
+    const _d = new Date(bjMidnight.getTime() + _m * 30_000);
     const _t = getMoonIllumination(_d).angle - getMoonPosition(_d, 39.9, 116.4).parallacticAngle;
     if (_t < _minT) _minT = _t;
     if (_t > _maxT) _maxT = _t;
