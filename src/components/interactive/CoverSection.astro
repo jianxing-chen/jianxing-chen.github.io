@@ -152,36 +152,6 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
   </svg>
 </div>
 
-<!-- 手机版信息条（header 下方悬浮，仅首页手机版显示） -->
-<div id="cover-mobile-infobar" class="cover-mobile-infobar"
-     style="font-family: 'Space Grotesk', 'Inter', sans-serif;">
-  <span class="infobar-weather">
-    <span id="cover-weather-icon-m" style="opacity:0.4">⛅</span>
-    <span id="cover-weather-temp-m">--°</span>
-    <span id="cover-weather-location-m">{initialTimeLabel}</span>
-  </span>
-  <span class="infobar-time">
-    <svg class="bj-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
-      <g id="bj-hour-hand-m" class="bj-clock-hand" style="transform: rotate({initialHourDeg}deg)">
-        <path d="M12 12V7" stroke-width="1.8" stroke-linecap="round"/>
-      </g>
-      <g id="bj-minute-hand-m" class="bj-clock-hand" style="transform: rotate({initialMinDeg}deg)">
-        <path d="M12 12V3.5" stroke-width="1.1" stroke-linecap="round"/>
-      </g>
-    </svg>
-    <span id="bj-time-text-m">{initialTimeText}</span>
-    <svg id="bj-moon-svg-m" class="bj-moon-svg" viewBox="0 0 24 24" width="0.95rem" height="0.95rem"
-         role="img" aria-label={initialMoonName}>
-      <title>{initialMoonName}</title>
-      <g style="transform: scaleX(-1); transform-origin: 12px 12px;">
-        <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
-        <path id="bj-moon-lit-m" d={initialMoonLitPath} fill="rgba(255,255,255,0.95)" stroke="none"/>
-      </g>
-    </svg>
-  </span>
-</div>
-
 <button class="cover-scroll-indicator" aria-label={lang === 'zh' ? '向下翻页' : 'Scroll down'}>
   <svg class="cover-scroll-indicator-icon w-7 h-7 text-white drop-shadow-md" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -596,8 +566,6 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
       if (timeEl) timeEl.classList.add('cover-time-fading');
       const weatherEl = document.getElementById('cover-weather');
       if (weatherEl) weatherEl.classList.add('cover-time-fading');
-      const mobileInfobar = document.getElementById('cover-mobile-infobar');
-      if (mobileInfobar) mobileInfobar.classList.add('cover-time-fading');
       // ── 菜单栏文字与 hero 同步变色，不再等 800ms 动画 ──
       const header = document.getElementById('site-header');
       if (header) header.classList.remove('header-transparent');
@@ -624,8 +592,6 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
       if (timeEl) timeEl.classList.remove('cover-time-fading');
       const weatherEl = document.getElementById('cover-weather');
       if (weatherEl) weatherEl.classList.remove('cover-time-fading');
-      const mobileInfobar = document.getElementById('cover-mobile-infobar');
-      if (mobileInfobar) mobileInfobar.classList.remove('cover-time-fading');
       const header = document.getElementById('site-header');
       if (header) header.classList.add('header-transparent');
       currentState = 'transitioning-to-cover';

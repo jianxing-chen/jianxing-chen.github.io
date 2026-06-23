@@ -841,7 +841,7 @@ html.cover-visible #page-bottom {
   transition: opacity 0.6s ease;
 }
 
-/* 手机版隐藏桌面版天气/时间（用信息条替代） */
+/* 手机版隐藏桌面版天气/时间（首页用 header 内嵌信息条替代） */
 @media (max-width: 767px) {
   .cover-weather,
   .cover-beijing-time {
@@ -849,49 +849,28 @@ html.cover-visible #page-bottom {
   }
 }
 
-/* 手机版信息条（header 下方悬浮，仅首页手机版） */
-.cover-mobile-infobar {
-  position: fixed;
-  top: 3rem; /* header 高 48px，信息条紧贴其下 */
-  left: 0;
-  right: 0;
-  z-index: 12;
-  display: none; /* 默认隐藏，仅手机版显示 */
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.375rem 1rem;
+/* 手机版 header 内嵌信息条（仅首页，跟随 header 透明态变色） */
+.mobile-infobar {
   font-size: 0.7rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.92);
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
   pointer-events: none;
-  opacity: 1;
-  transition: opacity 0.6s ease;
-  gap: 0.5rem;
+  white-space: nowrap;
 }
 
-@media (max-width: 767px) {
-  .cover-mobile-infobar {
-    display: flex;
-  }
+/* 非透明态（正文页）信息条跟随 header 文字色 */
+#site-header:not(.header-transparent) .mobile-infobar {
+  color: var(--color-text-light, #1f2937);
+  text-shadow: none;
 }
 
-.cover-mobile-infobar .infobar-weather,
-.cover-mobile-infobar .infobar-time {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+.dark #site-header:not(.header-transparent) .mobile-infobar {
+  color: var(--color-text-dark, #e5e7eb);
 }
 
-/* 手机版信息条地点标签分隔符 */
-.cover-mobile-infobar #cover-weather-location-m {
-  opacity: 0.75;
-}
-
-.cover-mobile-infobar #cover-weather-location-m::before {
-  content: '·';
-  margin: 0 0.2rem;
-  opacity: 0.6;
+.mobile-infobar-sep {
+  opacity: 0.5;
 }
 
 /* 地点标签与天气之间的分隔符（location 在天气右侧） */

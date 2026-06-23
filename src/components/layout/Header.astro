@@ -55,6 +55,43 @@ function isActive(itemPath: string): boolean {
 
 const activeClass = 'bg-primary-light/10 text-primary-light dark:bg-primary-dark/10 dark:text-primary-dark font-medium';
 const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-light dark:hover:text-primary-dark hover:bg-black/5 dark:hover:bg-white/5';
+
+// ── 首页手机版信息条初始值（天气/时间/月相，与服务端 CoverSection 算法一致） ──
+// 仅 isHomepage 时计算，避免非首页浪费算力
+let headerTimeLabel = '';
+let headerTimeText = '';
+let headerHourDeg = '0';
+let headerMinDeg = '0';
+let headerMoonName = '';
+let headerMoonLitPath = '';
+if (isHomepage) {
+  const bjNowH = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+  const bjHH = bjNowH.getHours();
+  const bjMM = bjNowH.getMinutes().toString().padStart(2, '0');
+  const bjIsPM = bjHH >= 12;
+  const bjH12 = bjHH % 12 || 12;
+  headerTimeText = lang === 'zh'
+    ? `${bjIsPM ? '下午' : '上午'}${bjH12}:${bjMM}`
+    : `${bjH12}:${bjMM} ${bjIsPM ? 'PM' : 'AM'}`;
+  headerTimeLabel = lang === 'zh' ? '北京' : 'Beijing';
+  const bjTotalMin = bjHH * 60 + bjNowH.getMinutes();
+  headerHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);
+  headerMinDeg = (bjNowH.getMinutes() * 6).toFixed(1);
+
+  // 月相（SunCalc）
+  const { getMoonIllumination } = await import('suncalc');
+  const moonIllum = getMoonIllumination(bjNowH);
+  const moonNamesZh = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
+  const moonNamesEn = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
+  const moonIdx = Math.floor(moonIllum.phase * 8) % 8;
+  headerMoonName = lang === 'zh' ? moonNamesZh[moonIdx] : moonNamesEn[moonIdx];
+  const rx = Math.max(Math.abs(10 * (1 - 2 * moonIllum.fraction)), 1e-6);
+  const contourSweep = moonIllum.waxing ? 0 : 1;
+  const termSweep = moonIllum.waxing
+    ? (moonIllum.fraction < 0.5 ? 1 : 0)
+    : (moonIllum.fraction < 0.5 ? 0 : 1);
+  headerMoonLitPath = `M 12 2 A 10 10 0 0 ${contourSweep} 12 22 A ${rx} 10 0 0 ${termSweep} 12 2 Z`;
+}
 ---
 
 <header
@@ -81,6 +118,37 @@ const inactiveClass = 'text-text-light dark:text-text-dark hover:text-primary-li
       <span class="hamburger-line mid-line"></span>
       <span class="hamburger-line bot-line"></span>
     </button>
+    {isHomepage && (
+      <div class="mobile-infobar flex-1 min-w-0 flex items-center gap-1.5 px-1.5"
+           style="font-family: 'Space Grotesk', 'Inter', sans-serif; overflow: hidden;">
+        <span class="flex items-center gap-0.5 shrink-0">
+          <span id="cover-weather-icon-m" style="opacity:0.4">⛅</span>
+          <span id="cover-weather-temp-m">--°</span>
+          <span id="cover-weather-location-m" class="opacity-75 whitespace-nowrap">{headerTimeLabel}</span>
+        </span>
+        <span class="mobile-infobar-sep shrink-0">·</span>
+        <span class="flex items-center gap-0.5 shrink-0">
+          <svg class="bj-clock-icon shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
+            <g id="bj-hour-hand-m" class="bj-clock-hand" style="transform: rotate({headerHourDeg}deg)">
+              <path d="M12 12V7" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <g id="bj-minute-hand-m" class="bj-clock-hand" style="transform: rotate({headerMinDeg}deg)">
+              <path d="M12 12V3.5" stroke-width="1.1" stroke-linecap="round"/>
+            </g>
+          </svg>
+          <span id="bj-time-text-m" class="whitespace-nowrap">{headerTimeText}</span>
+          <svg id="bj-moon-svg-m" class="bj-moon-svg shrink-0" viewBox="0 0 24 24" width="0.9rem" height="0.9rem"
+               role="img" aria-label={headerMoonName}>
+            <title>{headerMoonName}</title>
+            <g style="transform: scaleX(-1); transform-origin: 12px 12px;">
+              <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
+              <path id="bj-moon-lit-m" d={headerMoonLitPath} fill="rgba(255,255,255,0.95)" stroke="none"/>
+            </g>
+          </svg>
+        </span>
+      </div>
+    )}
     <div class="flex items-center gap-1 ml-auto">
       <button
         type="button"
