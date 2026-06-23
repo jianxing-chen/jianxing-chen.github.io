@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>月相倾角对比</title>
+<style>
+body{background:#1a1a1a;color:#eee;font-family:system-ui,sans-serif;padding:20px}
+h2{margin:0 0 4px}.note{color:#9ca3af;font-size:13px;margin-bottom:16px}
+.row{display:flex;gap:16px;align-items:center;margin-bottom:12px;background:#1e1e1e;border-radius:8px;padding:10px 14px}
+.time{font-weight:600;min-width:42px;font-size:15px}
+.info{font-size:11px;color:#9ca3af;min-width:70px;line-height:1.4}
+.opt{text-align:center}.opt svg{display:block;margin:2px auto;border:1px solid #333;border-radius:6px}
+.label{font-size:10px;margin-top:3px;color:#9ca3af}
+.legend{display:flex;gap:20px;margin-bottom:14px;font-size:12px;flex-wrap:wrap}
+</style></head><body>
+<h2>2026-06-23 北京 · 倾角 4 方案对比</h2>
+<p class="note">tilt = pa - angle（度），12:00 月球地平线下，15:00 东南+13°刚升起</p>
+<div class="legend"><b>A: -tilt mirror</b> · <b>B: +tilt mirror</b> · <b>C: -tilt noMirror</b> · <b>D: +tilt noMirror</b></div>
+<div id="c"></div>
+<script>
+function P(f,w,r){r=r||10;var x=Math.max(Math.abs(r*(1-2*f)),1e-6);var c=w?0:1;var t=w?(f<0.5?1:0):(f<0.5?0:1);return"M 12 "+(12-r)+" A "+r+" "+r+" 0 0 "+c+" 12 "+(12+r)+" A "+x+" "+r+" 0 0 "+t+" 12 "+(12-r)+" Z"}
+function S(p,tilt,mir){
+  var tr = mir
+    ? 'transform="translate(12,12) rotate('+tilt+') scale(-1,1) translate(-12,-12)"'
+    : 'transform="translate(12,12) rotate('+tilt+') translate(-12,-12)"';
+  return '<svg viewBox="0 0 24 24" width="72" height="72">'
+    +'<circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>'
+    +'<g '+tr+'><path d="'+p+'" fill="rgba(255,255,255,0.95)"/></g></svg>';
+}
+var D=[{h:0,f:0.5778,w:true,tilt:116.3},{h:3,f:0.5903,w:true,tilt:115.4},{h:6,f:0.6026,w:true,tilt:86.2},{h:9,f:0.6148,w:true,tilt:31.7},{h:12,f:0.6269,w:true,tilt:17.1},{h:15,f:0.6389,w:true,tilt:24.1},{h:18,f:0.6508,w:true,tilt:51.2},{h:21,f:0.6625,w:true,tilt:92.0}];
+var o=document.getElementById('c');
+D.forEach(function(d){var p=P(d.f,d.w),h=String(d.h).padStart(2,'0');
+o.innerHTML+='<div class="row"><div class="time">'+h+':00</div><div class="info">'+Math.round(d.f*100)+'% 盈月<br>tilt '+d.tilt.toFixed(1)+'°</div>'
++'<div class="opt"><div class="label">A: -tilt mir</div>'+S(p,-d.tilt,true)+'</div>'
++'<div class="opt"><div class="label">B: +tilt mir</div>'+S(p,+d.tilt,true)+'</div>'
++'<div class="opt"><div class="label">C: -tilt noMir</div>'+S(p,-d.tilt,false)+'</div>'
++'<div class="opt"><div class="label">D: +tilt noMir</div>'+S(p,+d.tilt,false)+'</div>'
++'</div>'});</script></body></html>
