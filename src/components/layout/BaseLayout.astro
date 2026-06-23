@@ -183,7 +183,6 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
         var favicon = document.getElementById('favicon-link');
         if (!favicon) return;
 
-        // 月相亮面 path（与 CoverSection SunCalc 算法完全一致）
         function moonLitPath(fraction, waxing, r) {
           r = r || 10;
           var rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 0.000001);
@@ -195,34 +194,30 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
             ' 12 ' + (12 + r) + ' A ' + rx + ' ' + r + ' 0 0 ' + termSweep + ' 12 ' + (12 - r) + ' Z';
         }
 
-        function applyMoonFavicon(pathData) {
+        function applyMoonFavicon(pathData, tiltDeg) {
+          tiltDeg = tiltDeg || 0;
           var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
             '<circle cx="12" cy="12" r="12" fill="#0E3F75"/>' +
-            '<g transform="matrix(-1,0,0,1,24,0)">' +
+            '<g transform="rotate(' + tiltDeg.toFixed(1) + ',12,12) matrix(-1,0,0,1,24,0)">' +
             '<path d="' + pathData + '" fill="white" stroke="none"/>' +
             '</g></svg>';
           favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
         }
 
-        // 首页：复用页面已有的精确月相 SVG（由 SunCalc 计算）
-        if (document.body.dataset.homepage === 'true') {
-          var attempts = 0;
-          var interval = setInterval(function() {
-            attempts++;
-            var moonLit = document.getElementById('bj-moon-lit')
-                       || document.getElementById('bj-moon-lit-m');
-            if (moonLit && moonLit.getAttribute('d')) {
-              clearInterval(interval);
-              applyMoonFavicon(moonLit.getAttribute('d'));
-            }
-            if (attempts >= 20) clearInterval(interval);
-          }, 500);
-          return;
+        // 从页面月相 SVG 的 transform 中提取倾角
+        function readTiltFromPage() {
+          var moonSvg = document.getElementById('bj-moon-svg')
+                     || document.getElementById('bj-moon-svg-m');
+          if (!moonSvg) return null;
+          var g = moonSvg.querySelector('g');
+          if (!g) return null;
+          var t = g.style.transform || g.getAttribute('style') || '';
+          var m = t.match(/rotate\(([-\d.]+)deg\)/);
+          return m ? parseFloat(m[1]) : null;
         }
 
-        // 非首页：内联平均朔望月算法（精度约 ±0.5%，favicon 分辨不出）
-        function computeAndApply() {
-          // J2000 历元已知新月：2000-01-06 18:14 UTC
+        // 非首页：内联平均朔望月算法（无倾角，favicon 尺寸看不出来）
+        function computeFromAverage() {
           var knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
           var synodicMonth = 29.530588853 * 86400000;
           var phase = (((Date.now() - knownNewMoon) % synodicMonth) + synodicMonth) % synodicMonth / synodicMonth;
@@ -230,7 +225,38 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
           var waxing = phase < 0.5;
           applyMoonFavicon(moonLitPath(fraction, waxing));
         }
-        computeAndApply();
+
+        // 首页：读取页面已有月相 SVG（SunCalc 精确值，含倾角）
+        function tryFromPageMoon() {
+          var moonLit = document.getElementById('bj-moon-lit')
+                     || document.getElementById('bj-moon-lit-m');
+          if (moonLit && moonLit.getAttribute('d')) {
+            applyMoonFavicon(moonLit.getAttribute('d'), readTiltFromPage());
+            return true;
+          }
+          return false;
+        }
+
+        var isHomepage = document.body.dataset.homepage === 'true';
+
+        if (isHomepage) {
+          // 首页首次：等待页面月相 SVG 就绪
+          var attempts = 0;
+          var timer = setInterval(function() {
+            attempts++;
+            if (tryFromPageMoon() || attempts >= 20) {
+              clearInterval(timer);
+              // 之后每小时读取页面月相更新 favicon
+              setInterval(function() {
+                tryFromPageMoon() || computeFromAverage();
+              }, 3600000);
+            }
+          }, 500);
+        } else {
+          // 非首页首次 + 每小时更新
+          computeFromAverage();
+          setInterval(computeFromAverage, 3600000);
+        }
       })();
     </script>
   </body>

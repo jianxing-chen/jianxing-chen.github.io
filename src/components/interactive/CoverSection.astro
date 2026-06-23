@@ -60,10 +60,14 @@ const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 
 // ── 当天月相（SVG 精确绘制，基于 SunCalc 天文算法） ──
 // SunCalc 基于 Jean Meeus《Astronomical Algorithms》ch.47-48，精度远高于平均朔望月算法
-import { getMoonIllumination } from 'suncalc';
+import { getMoonIllumination, getMoonPosition } from 'suncalc';
 const moonIllum = getMoonIllumination(bjNow);
-const moonFraction = moonIllum.fraction; // 0=新月, 1=满月
-const moonWaxing = moonIllum.waxing;     // true=盈月(新→满), false=亏月(满→新)
+const moonFraction = moonIllum.fraction;
+const moonWaxing = moonIllum.waxing;
+// 北京观察者看到的月相倾角 = 亮面位置角 - 视差角
+const moonPos = getMoonPosition(bjNow, 39.9, 116.4);
+const moonTilt = moonIllum.angle - moonPos.parallacticAngle;
+const initialMoonTiltDeg = moonTilt.toFixed(2);
 
 // 月相名称（按 8 段划分，用于 tooltip）
 const moonPhaseNamesZh = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
@@ -145,7 +149,7 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
   <svg id="bj-moon-svg" class="bj-moon-svg" viewBox="0 0 24 24" width="0.95rem" height="0.95rem"
        role="img" aria-label={initialMoonName}>
     <title>{initialMoonName}</title>
-    <g style="transform: scaleX(-1); transform-origin: 12px 12px;">
+    <g style={`transform: rotate(${initialMoonTiltDeg}deg) scaleX(-1); transform-origin: 12px 12px;`}>
       <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
       <path id="bj-moon-lit" d={initialMoonLitPath} fill="rgba(255,255,255,0.95)" stroke="none"/>
     </g>
@@ -208,20 +212,25 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
       return `M 12 ${12 - r} A ${r} ${r} 0 0 ${contourSweep} 12 ${12 + r} A ${rx} ${r} 0 0 ${termSweep} 12 ${12 - r} Z`;
     }
 
-    // 异步加载 SunCalc 计算精确月相（基于 Jean Meeus 天文算法）
-    let moonCalcFn: ((date: Date) => { fraction: number; phase: number; waxing: boolean }) | null = null;
+    // 异步加载 SunCalc 计算精确月相与倾角（基于 Jean Meeus 天文算法）
+    let sunCalcMod: any = null;
     async function updateMoon() {
-      if (!moonCalcFn) {
-        const mod = await import('suncalc');
-        moonCalcFn = mod.getMoonIllumination.bind(mod);
+      if (!sunCalcMod) {
+        sunCalcMod = await import('suncalc');
       }
-      if (!moonCalcFn) return;
-      const il = moonCalcFn(new Date());
+      const bjNow = new Date();
+      const il = sunCalcMod.getMoonIllumination(bjNow);
+      const pos = sunCalcMod.getMoonPosition(bjNow, 39.9, 116.4);
+      const tilt = il.angle - pos.parallacticAngle;
       const idx = Math.floor(il.phase * 8) % 8;
       const name = isZh ? moonNamesZh[idx] : moonNamesEn[idx];
       const path = moonPhaseLitPath(il.fraction, il.waxing);
       moonLits.forEach(el => el.setAttribute('d', path));
-      moonSvgs.forEach(el => el.setAttribute('aria-label', name));
+      moonSvgs.forEach(svg => {
+        svg.setAttribute('aria-label', name);
+        const g = svg.querySelector('g');
+        if (g) g.style.transform = `rotate(${tilt.toFixed(2)}deg) scaleX(-1)`;
+      });
       moonTitles.forEach(el => el.textContent = name);
     }
 
