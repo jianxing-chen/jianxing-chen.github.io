@@ -177,7 +177,7 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
       })();
     </script>
 
-    <!-- Dynamic moon favicon: 纯内联月相算法，零外部依赖，全站适用 -->
+    <!-- Dynamic moon favicon: 纯内联算法，全站统一 -->
     <script is:inline>
       (function updateMoonFavicon() {
         var favicon = document.getElementById('favicon-link');
@@ -194,6 +194,27 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
             ' 12 ' + (12 + r) + ' A ' + rx + ' ' + r + ' 0 0 ' + termSweep + ' 12 ' + (12 - r) + ' Z';
         }
 
+        // 月相倾角近似（基于太阳/月球时角差估算，误差 <5°）
+        function approxMoonTilt(date) {
+          var jd = date.getTime() / 86400000 + 2440587.5;           // Julian day
+          var moonAge = (((jd - 2451549.5) % 29.530588853) + 29.530588853) % 29.530588853; // days since new moon
+          var t = (jd - 2451545) / 36525;                            // centuries since J2000
+          // 月球赤经粗略近似
+          var moonRA = (218.3 + 13.176 * (jd - 2451549.5) + 0.1 * Math.sin(2 * Math.PI * moonAge / 27.32)) % 360;
+          // 太阳赤经粗略近似
+          var sunRA = (280.46 + 0.9856 * (jd - 2451549.5)) % 360 + 1.915 * Math.sin(2 * Math.PI * 0.9856 * (jd - 2451549.5) / 360);
+          // 北京地方恒星时近似（UTC+8）
+          var lst = (100.46 + 360.9856 * (jd - 2451549.5) + 116.4) % 360; // 116.4°E
+          // 时角 = LST - RA
+          var moonHA = (lst - moonRA + 360) % 360;
+          // 视差角近似
+          var pa = Math.atan2(Math.sin(moonHA * Math.PI / 180), Math.tan(39.9 * Math.PI / 180) * 1);
+          pa = pa * 180 / Math.PI; // radians to degrees
+          // 亮面位置角近似（随月龄线性变化）
+          var angle = -90 + (moonAge / 29.53) * 360;
+          return angle - pa;
+        }
+
         function applyMoonFavicon(pathData, tiltDeg) {
           tiltDeg = tiltDeg || 0;
           var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
@@ -204,59 +225,19 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
           favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
         }
 
-        // 从页面月相 SVG 的 transform 中提取倾角
-        function readTiltFromPage() {
-          var moonSvg = document.getElementById('bj-moon-svg')
-                     || document.getElementById('bj-moon-svg-m');
-          if (!moonSvg) return null;
-          var g = moonSvg.querySelector('g');
-          if (!g) return null;
-          var t = g.style.transform || g.getAttribute('style') || '';
-          var m = t.match(/rotate\(([-\d.]+)deg\)/);
-          return m ? parseFloat(m[1]) : null;
-        }
-
-        // 非首页：内联平均朔望月算法（无倾角，favicon 尺寸看不出来）
-        function computeFromAverage() {
+        function update() {
           var knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
           var synodicMonth = 29.530588853 * 86400000;
-          var phase = (((Date.now() - knownNewMoon) % synodicMonth) + synodicMonth) % synodicMonth / synodicMonth;
+          var now = new Date();
+          var phase = (((now.getTime() - knownNewMoon) % synodicMonth) + synodicMonth) % synodicMonth / synodicMonth;
           var fraction = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
           var waxing = phase < 0.5;
-          applyMoonFavicon(moonLitPath(fraction, waxing));
+          var tilt = approxMoonTilt(now);
+          applyMoonFavicon(moonLitPath(fraction, waxing), tilt);
         }
 
-        // 首页：读取页面已有月相 SVG（SunCalc 精确值，含倾角）
-        function tryFromPageMoon() {
-          var moonLit = document.getElementById('bj-moon-lit')
-                     || document.getElementById('bj-moon-lit-m');
-          if (moonLit && moonLit.getAttribute('d')) {
-            applyMoonFavicon(moonLit.getAttribute('d'), readTiltFromPage());
-            return true;
-          }
-          return false;
-        }
-
-        var isHomepage = document.body.dataset.homepage === 'true';
-
-        if (isHomepage) {
-          // 首页首次：等待页面月相 SVG 就绪
-          var attempts = 0;
-          var timer = setInterval(function() {
-            attempts++;
-            if (tryFromPageMoon() || attempts >= 20) {
-              clearInterval(timer);
-              // 之后每小时读取页面月相更新 favicon
-              setInterval(function() {
-                tryFromPageMoon() || computeFromAverage();
-              }, 3600000);
-            }
-          }, 500);
-        } else {
-          // 非首页首次 + 每小时更新
-          computeFromAverage();
-          setInterval(computeFromAverage, 3600000);
-        }
+        update();
+        setInterval(update, 3600000);
       })();
     </script>
   </body>
