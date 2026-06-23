@@ -231,12 +231,12 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
 
     update();
     updateMoon();
-    // 对齐到下一完整分钟，之后每分钟更新一次
+    // 北京时间每分钟、月相每 5 分钟更新一次
     const now = new Date();
     const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
     setTimeout(() => { update(); setInterval(update, 60_000); }, msToNextMinute);
-    // 月相每小时刷新一次（一天内基本不变，但保持健壮）
-    setInterval(updateMoon, 3_600_000);
+    // 月相每 5 分钟刷新一次（倾角变化 ~1.25°/5min，使旋转更实时）
+    setInterval(updateMoon, 300_000);
   })();
 
   // ── 天气信息 — wttr.in API（支持 CORS）──
