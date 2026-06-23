@@ -196,9 +196,13 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
         }
 
         function update() {
-          var knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
-          var synodicMonth = 29.530588853 * 86400000;
-          var phase = (((Date.now() - knownNewMoon) % synodicMonth) + synodicMonth) % synodicMonth / synodicMonth;
+          var avgSynodic = 29.530588853;
+          var jd = Date.now() / 86400000 + 2440587.5;
+          var daysSinceJ2000 = jd - 2451549.5;
+          // 动态最近新月（JDE = 2451550.1 + N * 29.530588853，Meeus ch.49）
+          var lunations = Math.round((daysSinceJ2000 - 0.1) / avgSynodic);
+          var lastNewMoonJD = 2451550.1 + lunations * avgSynodic;
+          var phase = (jd - lastNewMoonJD) / avgSynodic;
           var fraction = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
           var waxing = phase < 0.5;
           var path = moonLitPath(fraction, waxing);
