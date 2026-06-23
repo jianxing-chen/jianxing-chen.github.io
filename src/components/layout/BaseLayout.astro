@@ -46,7 +46,7 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0E3F75" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E3F75" />
-    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <link rel="icon" type="image/svg+xml" id="favicon-link" href={`${import.meta.env.BASE_URL}favicon.svg`} />
     <meta name="generator" content={Astro.generator} />
 
     <!-- SEO -->
@@ -174,6 +174,63 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
 
         observeRevealElements();
         document.addEventListener('astro:after-swap', observeRevealElements);
+      })();
+    </script>
+
+    <!-- Dynamic moon favicon: 纯内联月相算法，零外部依赖，全站适用 -->
+    <script is:inline>
+      (function updateMoonFavicon() {
+        var favicon = document.getElementById('favicon-link');
+        if (!favicon) return;
+
+        // 月相亮面 path（与 CoverSection SunCalc 算法完全一致）
+        function moonLitPath(fraction, waxing, r) {
+          r = r || 10;
+          var rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 0.000001);
+          var contourSweep = waxing ? 0 : 1;
+          var termSweep = waxing
+            ? (fraction < 0.5 ? 1 : 0)
+            : (fraction < 0.5 ? 0 : 1);
+          return 'M 12 ' + (12 - r) + ' A ' + r + ' ' + r + ' 0 0 ' + contourSweep +
+            ' 12 ' + (12 + r) + ' A ' + rx + ' ' + r + ' 0 0 ' + termSweep + ' 12 ' + (12 - r) + ' Z';
+        }
+
+        function applyMoonFavicon(pathData) {
+          var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+            '<circle cx="12" cy="12" r="12" fill="#0E3F75"/>' +
+            '<g transform="matrix(-1,0,0,1,24,0)">' +
+            '<path d="' + pathData + '" fill="white" stroke="none"/>' +
+            '</g></svg>';
+          favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+        }
+
+        // 首页：复用页面已有的精确月相 SVG（由 SunCalc 计算）
+        if (document.body.dataset.homepage === 'true') {
+          var attempts = 0;
+          var interval = setInterval(function() {
+            attempts++;
+            var moonLit = document.getElementById('bj-moon-lit')
+                       || document.getElementById('bj-moon-lit-m');
+            if (moonLit && moonLit.getAttribute('d')) {
+              clearInterval(interval);
+              applyMoonFavicon(moonLit.getAttribute('d'));
+            }
+            if (attempts >= 20) clearInterval(interval);
+          }, 500);
+          return;
+        }
+
+        // 非首页：内联平均朔望月算法（精度约 ±0.5%，favicon 分辨不出）
+        function computeAndApply() {
+          // J2000 历元已知新月：2000-01-06 18:14 UTC
+          var knownNewMoon = Date.UTC(2000, 0, 6, 18, 14);
+          var synodicMonth = 29.530588853 * 86400000;
+          var phase = (((Date.now() - knownNewMoon) % synodicMonth) + synodicMonth) % synodicMonth / synodicMonth;
+          var fraction = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
+          var waxing = phase < 0.5;
+          applyMoonFavicon(moonLitPath(fraction, waxing));
+        }
+        computeAndApply();
       })();
     </script>
   </body>
