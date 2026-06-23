@@ -79,21 +79,23 @@ if (isHomepage) {
   headerHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);
   headerMinDeg = (bjNowH.getMinutes() * 6).toFixed(1);
 
-  // 月相（SunCalc）
+  // 月相（共享模块 @/utils/moon.ts + SunCalc）
   const { getMoonIllumination, getMoonPosition } = await import('suncalc');
+  const {
+    MOON_PHASE_NAMES_ZH,
+    MOON_PHASE_NAMES_EN,
+    moonPhaseNameIndex,
+    moonPhaseLitPath,
+  } = await import('@/utils/moon');
   const moonIllum = getMoonIllumination(bjNowH);
   const moonPos = getMoonPosition(bjNowH, 39.9, 116.4);
   headerMoonTiltDeg = (moonIllum.angle - moonPos.parallacticAngle).toFixed(2);
-  const moonNamesZh = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
-  const moonNamesEn = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
-  const moonIdx = Math.floor(moonIllum.phase * 8) % 8;
-  headerMoonName = lang === 'zh' ? moonNamesZh[moonIdx] : moonNamesEn[moonIdx];
-  const rx = Math.max(Math.abs(10 * (1 - 2 * moonIllum.fraction)), 1e-6);
-  const contourSweep = moonIllum.waxing ? 0 : 1;
-  const termSweep = moonIllum.waxing
-    ? (moonIllum.fraction < 0.5 ? 1 : 0)
-    : (moonIllum.fraction < 0.5 ? 0 : 1);
-  headerMoonLitPath = `M 12 2 A 10 10 0 0 ${contourSweep} 12 22 A ${rx} 10 0 0 ${termSweep} 12 2 Z`;
+  const moonIdx = moonPhaseNameIndex(moonIllum.phase);
+  headerMoonName =
+    lang === 'zh'
+      ? MOON_PHASE_NAMES_ZH[moonIdx]
+      : MOON_PHASE_NAMES_EN[moonIdx];
+  headerMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing);
 }
 ---
 

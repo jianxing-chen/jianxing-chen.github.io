@@ -58,41 +58,24 @@ const bjTotalMin = bjH * 60 + bjNow.getMinutes();
 const initialHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);  // 时针: (时*60+分)/720*360
 const initialMinDeg = (bjNow.getMinutes() * 6).toFixed(1);     // 分针: 分*6
 
-// ── 当天月相（SVG 精确绘制，基于 SunCalc 天文算法） ──
-// SunCalc 基于 Jean Meeus《Astronomical Algorithms》ch.47-48，精度远高于平均朔望月算法
+// ── 当天月相（SunCalc 精确天文算法）──
 import { getMoonIllumination, getMoonPosition } from 'suncalc';
+import {
+  MOON_PHASE_NAMES_ZH,
+  MOON_PHASE_NAMES_EN,
+  moonPhaseNameIndex,
+  moonPhaseLitPath,
+} from '@/utils/moon';
+
 const moonIllum = getMoonIllumination(bjNow);
-const moonFraction = moonIllum.fraction;
-const moonWaxing = moonIllum.waxing;
-// 北京观察者看到的月相倾角 = 亮面位置角 - 视差角
 const moonPos = getMoonPosition(bjNow, 39.9, 116.4);
-const moonTilt = moonIllum.angle - moonPos.parallacticAngle;
-const initialMoonTiltDeg = moonTilt.toFixed(2);
-
-// 月相名称（按 8 段划分，用于 tooltip）
-const moonPhaseNamesZh = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
-const moonPhaseNamesEn = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
-const moonIdx = Math.floor(moonIllum.phase * 8) % 8;
-const initialMoonName = lang === 'zh' ? moonPhaseNamesZh[moonIdx] : moonPhaseNamesEn[moonIdx];
-
-/**
- * 生成月相亮面 SVG path（北半球标准月相）
- * fraction: SunCalc 照明比例 0~1（0=新月, 1=满月）
- * waxing: true=盈月(新→满,亮面在右), false=亏月(满→新,亮面在左)
- * 算法：rx = R·|1-2·fraction|（亮面面积的几何依据）
- *      亮面 path = 亮侧半圆轮廓 + 交界椭圆弧
- *      SVG 用 scaleX(-1) 镜像使盈月亮面在右侧（经像素采样验证方向与面积正确）
- */
-function moonPhaseLitPath(fraction: number, waxing: boolean, r = 10): string {
-  const rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 1e-6);
-  const contourSweep = waxing ? 0 : 1;
-  const termSweep = waxing
-    ? (fraction < 0.5 ? 1 : 0)
-    : (fraction < 0.5 ? 0 : 1);
-  return `M 12 ${12 - r} A ${r} ${r} 0 0 ${contourSweep} 12 ${12 + r} A ${rx} ${r} 0 0 ${termSweep} 12 ${12 - r} Z`;
-}
-
-const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
+const initialMoonTiltDeg = (moonIllum.angle - moonPos.parallacticAngle).toFixed(2);
+const moonIdx = moonPhaseNameIndex(moonIllum.phase);
+const initialMoonName =
+  lang === 'zh'
+    ? MOON_PHASE_NAMES_ZH[moonIdx]
+    : MOON_PHASE_NAMES_EN[moonIdx];
+const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing);
 ---
 
 {coverPhotos.length === 0 ? (
@@ -171,10 +154,8 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
 </button>
 
 <script>
-  // ── 北京时间 — 独立运行，最早执行，不依赖封面初始化 ──
-  // 同时更新桌面版（cover-beijing-time）和手机版信息条（cover-mobile-infobar）
+  // ── 北京时间 — 独立运行，最早执行 ──
   (function initBeijingTime() {
-    // 辅助：按 ID 列表获取元素并过滤 null（桌面版 + 手机版，ID 带 -m 后缀的是手机版）
     const getByIds = <T extends Element>(ids: string[]): T[] =>
       ids.map(id => document.getElementById(id) as T | null).filter((el): el is T => el !== null);
     const timeEls = getByIds<HTMLElement>(['bj-time-text', 'bj-time-text-m']);
@@ -189,20 +170,15 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
     const minuteHands = getByIds<SVGGElement>(['bj-minute-hand', 'bj-minute-hand-m']);
     if (timeEls.length === 0) return;
 
-    // 读取语言：优先 pagination 上的 data-lang，fallback 到 html lang
     const pagination = document.getElementById('cover-pagination');
     const lang = pagination?.dataset.lang || document.documentElement.lang || 'en';
     const isZh = lang === 'zh';
 
-    // ── 月相名称（8 段，用于 tooltip） ──
-    const moonNamesZh = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
-    const moonNamesEn = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
+    // 月相名称（由 @/utils/moon.ts 统一管理，此处仅一处客户端副本）
+    const MOON_ZH = ['新月', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
+    const MOON_EN = ['New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full Moon', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
 
-    /**
-     * 生成月相亮面 SVG path（与服务端算法一致，需配合 scaleX(-1) 镜像）
-     * fraction: SunCalc 照明比例 0~1
-     * waxing: true=盈月, false=亏月
-     */
+    // 月相 path（与 @/utils/moon.ts 完全一致）
     function moonPhaseLitPath(fraction: number, waxing: boolean, r = 10): string {
       const rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 1e-6);
       const contourSweep = waxing ? 0 : 1;
@@ -212,18 +188,15 @@ const initialMoonLitPath = moonPhaseLitPath(moonFraction, moonWaxing);
       return `M 12 ${12 - r} A ${r} ${r} 0 0 ${contourSweep} 12 ${12 + r} A ${rx} ${r} 0 0 ${termSweep} 12 ${12 - r} Z`;
     }
 
-    // 异步加载 SunCalc 计算精确月相与倾角（基于 Jean Meeus 天文算法）
     let sunCalcMod: any = null;
     async function updateMoon() {
-      if (!sunCalcMod) {
-        sunCalcMod = await import('suncalc');
-      }
+      if (!sunCalcMod) { sunCalcMod = await import('suncalc'); }
       const bjNow = new Date();
       const il = sunCalcMod.getMoonIllumination(bjNow);
       const pos = sunCalcMod.getMoonPosition(bjNow, 39.9, 116.4);
       const tilt = il.angle - pos.parallacticAngle;
       const idx = Math.floor(il.phase * 8) % 8;
-      const name = isZh ? moonNamesZh[idx] : moonNamesEn[idx];
+      const name = isZh ? MOON_ZH[idx] : MOON_EN[idx];
       const path = moonPhaseLitPath(il.fraction, il.waxing);
       moonLits.forEach(el => el.setAttribute('d', path));
       moonSvgs.forEach(svg => {
