@@ -631,20 +631,22 @@ html.cover-visible #page-bottom {
   z-index: 50;
   width: 2.5rem;
   height: 2.5rem;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(255, 255, 255, 0.8);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  color: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(30, 58, 95, 0.6);
+  border: 1px solid rgba(30, 58, 95, 0.12);
   border-radius: 9999px;
   cursor: pointer;
-  transition: opacity 0.3s ease, transform 0.2s ease;
+  transition: opacity 0.3s ease, transform 0.2s ease, background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   align-items: center;
   justify-content: center;
 }
 
 .back-to-cover-btn:hover {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-primary-light, #1e3a5f);
+  border-color: rgba(30, 58, 95, 0.3);
   transform: scale(1.05);
 }
 
@@ -652,8 +654,28 @@ html.cover-visible #page-bottom {
   transform: scale(0.95);
 }
 
+/* 深色主题 */
+.dark .back-to-cover-btn {
+  background: rgba(30, 41, 59, 0.8);
+  color: rgba(226, 232, 240, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .back-to-cover-btn:hover {
+  background: rgba(30, 41, 59, 0.95);
+  color: var(--color-primary-dark, #60a5fa);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 @media (min-width: 768px) {
   .back-to-cover-btn {
+    display: none !important;
+  }
+}
+
+/* 首页手机版隐藏通用 BackToTop（由 back-to-cover-btn 替代，避免右下角两个按钮重叠） */
+@media (max-width: 767px) {
+  body[data-homepage="true"] #back-to-top-wrapper {
     display: none !important;
   }
 }
