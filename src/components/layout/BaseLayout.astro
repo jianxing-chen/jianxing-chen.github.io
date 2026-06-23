@@ -75,7 +75,8 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
           var waxing = phase < 0.5;
           var path = moonLitPath(fraction, waxing);
           var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-            '<circle cx="12" cy="12" r="12" fill="#0E3F75"/>' +
+            '<rect width="24" height="24" fill="transparent"/>' +
+            '<circle cx="12" cy="12" r="10.5" fill="#0E3F75"/>' +
             '<g transform="matrix(-1,0,0,1,24,0)">' +
             '<path d="' + path + '" fill="white" stroke="none"/>' +
             '</g></svg>';
