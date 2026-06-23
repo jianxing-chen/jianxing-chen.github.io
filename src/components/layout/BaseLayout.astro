@@ -38,6 +38,30 @@ const socialLinks = Object.values(SITE_CONFIG.social).filter(
 
 const umamiWebsiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID || '';
 const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud.umami.is/script.js';
+
+// SSR 月相 favicon（构建时计算，HTML 直出，零延迟）
+function ssrMoonPath(fraction: number, waxing: boolean, r = 10) {
+  const rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 0.000001);
+  const cs = waxing ? 0 : 1;
+  const ts = waxing ? (fraction < 0.5 ? 1 : 0) : (fraction < 0.5 ? 0 : 1);
+  return `M 12 ${12 - r} A ${r} ${r} 0 0 ${cs} 12 ${12 + r} A ${rx} ${r} 0 0 ${ts} 12 ${12 - r} Z`;
+}
+const _avg = 29.530588853;
+const _jd = Date.now() / 86400000 + 2440587.5;
+const _days = _jd - 2451549.5;
+const _lun = Math.round((_days - 0.1) / _avg);
+const _phase = (_jd - (2451550.1 + _lun * _avg)) / _avg;
+const _frac = (1 - Math.cos(_phase * 2 * Math.PI)) / 2;
+const _waxing = _phase < 0.5;
+const _path = ssrMoonPath(_frac, _waxing);
+const faviconDataUri = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+  '<rect width="24" height="24" fill="transparent"/>' +
+  '<circle cx="12" cy="12" r="10.5" fill="#0E3F75"/>' +
+  '<g transform="matrix(-1,0,0,1,24,0)">' +
+  '<path d="' + _path + '" fill="white" stroke="none"/>' +
+  '</g></svg>'
+);
 ---
 
 <html lang={lang}>
@@ -46,7 +70,7 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0E3F75" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E3F75" />
-    <link rel="icon" type="image/svg+xml" id="favicon-link" href="" />
+    <link rel="icon" type="image/svg+xml" id="favicon-link" href={faviconDataUri} />
     <!-- 动态月相 favicon：空 href 无网络请求，脚本秒填 -->
     <script is:inline>
       (function updateMoonFavicon() {
