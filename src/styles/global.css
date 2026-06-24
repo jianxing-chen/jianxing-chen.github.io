@@ -311,6 +311,34 @@ body.home-scroll-lock {
   }
 }
 
+/* ── 左下角「实时数据」快捷链接（与右下角 cover-credit 对称，不显眼） ── */
+.cover-livedata-link {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  z-index: 14;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(255, 255, 255, 0.2);
+  pointer-events: auto;
+  transition: opacity 0.4s ease, color 0.2s, text-decoration-color 0.2s;
+}
+.cover-livedata-link:hover {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration-color: rgba(255, 255, 255, 0.5);
+}
+@media (min-width: 640px) {
+  .cover-livedata-link {
+    bottom: 1.5rem;
+    left: 1.5rem;
+    font-size: 0.825rem;
+  }
+}
+
 /* ── Homepage content states ── */
 .home-page-content {
   position: relative;
@@ -561,7 +589,8 @@ body.home-scroll-lock {
 /* Hide cover UI elements when not on cover */
 html:not(.cover-visible) .cover-credit,
 html:not(.cover-visible) .cover-pagination,
-html:not(.cover-visible) .cover-scroll-indicator {
+html:not(.cover-visible) .cover-scroll-indicator,
+html:not(.cover-visible) .cover-livedata-link {
   opacity: 0;
   pointer-events: none;
 }

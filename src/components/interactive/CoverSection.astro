@@ -117,6 +117,12 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
 <!-- ═══ 封面 UI 层（提出 cover-bg-layer 以逃脱 z-index 牢笼） ═══ -->
 <div id="cover-credit" class="cover-credit"></div>
 
+<!-- 左下角：快速跳转实时数据（与右下角 cover-credit 对称，不显眼） -->
+<a id="cover-livedata-link" class="cover-livedata-link" href="#live-data"
+   aria-label={lang === 'zh' ? '查看实时数据' : 'View Live Data'}>
+  {lang === 'zh' ? '实时数据' : 'Live Data'} ↓
+</a>
+
 <div
   id="cover-pagination"
   class="cover-pagination"
@@ -673,6 +679,19 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
 
     scrollIndicator?.addEventListener('click', () => {
       if (currentState === 'cover' && !isModalOpen()) transitionToContent();
+    });
+
+    // 左下角「实时数据」链接：翻页到正文后滚动到 live-data 区块
+    const liveDataLink = document.querySelector('.cover-livedata-link');
+    liveDataLink?.addEventListener('click', (e) => {
+      if (currentState === 'cover' && !isModalOpen()) {
+        e.preventDefault();
+        transitionToContent();
+        setTimeout(() => {
+          const target = document.getElementById('live-data');
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        }, transitionDuration + 60);
+      }
     });
 
     backToCoverBtn?.addEventListener('click', () => {
