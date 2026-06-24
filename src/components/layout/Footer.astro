@@ -59,9 +59,10 @@ const t = useTranslations(lang);
              class="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-3 text-xs text-text-light/70 dark:text-text-dark/60"
              style="max-width:420px">
           <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-            <div class="flex justify-between col-span-2"><span id="sun-card-date" class="tabular-nums"></span><span class="opacity-50">{lang === 'zh' ? '北京 39.9°N 116.4°E' : 'Beijing 39.9°N 116.4°E'}</span></div>
-            <div class="flex justify-between"><span>🌅 {lang === 'zh' ? '日出' : 'Sunrise'}</span><span id="sun-rise" class="tabular-nums">--:--</span></div>
-            <div class="flex justify-between"><span>🌇 {lang === 'zh' ? '日落' : 'Sunset'}</span><span id="sun-set" class="tabular-nums">--:--</span></div>
+            <div class="flex justify-between col-span-2"><span class="opacity-50 font-bold">{lang === 'zh' ? '北京 39.9°N 116.4°E' : 'Beijing 39.9°N 116.4°E'}</span><span id="sun-card-date" class="tabular-nums"></span></div>
+            <div class="flex justify-between col-span-2"><span>📜 {lang === 'zh' ? '农历' : 'Chinese Calendar'}</span><span id="lunar-date" class="tabular-nums">---</span></div>
+            <div class="flex justify-between col-span-2"><span>🌿 {lang === 'zh' ? '节气' : 'Solar Term'}</span><span id="jieqi" class="tabular-nums">---</span></div>
+            <div class="flex justify-between col-span-2"><span>🌅 {lang === 'zh' ? '日出日落' : 'Sunrise-Sunset'}</span><span class="tabular-nums"><span id="sun-rise">--:--</span> - <span id="sun-set">--:--</span></span></div>
             <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>☀️ {lang === 'zh' ? '正午 · 昼长' : 'Noon · Day'}</span><span id="sun-noon-day" class="tabular-nums">--:-- · --h --m</span></div>
             <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>🌆 {lang === 'zh' ? '民用晨光' : 'Civil dawn'}</span><span id="sun-civil" class="tabular-nums">--:-- → --:--</span></div>
             <div class="flex justify-between col-span-2"><span>🌃 {lang === 'zh' ? '航海晨光' : 'Nautical'}</span><span id="sun-naut" class="tabular-nums">--:-- → --:--</span></div>
@@ -104,14 +105,52 @@ const t = useTranslations(lang);
               els.astro.textContent = fmt(d.astronomical_twilight_begin) + ' → ' + fmt(d.astronomical_twilight_end);
               var now = new Date();
               els.date.textContent = isZh
-                ? '📅 ' + now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日'
-                : '📅 ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                ? now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日'
+                : now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             }
             var cached = sessionStorage.getItem(cacheKey);
             if (cached) { display(JSON.parse(cached)); }
             fetch('https://api.sunrise-sunset.org/json?lat='+lat+'&lng='+lng+'&formatted=0')
               .then(function(r) { return r.json(); })
               .then(function(d) { if (d.status === 'OK') { sessionStorage.setItem(cacheKey, JSON.stringify(d.results)); display(d.results); } });
+
+            // 生肖中英文映射表
+            var SHENGXIAO_EN = {'鼠':'Rat','牛':'Ox','虎':'Tiger','兔':'Rabbit','龙':'Dragon','蛇':'Snake','马':'Horse','羊':'Goat','猴':'Monkey','鸡':'Rooster','狗':'Dog','猪':'Pig'};
+            // 节气中英文映射表
+            var JIEQI_EN = {'立春':'Beginning of Spring','雨水':'Rain Water','惊蛰':'Awakening of Insects','春分':'Spring Equinox','清明':'Pure Brightness','谷雨':'Grain Rain','立夏':'Beginning of Summer','小满':'Grain Buds','芒种':'Grain in Ear','夏至':'Summer Solstice','小暑':'Minor Heat','大暑':'Major Heat','立秋':'Beginning of Autumn','处暑':'End of Heat','白露':'White Dew','秋分':'Autumn Equinox','寒露':'Cold Dew','霜降':"Frost's Descent",'立冬':'Beginning of Winter','小雪':'Minor Snow','大雪':'Major Snow','冬至':'Winter Solstice','小寒':'Minor Cold','大寒':'Major Cold'};
+            // 农历 + 节气（lunar-javascript 动态 import，独立 chunk 异步加载，零 CDN 依赖）
+            import('lunar-javascript').then(function(m) {
+              var Lunar = m.Lunar || (m.default && m.default.Lunar) || m.default;
+              if (!Lunar) return;
+              var el = document.getElementById('lunar-date');
+              if (!el) return;
+              var d = new Date();
+              var lunar = Lunar.fromDate(d);
+              if (isZh) {
+                el.textContent = lunar.getYearInGanZhi() + '年' + lunar.getMonthInChinese() + '月' + lunar.getDayInChinese();
+              } else {
+                var mNum = lunar.getMonth();
+                var isLeap = mNum < 0;
+                var sx = SHENGXIAO_EN[lunar.getYearShengXiao()] || lunar.getYearShengXiao();
+                el.textContent = 'Year of the ' + sx + ', ' + (isLeap ? 'Leap ' : '') + 'Month ' + Math.abs(mNum) + ', Day ' + lunar.getDay();
+              }
+              // 节气
+              var jqEl = document.getElementById('jieqi');
+              if (jqEl) {
+                var next = lunar.getNextJieQi();
+                if (next) {
+                  var ns = next.getSolar();
+                  var nextDate = new Date(ns.getYear(), ns.getMonth() - 1, ns.getDay());
+                  var today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                  var days = Math.round((nextDate - today) / 86400000);
+                  var jqNameZh = next.getName();
+                  var jqName = isZh ? jqNameZh : (JIEQI_EN[jqNameZh] || jqNameZh);
+                  jqEl.textContent = days === 0
+                    ? (isZh ? '今日 ' + jqName : 'Today: ' + jqName)
+                    : (isZh ? '距' + jqName + ' ' + days + '天' : jqName + ' in ' + days + 'd');
+                }
+              }
+            });
 
             // 月亮数据：SunCalc 本地计算（零网络请求）
             var MP_ZH = ['朔','蛾眉月','上弦月','盈凸月','满月','亏凸月','下弦月','残月'];
@@ -133,7 +172,7 @@ const t = useTranslations(lang);
                   els.moonSet.textContent = isZh ? '不升' : 'None';
                 }
                 els.moonPhase.textContent = isZh ? MP_ZH[phaseIdx] : MP_EN[phaseIdx];
-                els.moonIllum.textContent = Math.round(illum.fraction * 100);
+                els.moonIllum.textContent = (illum.fraction * 100).toFixed(1);
               }
               updateMoon();
               setInterval(updateMoon, 3_600_000);
