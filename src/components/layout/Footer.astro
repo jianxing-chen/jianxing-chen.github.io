@@ -17,10 +17,10 @@ const t = useTranslations(lang);
 <div id="page-bottom">
   {isHomepage && (
   <!-- N2YO Satellite Tracker + 7Timer Astro Forecast -->
-  <div class="max-w-5xl mx-auto px-2 sm:px-6 mt-12 sm:mt-20">
-    <div class="flex flex-col lg:flex-row items-start justify-center gap-6 lg:gap-10">
+  <div class="max-w-4xl mx-auto px-2 sm:px-6 mt-12 sm:mt-20">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
       <!-- 左：N2YO Satellite Tracker -->
-      <div class="flex flex-col items-center shrink-0" id="n2yo-widget-container">
+      <div class="flex flex-col items-center" id="n2yo-widget-container">
         <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
           {lang === 'zh' ? '航天器 · 实时轨道追踪' : 'Spacecraft · Live Tracking'}
         </p>
@@ -34,18 +34,101 @@ const t = useTranslations(lang);
           <script type="text/javascript" src="https://www.n2yo.com/js/widget-tracker.js"></script>
         </div>
       </div>
-      <!-- 右：7Timer + 北京当地信息 -->
-      <div class="flex flex-col items-center">
+      <!-- 右：7Timer + 日出日落信息 -->
+      <div class="flex flex-col items-center h-full">
         <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
           {lang === 'zh' ? '北京 · 天文气象预报' : 'Beijing · Astro Forecast'} · 7Timer
         </p>
-        <img
+          <img
           src={`https://www.7timer.info/bin/astro.php?lon=116.36&lat=39.96&lang=${lang === 'zh' ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
           alt={lang === 'zh' ? '天文气象预报' : 'Astro weather forecast'}
-          class="forecast-thumbnail"
+          class="forecast-thumbnail w-full"
+          style="max-width:420px"
           decoding="async"
         />
-        <!-- 北京当地信息预留位 -->
+        <div class="mt-auto w-full" style="max-width:420px">
+        <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-1.5 tracking-wide uppercase text-center">
+          {lang === 'zh' ? '日出日落 · 晨昏蒙影' : 'Sun & Twilight'}
+        </p>
+        <div id="beijing-sun-card"
+             class="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-3 text-xs text-text-light/70 dark:text-text-dark/60"
+             style="max-width:420px">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div class="flex justify-between col-span-2"><span id="sun-card-date" class="tabular-nums"></span><span class="opacity-50">{lang === 'zh' ? '北京 39.9°N 116.4°E' : 'Beijing 39.9°N 116.4°E'}</span></div>
+            <div class="flex justify-between"><span>🌅 {lang === 'zh' ? '日出' : 'Sunrise'}</span><span id="sun-rise" class="tabular-nums">--:--</span></div>
+            <div class="flex justify-between"><span>🌇 {lang === 'zh' ? '日落' : 'Sunset'}</span><span id="sun-set" class="tabular-nums">--:--</span></div>
+            <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>☀️ {lang === 'zh' ? '正午 · 昼长' : 'Noon · Day'}</span><span id="sun-noon-day" class="tabular-nums">--:-- · --h --m</span></div>
+            <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>🌆 {lang === 'zh' ? '民用晨光' : 'Civil dawn'}</span><span id="sun-civil" class="tabular-nums">--:-- → --:--</span></div>
+            <div class="flex justify-between col-span-2"><span>🌃 {lang === 'zh' ? '航海晨光' : 'Nautical'}</span><span id="sun-naut" class="tabular-nums">--:-- → --:--</span></div>
+            <div class="flex justify-between col-span-2"><span>🌌 {lang === 'zh' ? '天文晨光' : 'Astro'}</span><span id="sun-astro" class="tabular-nums">--:-- → --:--</span></div>
+            <!-- 月亮信息：SunCalc 本地计算 -->
+            <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>🌙 {lang === 'zh' ? '月出' : 'Moonrise'}</span><span id="moon-rise" class="tabular-nums">--:--</span></div>
+            <div class="flex justify-between col-span-2"><span>🌑 {lang === 'zh' ? '月落' : 'Moonset'}</span><span id="moon-set" class="tabular-nums">--:--</span></div>
+            <div class="flex justify-between col-span-2"><span>🌔 {lang === 'zh' ? '月相' : 'Phase'}</span><span><span id="moon-phase" class="tabular-nums">---</span> · <span id="moon-illum" class="tabular-nums">--</span>%</span></div>
+          </div>
+        </div>
+        <script>
+          (function() {
+            var card = document.getElementById('beijing-sun-card');
+            if (!card) return;
+            var els = { rise: document.getElementById('sun-rise'), set: document.getElementById('sun-set'),
+              noon: document.getElementById('sun-noon-day'), civil: document.getElementById('sun-civil'),
+              naut: document.getElementById('sun-naut'), astro: document.getElementById('sun-astro'),
+              date: document.getElementById('sun-card-date'),
+              moonRise: document.getElementById('moon-rise'), moonSet: document.getElementById('moon-set'),
+              moonPhase: document.getElementById('moon-phase'), moonIllum: document.getElementById('moon-illum') };
+            var lat = 39.9, lng = 116.4;
+            var isZh = document.documentElement.lang === 'zh';
+            var cacheKey = 'bj-sun-v3-' + new Date().toDateString();
+            function fmt(t) { if (!t) return '--:--'; var d = new Date(t); return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); }
+            function display(d) {
+              if (!d) return;
+              els.rise.textContent = fmt(d.sunrise);
+              els.set.textContent = fmt(d.sunset);
+              var daySec = d.day_length || 0;
+              els.noon.textContent = fmt(d.solar_noon) + ' · ' + Math.floor(daySec/3600) + 'h ' + Math.floor((daySec%3600)/60) + 'm';
+              els.civil.textContent = fmt(d.civil_twilight_begin) + ' → ' + fmt(d.civil_twilight_end);
+              els.naut.textContent = fmt(d.nautical_twilight_begin) + ' → ' + fmt(d.nautical_twilight_end);
+              els.astro.textContent = fmt(d.astronomical_twilight_begin) + ' → ' + fmt(d.astronomical_twilight_end);
+              var now = new Date();
+              els.date.textContent = isZh
+                ? '📅 ' + now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日'
+                : '📅 ' + now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+            var cached = sessionStorage.getItem(cacheKey);
+            if (cached) { display(JSON.parse(cached)); }
+            fetch('https://api.sunrise-sunset.org/json?lat='+lat+'&lng='+lng+'&formatted=0')
+              .then(function(r) { return r.json(); })
+              .then(function(d) { if (d.status === 'OK') { sessionStorage.setItem(cacheKey, JSON.stringify(d.results)); display(d.results); } });
+
+            // 月亮数据：SunCalc 本地计算（零网络请求）
+            var MP_ZH = ['朔','蛾眉月','上弦月','盈凸月','满月','亏凸月','下弦月','残月'];
+            var MP_EN = ['New','Waxing Crescent','First Quarter','Waxing Gibbous','Full','Waning Gibbous','Last Quarter','Waning Crescent'];
+            import('suncalc').then(function(SunCalc) {
+              function updateMoon() {
+                var now = new Date();
+                var times = SunCalc.getMoonTimes(now, lat, lng);
+                var illum = SunCalc.getMoonIllumination(now);
+                var phaseIdx = Math.round(illum.phase * 8) % 8;
+                if (!times.alwaysUp) {
+                  els.moonRise.textContent = fmt(times.rise);
+                } else {
+                  els.moonRise.textContent = isZh ? '不落' : 'Up all day';
+                }
+                if (!times.alwaysDown) {
+                  els.moonSet.textContent = fmt(times.set);
+                } else {
+                  els.moonSet.textContent = isZh ? '不升' : 'None';
+                }
+                els.moonPhase.textContent = isZh ? MP_ZH[phaseIdx] : MP_EN[phaseIdx];
+                els.moonIllum.textContent = Math.round(illum.fraction * 100);
+              }
+              updateMoon();
+              setInterval(updateMoon, 3_600_000);
+            });
+          })();
+        </script>
+        </div>
       </div>
     </div>
   </div>
