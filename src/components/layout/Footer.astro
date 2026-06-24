@@ -16,18 +16,37 @@ const t = useTranslations(lang);
 
 <div id="page-bottom">
   {isHomepage && (
-  <!-- 7Timer Astro Forecast -->
+  <!-- N2YO Satellite Tracker + 7Timer Astro Forecast -->
   <div class="max-w-5xl mx-auto px-2 sm:px-6 mt-12 sm:mt-20">
-    <div class="flex flex-col items-center">
-      <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
-        {lang === 'zh' ? '北京 · 天文气象预报' : 'Beijing · Astro Forecast'} · 7Timer
-      </p>
-      <img
-        src={`https://www.7timer.info/bin/astro.php?lon=116.36&lat=39.96&lang=${lang === 'zh' ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
-        alt={lang === 'zh' ? '天文气象预报' : 'Astro weather forecast'}
-        class="forecast-thumbnail"
-        decoding="async"
-      />
+    <div class="flex flex-col lg:flex-row items-start justify-center gap-6 lg:gap-10">
+      <!-- 左：N2YO Satellite Tracker -->
+      <div class="flex flex-col items-center shrink-0" id="n2yo-widget-container">
+        <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
+          {lang === 'zh' ? '航天器 · 实时轨道追踪' : 'Spacecraft · Live Tracking'}
+        </p>
+        <div class="n2yo-widget-wrapper rounded-lg overflow-hidden border border-black/[0.06] dark:border-white/[0.08]" style="max-width:420px">
+          <script is:inline>
+            var norad_n2yo = '25544|ISS,20580|HST,50463|JWST,48274|CSS,39479|Gaia';
+            var size_n2yo = 'small';
+            var allpasses_n2yo = '0';
+            var map_n2yo = '4';
+          </script>
+          <script type="text/javascript" src="https://www.n2yo.com/js/widget-tracker.js"></script>
+        </div>
+      </div>
+      <!-- 右：7Timer + 北京当地信息 -->
+      <div class="flex flex-col items-center">
+        <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
+          {lang === 'zh' ? '北京 · 天文气象预报' : 'Beijing · Astro Forecast'} · 7Timer
+        </p>
+        <img
+          src={`https://www.7timer.info/bin/astro.php?lon=116.36&lat=39.96&lang=${lang === 'zh' ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
+          alt={lang === 'zh' ? '天文气象预报' : 'Astro weather forecast'}
+          class="forecast-thumbnail"
+          decoding="async"
+        />
+        <!-- 北京当地信息预留位 -->
+      </div>
     </div>
   </div>
   )}
