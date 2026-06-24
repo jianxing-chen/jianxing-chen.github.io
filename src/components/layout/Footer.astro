@@ -86,6 +86,13 @@ const t = useTranslations(lang);
             var isZh = document.documentElement.lang === 'zh';
             var cacheKey = 'bj-sun-v3-' + new Date().toDateString();
             function fmt(t) { if (!t) return '--:--'; var d = new Date(t); return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); }
+            function fmtMoon(t) {
+              if (!t) return '--:--';
+              var d = new Date(t);
+              var hhmm = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+              if (isZh) return (d.getMonth()+1) + '月' + d.getDate() + '日 ' + hhmm;
+              return d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) + ' ' + hhmm;
+            }
             function display(d) {
               if (!d) return;
               els.rise.textContent = fmt(d.sunrise);
@@ -116,12 +123,12 @@ const t = useTranslations(lang);
                 var illum = SunCalc.getMoonIllumination(now);
                 var phaseIdx = Math.round(illum.phase * 8) % 8;
                 if (!times.alwaysUp) {
-                  els.moonRise.textContent = fmt(times.rise);
+                  els.moonRise.textContent = fmtMoon(times.rise);
                 } else {
                   els.moonRise.textContent = isZh ? '不落' : 'Up all day';
                 }
                 if (!times.alwaysDown) {
-                  els.moonSet.textContent = fmt(times.set);
+                  els.moonSet.textContent = fmtMoon(times.set);
                 } else {
                   els.moonSet.textContent = isZh ? '不升' : 'None';
                 }
