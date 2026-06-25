@@ -298,7 +298,8 @@ body.home-scroll-lock {
 }
 
 /* ── Cover credit 同步渐隐（滑动/按键瞬间触发）── */
-.cover-credit-fading {
+.cover-credit-fading,
+.cover-livedata-fading {
   opacity: 0 !important;
   pointer-events: none;
 }
