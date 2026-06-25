@@ -3,6 +3,7 @@ import { useTranslations, getLocalizedPath, type TranslationKey } from '@/i18n/u
 import ThemeToggle from '@/components/ui/ThemeToggle.astro';
 import LanguageSwitch from '@/components/ui/LanguageSwitch.astro';
 import galleryData from '@/data/gallery.json';
+import { SITE_CONFIG } from '@/config/site';
 
 interface Props {
   lang: string;
@@ -74,7 +75,7 @@ if (isHomepage) {
   headerTimeText = lang === 'zh'
     ? `${bjIsPM ? '下午' : '上午'}${bjH12}:${bjMM}`
     : `${bjH12}:${bjMM} ${bjIsPM ? 'PM' : 'AM'}`;
-  headerTimeLabel = lang === 'zh' ? '北京' : 'Beijing';
+  headerTimeLabel = SITE_CONFIG.location.name[lang === 'zh' ? 'zh' : 'en'];
   const bjTotalMin = bjHH * 60 + now.getUTCMinutes();
   headerHourDeg = ((bjTotalMin / 60) * 30).toFixed(1);
   headerMinDeg = (now.getUTCMinutes() * 6).toFixed(1);
@@ -89,7 +90,7 @@ if (isHomepage) {
   } = await import('@/utils/moon');
   // SunCalc 使用绝对 UTC 时刻
   const moonIllum = getMoonIllumination(now);
-  const moonPos = getMoonPosition(now, 39.9, 116.4);
+  const moonPos = getMoonPosition(now, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng);
   // 北京当天零点 = 最近的 UTC 16:00
   const utc16 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 16, 0, 0);
   const bjMidnight = new Date(now.getTime() >= utc16 ? utc16 : utc16 - 86_400_000);
@@ -97,7 +98,7 @@ if (isHomepage) {
   let _minT = Infinity, _maxT = -Infinity;
   for (let _m = 0; _m < 2880; _m++) {
     const _d = new Date(bjMidnight.getTime() + _m * 30_000);
-    const _t = getMoonIllumination(_d).angle - getMoonPosition(_d, 39.9, 116.4).parallacticAngle;
+    const _t = getMoonIllumination(_d).angle - getMoonPosition(_d, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng).parallacticAngle;
     if (_t < _minT) _minT = _t;
     if (_t > _maxT) _maxT = _t;
   }

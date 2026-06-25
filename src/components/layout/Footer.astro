@@ -26,7 +26,7 @@ const t = useTranslations(lang);
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-10">
       <!-- 左：N2YO Satellite Tracker -->
       <div class="flex flex-col items-center w-full" id="n2yo-widget-container">
-        <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
+        <p class="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase">
           {lang === 'zh' ? '航天器 · 实时轨道追踪' : 'Spacecraft · Live Tracking'}
         </p>
         <div class="n2yo-widget-wrapper w-full rounded-lg overflow-hidden border border-black/[0.06] dark:border-white/[0.08]" style="max-width:420px">
@@ -41,25 +41,25 @@ const t = useTranslations(lang);
       </div>
       <!-- 右：7Timer + 日出日落信息 -->
       <div class="flex flex-col items-center w-full h-full">
-        <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-2 tracking-wide uppercase">
-          {lang === 'zh' ? '北京 · 天文气象预报' : 'Beijing · Astro Forecast'} · 7Timer
+        <p class="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase">
+          {SITE_CONFIG.location.name[lang === 'zh' ? 'zh' : 'en']} · {lang === 'zh' ? '天文气象预报' : 'Astro Forecast'} · 7Timer
         </p>
           <img
-          src={`https://www.7timer.info/bin/astro.php?lon=116.36&lat=39.96&lang=${lang === 'zh' ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
+          src={`https://www.7timer.info/bin/astro.php?lon=${SITE_CONFIG.location.timer7.lng}&lat=${SITE_CONFIG.location.timer7.lat}&lang=${lang === 'zh' ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
           alt={lang === 'zh' ? '天文气象预报' : 'Astro weather forecast'}
           class="forecast-thumbnail w-full"
           style="max-width:420px"
           decoding="async"
         />
         <div class="mt-2 lg:mt-auto w-full" style="max-width:420px">
-        <p class="text-xs text-text-light/40 dark:text-text-dark/30 mb-1.5 tracking-wide uppercase text-center">
+        <p class="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
           {lang === 'zh' ? '日月出没' : 'Sun & Moon'}
         </p>
         <div id="beijing-sun-card"
-             class="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-3 text-xs text-text-light/70 dark:text-text-dark/60"
+             class="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-3 text-xs text-text-light/70 dark:text-text-dark/95"
              style="max-width:420px">
           <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-            <div class="flex justify-between col-span-2"><span class="opacity-50 font-bold">{lang === 'zh' ? '北京 39.9°N 116.4°E' : 'Beijing 39.9°N 116.4°E'}</span><span id="sun-card-date" class="tabular-nums"></span></div>
+            <div class="flex justify-between col-span-2"><span class="opacity-50 font-bold">{SITE_CONFIG.location.name[lang === 'zh' ? 'zh' : 'en']} {SITE_CONFIG.location.lat}°N {SITE_CONFIG.location.lng}°E</span><span id="sun-card-date" class="tabular-nums"></span></div>
             <div class="flex justify-between col-span-2"><span>📜 {lang === 'zh' ? '农历' : 'Lunar'}</span><span id="lunar-date" class="tabular-nums">---</span></div>
             <div class="flex justify-between col-span-2"><span>🌿 {lang === 'zh' ? '节气' : 'Solar Term'}</span><span id="jieqi" class="tabular-nums">---</span></div>
             <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>🌅 {lang === 'zh' ? '日出日落' : 'Sunrise-Sunset'}</span><span class="tabular-nums"><span id="sun-rise">--:--</span> - <span id="sun-set">--:--</span></span></div>
@@ -74,6 +74,7 @@ const t = useTranslations(lang);
           </div>
         </div>
         <script>
+          import { LOCATION } from '@/config/site';
           (function() {
             var card = document.getElementById('beijing-sun-card');
             if (!card) return;
@@ -83,7 +84,7 @@ const t = useTranslations(lang);
               date: document.getElementById('sun-card-date'),
               moonRise: document.getElementById('moon-rise'), moonSet: document.getElementById('moon-set'),
               moonPhase: document.getElementById('moon-phase'), moonIllum: document.getElementById('moon-illum') };
-            var lat = 39.9, lng = 116.4;
+            var lat = LOCATION.lat, lng = LOCATION.lng;
             var isZh = document.documentElement.lang === 'zh';
             var cacheKey = 'bj-sun-v3-' + new Date().toDateString();
             function fmt(t) { if (!t) return '--:--'; var d = new Date(t); return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); }

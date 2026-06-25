@@ -51,7 +51,7 @@ const bjHour12 = bjH % 12 || 12;
 const initialTimeText = lang === 'zh'
   ? `${bjIsPM ? '下午' : '上午'}${bjHour12}:${bjM}`
   : `${bjHour12}:${bjM} ${bjIsPM ? 'PM' : 'AM'}`;
-const initialTimeLabel = lang === 'zh' ? '北京' : 'Beijing';
+const initialTimeLabel = SITE_CONFIG.location.name[lang === 'zh' ? 'zh' : 'en'];
 
 // 时钟指针初始旋转角度
 const bjTotalMin = bjH * 60 + Number(bjM);
@@ -69,7 +69,7 @@ import {
 
 // SunCalc 使用绝对时刻（UTC），与构建机时区无关
 const moonIllum = getMoonIllumination(now);
-const moonPos = getMoonPosition(now, 39.9, 116.4);
+const moonPos = getMoonPosition(now, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng);
 
 // 北京当天零点 = 最近的 UTC 16:00
 const utc16Today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 16, 0, 0);
@@ -80,7 +80,7 @@ function findDailyTiltExtremes(start: Date) {
   let minT = Infinity, maxT = -Infinity;
   for (let m = 0; m < 2880; m++) { // 2880 × 30s = 24h
     const d = new Date(start.getTime() + m * 30_000);
-    const t = getMoonIllumination(d).angle - getMoonPosition(d, 39.9, 116.4).parallacticAngle;
+    const t = getMoonIllumination(d).angle - getMoonPosition(d, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng).parallacticAngle;
     if (t < minT) minT = t;
     if (t > maxT) maxT = t;
   }
@@ -183,6 +183,7 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
 </button>
 
 <script>
+  import { LOCATION } from '@/config/site';
   // ── 北京时间 — 独立运行，最早执行 ──
   (function initBeijingTime() {
     const getByIds = <T extends Element>(ids: string[]): T[] =>
@@ -225,7 +226,7 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
       let minT = Infinity, maxT = -Infinity;
       for (let m = 0; m < 2880; m++) {
         const d = new Date(todayStart.getTime() + m * 30_000);
-        const t = sunCalc.getMoonIllumination(d).angle - sunCalc.getMoonPosition(d, 39.9, 116.4).parallacticAngle;
+        const t = sunCalc.getMoonIllumination(d).angle - sunCalc.getMoonPosition(d, LOCATION.lat, LOCATION.lng).parallacticAngle;
         if (t < minT) minT = t;
         if (t > maxT) maxT = t;
       }
@@ -244,7 +245,7 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
       }
       const { min: tiltMin, max: tiltMax, range: tiltRange } = cachedExtremes;
       const il = sunCalcMod.getMoonIllumination(bjNow);
-      const pos = sunCalcMod.getMoonPosition(bjNow, 39.9, 116.4);
+      const pos = sunCalcMod.getMoonPosition(bjNow, LOCATION.lat, LOCATION.lng);
       const tiltNow = il.angle - pos.parallacticAngle;
       const totalSwing = 360 - 2 * Math.abs(tiltMin);
       const scaleR = tiltRange !== 0 ? totalSwing / tiltRange : 1;

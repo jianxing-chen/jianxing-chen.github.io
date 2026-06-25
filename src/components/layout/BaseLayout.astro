@@ -43,14 +43,14 @@ const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud
 const { getMoonIllumination: favMoonIllum, getMoonPosition: favMoonPos } = await import('suncalc');
 const _now = new Date();
 const _il = favMoonIllum(_now);
-const _pos = favMoonPos(_now, 39.9, 116.4);
+const _pos = favMoonPos(_now, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng);
 // 北京当天零点 = 最近的 UTC 16:00
 const _utc16 = Date.UTC(_now.getUTCFullYear(), _now.getUTCMonth(), _now.getUTCDate(), 16, 0, 0);
 const _bjMid = new Date(_now.getTime() >= _utc16 ? _utc16 : _utc16 - 86_400_000);
 let _tMin = Infinity, _tMax = -Infinity;
 for (let _m = 0; _m < 24; _m++) { // 每小时采样（SSR 仅占位，客户端 SunCalc 秒级覆盖）
   const _d = new Date(_bjMid.getTime() + _m * 3_600_000);
-  const _t = favMoonIllum(_d).angle - favMoonPos(_d, 39.9, 116.4).parallacticAngle;
+  const _t = favMoonIllum(_d).angle - favMoonPos(_d, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng).parallacticAngle;
   if (_t < _tMin) _tMin = _t;
   if (_t > _tMax) _tMax = _t;
 }
@@ -85,6 +85,7 @@ const faviconDataUri = 'data:image/svg+xml,' + encodeURIComponent(
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E3F75" />
     <link rel="icon" type="image/svg+xml" id="favicon-link" href={faviconDataUri} />
     <script>
+      import { LOCATION } from '@/config/site';
       (async function() {
         const favicon = document.getElementById('favicon-link');
         if (!favicon) return;
@@ -92,13 +93,13 @@ const faviconDataUri = 'data:image/svg+xml,' + encodeURIComponent(
         function pt(f,w,r){r=r||10;var x=Math.max(Math.abs(r*(1-2*f)),0.000001);var c=w?0:1;var t=w?(f<0.5?1:0):(f<0.5?0:1);return'M 12 '+(12-r)+' A '+r+' '+r+' 0 0 '+c+' 12 '+(12+r)+' A '+x+' '+r+' 0 0 '+t+' 12 '+(12-r)+' Z'}
         var cached;
         function u(){
-          var d=new Date(),i=m.getMoonIllumination(d),p=m.getMoonPosition(d,39.9,116.4);
+          var d=new Date(),i=m.getMoonIllumination(d),p=m.getMoonPosition(d,LOCATION.lat,LOCATION.lng);
           var utc16=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),16,0,0);
           var bjMid=new Date(d.getTime()>=utc16?utc16:utc16-86400000);
           var key=bjMid.toISOString().slice(0,10);
           if(!cached||cached.key!==key){
             var tMin=Infinity,tMax=-Infinity;
-            for(var _m=0;_m<288;_m++){var _d=new Date(bjMid.getTime()+_m*300000);var _t=m.getMoonIllumination(_d).angle-m.getMoonPosition(_d,39.9,116.4).parallacticAngle;if(_t<tMin)tMin=_t;if(_t>tMax)tMax=_t;}
+            for(var _m=0;_m<288;_m++){var _d=new Date(bjMid.getTime()+_m*300000);var _t=m.getMoonIllumination(_d).angle-m.getMoonPosition(_d,LOCATION.lat,LOCATION.lng).parallacticAngle;if(_t<tMin)tMin=_t;if(_t>tMax)tMax=_t;}
             cached={key:key,min:tMin,max:tMax,range:tMax-tMin};
           }
           var tNow=i.angle-p.parallacticAngle,swing=360-2*Math.abs(cached.min),sr=cached.range?swing/cached.range:1;
