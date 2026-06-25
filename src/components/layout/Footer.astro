@@ -60,7 +60,7 @@ const t = useTranslations(lang);
              style="max-width:420px">
           <div class="grid grid-cols-2 gap-x-4 gap-y-1">
             <div class="flex justify-between col-span-2"><span class="opacity-50 font-bold">{lang === 'zh' ? '北京 39.9°N 116.4°E' : 'Beijing 39.9°N 116.4°E'}</span><span id="sun-card-date" class="tabular-nums"></span></div>
-            <div class="flex justify-between col-span-2"><span>📜 {lang === 'zh' ? '农历' : 'Chinese Calendar'}</span><span id="lunar-date" class="tabular-nums">---</span></div>
+            <div class="flex justify-between col-span-2"><span>📜 {lang === 'zh' ? '农历' : 'Lunar'}</span><span id="lunar-date" class="tabular-nums">---</span></div>
             <div class="flex justify-between col-span-2"><span>🌿 {lang === 'zh' ? '节气' : 'Solar Term'}</span><span id="jieqi" class="tabular-nums">---</span></div>
             <div class="flex justify-between col-span-2"><span>🌅 {lang === 'zh' ? '日出日落' : 'Sunrise-Sunset'}</span><span class="tabular-nums"><span id="sun-rise">--:--</span> - <span id="sun-set">--:--</span></span></div>
             <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>☀️ {lang === 'zh' ? '正午 · 昼长' : 'Noon · Day'}</span><span id="sun-noon-day" class="tabular-nums">--:-- · --h --m</span></div>
@@ -132,7 +132,7 @@ const t = useTranslations(lang);
                 var mNum = lunar.getMonth();
                 var isLeap = mNum < 0;
                 var sx = SHENGXIAO_EN[lunar.getYearShengXiao()] || lunar.getYearShengXiao();
-                el.textContent = 'Year of the ' + sx + ', ' + (isLeap ? 'Leap ' : '') + 'Month ' + Math.abs(mNum) + ', Day ' + lunar.getDay();
+                el.textContent = sx + ' · ' + (isLeap ? 'Leap ' : '') + 'M' + Math.abs(mNum) + ' D' + lunar.getDay();
               }
               // 节气
               var jqEl = document.getElementById('jieqi');
