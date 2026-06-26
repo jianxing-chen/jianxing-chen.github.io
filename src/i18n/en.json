@@ -15,7 +15,6 @@
   "site.title": "Jianxing\u2019s Homepage",
   "site.description": "Personal academic website built with Astro",
   "footer.copyright": "© 2026 Jianxing Chen. All rights reserved.",
-  "footer.powered_by": "Powered by Astro",
   "about.title": "About Me",
   "about.section.cv": "CV",
   "about.section.publications": "Publications",

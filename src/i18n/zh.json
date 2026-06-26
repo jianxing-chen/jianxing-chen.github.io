@@ -15,7 +15,6 @@
   "site.title": "剑星的主页",
   "site.description": "基于 Astro 构建的个人学术网站",
   "footer.copyright": "© 2026 陈剑星 (Jianxing Chen). 保留所有权利。",
-  "footer.powered_by": "由 Astro 驱动",
   "about.title": "关于我",
   "about.section.cv": "简历",
   "about.section.publications": "论文",
