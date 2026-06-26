@@ -36,7 +36,27 @@ const t = useTranslations(lang);
             var allpasses_n2yo = '0';
             var map_n2yo = '4';
           </script>
-          <script type="text/javascript" src="https://www.n2yo.com/js/widget-tracker.js"></script>
+          <script is:inline>
+            // 延迟加载 N2YO widget，避免其 script 阻塞页面 load（标签 spinner 转到 load 才停）
+            // widget-tracker.js 用 document.write，需劫持重定向到容器，否则 load 后会清空文档
+            (function() {
+              var wrapper = document.currentScript && document.currentScript.parentElement;
+              if (!wrapper || !wrapper.classList.contains('n2yo-widget-wrapper')) {
+                wrapper = document.querySelector('.n2yo-widget-wrapper');
+              }
+              if (!wrapper) return;
+              function loadN2YO() {
+                var origWrite = document.write.bind(document);
+                document.write = function(html) { wrapper.insertAdjacentHTML('beforeend', html); };
+                var s = document.createElement('script');
+                s.src = 'https://www.n2yo.com/js/widget-tracker.js';
+                s.onload = s.onerror = function() { document.write = origWrite; };
+                document.body.appendChild(s);
+              }
+              if (document.readyState === 'complete') loadN2YO();
+              else window.addEventListener('load', loadN2YO);
+            })();
+          </script>
         </div>
       </div>
       <!-- 右：7Timer + 日出日落信息 -->
@@ -49,6 +69,7 @@ const t = useTranslations(lang);
           alt={lang === 'zh' ? '天文气象预报' : 'Astro weather forecast'}
           class="forecast-thumbnail w-full"
           style="max-width:420px"
+          loading="lazy"
           decoding="async"
         />
         <div class="mt-2 lg:mt-auto w-full" style="max-width:420px">
