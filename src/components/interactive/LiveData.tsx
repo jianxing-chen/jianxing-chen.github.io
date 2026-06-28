@@ -625,12 +625,12 @@ export default function LiveData({ lang }: Props) {
                         days.push({ label, maxTemp: f.maxTemp, minTemp: f.minTemp, code: f.code, rain: f.rainChance, isYesterday: false });
                       });
 
-                      const W = 300, H = 170;
-                      const padT = 20, padB = 56, padX = 28;
+                      const W = 300, H = 182;
+                      const padT = 20, padB = 68, padX = 28;
                       const chartH = H - padT - padB;
                       const temps = days.flatMap(d => [d.maxTemp, d.minTemp]);
-                      const tMin = Math.min(...temps) - 3;
-                      const tMax = Math.max(...temps) + 3;
+                      const tMin = Math.min(...temps) - 4;
+                      const tMax = Math.max(...temps) + 4;
                       const tRange = Math.max(tMax - tMin, 1);
                       const stepX = days.length > 1 ? (W - 2 * padX) / (days.length - 1) : 0;
                       const xOf = (i: number) => padX + i * stepX;
