@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  LOCATION_PRESETS,
+  CHINA_LOCATION_PRESETS,
+  INTERNATIONAL_LOCATION_PRESETS,
   DEFAULT_TOOL_LOCATION,
   LOCATION_STORAGE_KEY,
   estimateTimezone,
@@ -110,9 +111,14 @@ export default function LiveData({ lang }: Props) {
   const [location, setLocation] = useState<ToolLocationPreset>(() =>
     loadSavedLocation() || DEFAULT_TOOL_LOCATION
   );
-  const [showManual, setShowManual] = useState(false);
   const [manualLat, setManualLat] = useState(location.lat.toString());
   const [manualLng, setManualLng] = useState(location.lng.toString());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{
+    name: string; latitude: number; longitude: number;
+    country?: string; admin1?: string; timezone?: string;
+  }>>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const n2yoRef = useRef<HTMLDivElement>(null);
   const n2yoLoaded = useRef(false);
 
@@ -140,7 +146,8 @@ export default function LiveData({ lang }: Props) {
   const selectLocation = useCallback((loc: ToolLocationPreset) => {
     setLocation(loc);
     saveLocation(loc);
-    setShowManual(false);
+    setManualLat(loc.lat.toString());
+    setManualLng(loc.lng.toString());
   }, []);
 
   const handleManualSave = useCallback(() => {
@@ -161,6 +168,29 @@ export default function LiveData({ lang }: Props) {
     setManualLat(DEFAULT_TOOL_LOCATION.lat.toString());
     setManualLng(DEFAULT_TOOL_LOCATION.lng.toString());
   }, [selectLocation]);
+
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query.trim()) { setSearchResults([]); return; }
+    setSearchLoading(true);
+    try {
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=${isZh ? 'zh' : 'en'}`
+      );
+      const data = await res.json();
+      setSearchResults(data.results || []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [isZh]);
+
+  const applySearchResult = useCallback((r: { name: string; latitude: number; longitude: number; timezone?: string }) => {
+    setManualLng(r.longitude.toString());
+    setManualLat(r.latitude.toString());
+    setSearchQuery('');
+    setSearchResults([]);
+  }, []);
 
   // ── N2YO Widget loader ──
   useEffect(() => {
@@ -526,187 +556,152 @@ export default function LiveData({ lang }: Props) {
 
   return (
     <div>
-      {/* ── Location Selector ── */}
-      <div className="mb-8">
+      {/* ── Location Selector (fixed in left margin on xl+) ── */}
+      <div className="mb-8 xl:mb-0 xl:fixed xl:left-[calc(50%_-_38.5rem)] xl:top-32 xl:w-40 xl:z-10">
         <h3 className="text-lg font-semibold text-heading-light dark:text-heading-dark mb-3">
           {isZh ? '选择地点' : 'Select Location'}
         </h3>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {LOCATION_PRESETS.map((preset) => (
-            <button
-              key={preset.name.en}
-              onClick={() => selectLocation(preset)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-all duration-150 cursor-pointer ${
-                location.name.en === preset.name.en
-                  ? 'bg-primary-light/10 dark:bg-primary-dark/15 border-primary-light/30 dark:border-primary-dark/30 text-primary-light dark:text-primary-dark font-medium'
-                  : 'bg-white/50 dark:bg-white/[0.03] border-slate-200/80 dark:border-white/[0.08] hover:border-primary-light/20 dark:hover:border-primary-dark/20 text-text-light/70 dark:text-text-dark/70'
-              }`}
-            >
-              {preset.name[isZh ? 'zh' : 'en']}{' '}
-              <span className="opacity-50 text-xs">{getUtcOffset(preset.tz)}</span>
-            </button>
-          ))}
-          <button
-            onClick={() => setShowManual(!showManual)}
-            className={`px-3 py-1.5 text-sm rounded-lg border transition-all duration-150 cursor-pointer ${
-              showManual
-                ? 'bg-primary-light/10 dark:bg-primary-dark/15 border-primary-light/30 dark:border-primary-dark/30 text-primary-light dark:text-primary-dark'
-                : 'bg-white/50 dark:bg-white/[0.03] border-slate-200/80 dark:border-white/[0.08] hover:border-primary-light/20 dark:hover:border-primary-dark/20 text-text-light/70 dark:text-text-dark/70'
-            }`}
+        <div className="space-y-2 mb-3">
+          <select
+            value={CHINA_LOCATION_PRESETS.find(p => p.name.en === location.name.en)?.name.en ?? ''}
+            onChange={(e) => {
+              const preset = CHINA_LOCATION_PRESETS.find(p => p.name.en === e.target.value);
+              if (preset) selectLocation(preset);
+            }}
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-200/80 dark:border-white/[0.08]
+                       bg-white/50 dark:bg-white/[0.03] text-text-light dark:text-text-dark
+                       cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary-light/30 dark:focus:ring-primary-dark/30"
           >
-            {isZh ? '手动输入' : 'Manual Input'}
-          </button>
+            <option value="" disabled>{isZh ? '中国城市' : 'China Cities'}</option>
+            {CHINA_LOCATION_PRESETS.map(preset => (
+              <option key={preset.name.en} value={preset.name.en}>
+                {preset.name[isZh ? 'zh' : 'en']} ({getUtcOffset(preset.tz)})
+              </option>
+            ))}
+          </select>
+          <select
+            value={INTERNATIONAL_LOCATION_PRESETS.find(p => p.name.en === location.name.en)?.name.en ?? ''}
+            onChange={(e) => {
+              const preset = INTERNATIONAL_LOCATION_PRESETS.find(p => p.name.en === e.target.value);
+              if (preset) selectLocation(preset);
+            }}
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-200/80 dark:border-white/[0.08]
+                       bg-white/50 dark:bg-white/[0.03] text-text-light dark:text-text-dark
+                       cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary-light/30 dark:focus:ring-primary-dark/30"
+          >
+            <option value="" disabled>{isZh ? '国际城市' : 'International Cities'}</option>
+            {INTERNATIONAL_LOCATION_PRESETS.map(preset => (
+              <option key={preset.name.en} value={preset.name.en}>
+                {preset.name[isZh ? 'zh' : 'en']} ({getUtcOffset(preset.tz)})
+              </option>
+            ))}
+          </select>
         </div>
 
-        {showManual && (
-          <div className="flex flex-wrap items-end gap-3 p-4 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-white/40 dark:bg-white/[0.02]">
-            <div>
-              <label className="block text-xs text-text-light/50 dark:text-text-dark/50 mb-1">
-                {isZh ? '纬度' : 'Latitude'} (-90 ~ 90)
-              </label>
+          {/* Location search */}
+          <div className="mb-3">
+            <div className="flex gap-1">
               <input
-                type="number"
-                value={manualLat}
-                onChange={(e) => setManualLat(e.target.value)}
-                step="0.01"
-                min="-90"
-                max="90"
-                className="w-28 px-2 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(searchQuery); }}
+                placeholder={isZh ? '搜索地名' : 'Search place'}
+                className="flex-1 min-w-0 px-2 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
                            bg-white dark:bg-white/5 text-text-light dark:text-text-dark
                            focus:outline-none focus:ring-1 focus:ring-primary-light/30 dark:focus:ring-primary-dark/30"
               />
+              <button
+                onClick={() => handleSearch(searchQuery)}
+                className="px-2 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
+                           bg-white/50 dark:bg-white/[0.03] text-text-light/70 dark:text-text-dark/70
+                           hover:text-text-light dark:hover:text-text-dark
+                           hover:border-primary-light/20 dark:hover:border-primary-dark/20
+                           transition-all cursor-pointer flex-shrink-0"
+              >
+                🔍
+              </button>
             </div>
-            <div>
-              <label className="block text-xs text-text-light/50 dark:text-text-dark/50 mb-1">
-                {isZh ? '经度' : 'Longitude'} (-180 ~ 180)
-              </label>
-              <input
-                type="number"
-                value={manualLng}
-                onChange={(e) => setManualLng(e.target.value)}
-                step="0.01"
-                min="-180"
-                max="180"
-                className="w-28 px-2 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
-                           bg-white dark:bg-white/5 text-text-light dark:text-text-dark
-                           focus:outline-none focus:ring-1 focus:ring-primary-light/30 dark:focus:ring-primary-dark/30"
-              />
-            </div>
-            <button
-              onClick={handleManualSave}
-              className="px-4 py-1.5 text-sm rounded-md bg-primary-light text-white dark:bg-primary-dark
-                         hover:opacity-90 transition-opacity cursor-pointer"
-            >
-              {isZh ? '保存' : 'Save'}
-            </button>
-            <button
-              onClick={resetToDefault}
-              className="px-4 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
-                         text-text-light/60 dark:text-text-dark/60
-                         hover:text-text-light dark:hover:text-text-dark transition-colors cursor-pointer"
-            >
-              {isZh ? '恢复默认' : 'Reset to Default'}
-            </button>
+            {searchLoading && (
+              <p className="text-xs text-text-light/40 dark:text-text-dark/40 mt-1">{isZh ? '搜索中…' : 'Searching…'}</p>
+            )}
+            {searchResults.length > 0 && (
+              <ul className="mt-1 space-y-1">
+                {searchResults.map((r, i) => (
+                  <li key={i}>
+                    <button
+                      onClick={() => applySearchResult(r)}
+                      className="w-full text-left px-2 py-1 text-xs rounded-md border border-slate-200/80 dark:border-white/[0.08]
+                                 bg-white/50 dark:bg-white/[0.03] hover:border-primary-light/20 dark:hover:border-primary-dark/20
+                                 text-text-light/70 dark:text-text-dark/70 hover:text-text-light dark:hover:text-text-dark
+                                 cursor-pointer transition-all"
+                    >
+                      {r.name}
+                      {r.admin1 && <span className="opacity-50">, {r.admin1}</span>}
+                      {r.country && <span className="opacity-50">, {r.country}</span>}
+                      <span className="opacity-40 ml-1">{r.latitude.toFixed(2)}°, {r.longitude.toFixed(2)}°</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        )}
-      </div>
+
+          <div className="flex flex-wrap xl:flex-col items-end xl:items-stretch gap-3 p-4 rounded-lg border border-slate-200/80 dark:border-white/[0.08] bg-white/40 dark:bg-white/[0.02]">
+              <div>
+                <label className="block text-xs text-text-light/50 dark:text-text-dark/50 mb-1">
+                  {isZh ? '经度' : 'Longitude'} (-180 ~ 180)
+                </label>
+                <input
+                  type="number"
+                  value={manualLng}
+                  onChange={(e) => setManualLng(e.target.value)}
+                  step="0.01"
+                  min="-180"
+                  max="180"
+                  className="w-28 px-2 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
+                             bg-white dark:bg-white/5 text-text-light dark:text-text-dark
+                             focus:outline-none focus:ring-1 focus:ring-primary-light/30 dark:focus:ring-primary-dark/30"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-text-light/50 dark:text-text-dark/50 mb-1">
+                  {isZh ? '纬度' : 'Latitude'} (-90 ~ 90)
+                </label>
+                <input
+                  type="number"
+                  value={manualLat}
+                  onChange={(e) => setManualLat(e.target.value)}
+                  step="0.01"
+                  min="-90"
+                  max="90"
+                  className="w-28 px-2 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
+                             bg-white dark:bg-white/5 text-text-light dark:text-text-dark
+                             focus:outline-none focus:ring-1 focus:ring-primary-light/30 dark:focus:ring-primary-dark/30"
+                />
+              </div>
+              <button
+                onClick={handleManualSave}
+                className="px-4 py-1.5 text-sm rounded-md bg-primary-light text-white dark:bg-primary-dark
+                           hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                {isZh ? '保存' : 'Save'}
+              </button>
+              <button
+                onClick={resetToDefault}
+                className="px-4 py-1.5 text-sm rounded-md border border-slate-200 dark:border-white/10
+                           text-text-light/60 dark:text-text-dark/60
+                           hover:text-text-light dark:hover:text-text-dark transition-colors cursor-pointer"
+              >
+                {isZh ? '重置' : 'Reset'}
+              </button>
+            </div>
+        </div>
 
       {/* ── Live Data Content ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left column: Windy + N2YO */}
+        {/* Left column: Sun Position + Windy + N2YO */}
         <div className="space-y-6">
-          {/* Windy Weather Map */}
-          <div>
-            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
-              {locName} · {isZh ? '实时气象' : 'Live Weather'} · Windy
-            </p>
-            <iframe
-              key={`windy-${location.lat}-${location.lng}`}
-              src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=m/s&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=${location.lat}&lon=${location.lng}&detailLat=${location.lat}&detailLon=${location.lng}&detail=true&message=true`}
-              width="100%"
-              height="450"
-              frameBorder="0"
-              className="rounded-lg"
-              loading="lazy"
-              title="Windy weather map"
-            />
-          </div>
-
-          {/* N2YO Satellite Tracker */}
-          <div>
-            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
-              {isZh ? '航天器 · 实时轨道追踪' : 'Spacecraft · Live Tracking'}
-            </p>
-            <div
-              ref={n2yoRef}
-              className="n2yo-widget-wrapper w-full rounded-lg overflow-hidden border border-black/[0.06] dark:border-white/[0.08]"
-            />
-          </div>
-        </div>
-
-        {/* Right column: Sun & Moon + 7Timer */}
-        <div className="space-y-6">
-          {/* Sun & Moon Card */}
-          <div>
-            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
-              {isZh ? '日月出没' : 'Sun & Moon'} · {getUtcOffset(location.tz)}
-            </p>
-            <div
-              className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-3 text-xs text-text-light/70 dark:text-text-dark/95"
-            >
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="flex justify-between col-span-2">
-                  <span className="opacity-50 font-bold">{locName} {location.lat}°N {location.lng}°E</span>
-                  <span id="ld-date" className="tabular-nums"></span>
-                </div>
-                <div className="flex justify-between col-span-2">
-                  <span>📜 {isZh ? '农历' : 'Lunar'}</span>
-                  <span id="ld-lunar" className="tabular-nums">---</span>
-                </div>
-                <div className="flex justify-between col-span-2">
-                  <span>🌿 {isZh ? '节气' : 'Solar Term'}</span>
-                  <span id="ld-jieqi" className="tabular-nums">---</span>
-                </div>
-                <div className="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5">
-                  <span>🌅 {isZh ? '日出日落' : 'Sunrise-Sunset'}</span>
-                  <span className="tabular-nums"><span id="ld-sun-rise">--:--</span> - <span id="ld-sun-set">--:--</span></span>
-                </div>
-                <div className="flex justify-between col-span-2">
-                  <span>☀️ {isZh ? '正午 · 昼长' : 'Noon · Day'}</span>
-                  <span id="ld-sun-noon" className="tabular-nums">--:-- · --h --m</span>
-                </div>
-                <div className="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5">
-                  <span>🌆 {isZh ? '民用晨光' : 'Civil Dawn'}</span>
-                  <span id="ld-sun-civil" className="tabular-nums">--:-- → --:--</span>
-                </div>
-                <div className="flex justify-between col-span-2">
-                  <span>🌃 {isZh ? '航海晨光' : 'Nautical'}</span>
-                  <span id="ld-sun-naut" className="tabular-nums">--:-- → --:--</span>
-                </div>
-                <div className="flex justify-between col-span-2">
-                  <span>🌌 {isZh ? '天文晨光' : 'Astro'}</span>
-                  <span id="ld-sun-astro" className="tabular-nums">--:-- → --:--</span>
-                </div>
-                {/* Moon info */}
-                <div className="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5">
-                  <span>🌙 {isZh ? '月出' : 'Moonrise'}</span>
-                  <span id="ld-moon-rise" className="tabular-nums">--:--</span>
-                </div>
-                <div className="flex justify-between col-span-2">
-                  <span>🌑 {isZh ? '月落' : 'Moonset'}</span>
-                  <span id="ld-moon-set" className="tabular-nums">--:--</span>
-                </div>
-                <div className="flex justify-between col-span-2">
-                  <span>🌔 {isZh ? '月相' : 'Phase'}</span>
-                  <span><span id="ld-moon-phase" className="tabular-nums">---</span> · <span id="ld-moon-illum" className="tabular-nums">--</span>%</span>
-                </div>
-              </div>
-              <p className="text-right mt-1.5 text-[10px] opacity-30">
-                <a href="https://sunrise-sunset.org/api" target="_blank" rel="noopener noreferrer">sunrise-sunset.org</a>
-              </p>
-            </div>
-          </div>
-
           {/* Sun Position Diagram */}
           <div>
             <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
@@ -828,6 +823,98 @@ export default function LiveData({ lang }: Props) {
               })() : (
                 <div className="text-center py-8 opacity-30 text-sm">{isZh ? '计算太阳位置…' : 'Computing sun position…'}</div>
               )}
+            </div>
+          </div>
+
+          {/* Windy Weather Map */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '实时气象' : 'Live Weather'} · Windy
+            </p>
+            <iframe
+              key={`windy-${location.lat}-${location.lng}`}
+              src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=m/s&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=${location.lat}&lon=${location.lng}&detailLat=${location.lat}&detailLon=${location.lng}&detail=true&message=true`}
+              width="100%"
+              height="450"
+              frameBorder="0"
+              className="rounded-lg"
+              loading="lazy"
+              title="Windy weather map"
+            />
+          </div>
+
+          {/* N2YO Satellite Tracker */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
+              {isZh ? '航天器 · 实时轨道追踪' : 'Spacecraft · Live Tracking'}
+            </p>
+            <div
+              ref={n2yoRef}
+              className="n2yo-widget-wrapper w-full rounded-lg overflow-hidden border border-black/[0.06] dark:border-white/[0.08]"
+            />
+          </div>
+        </div>
+
+        {/* Right column: Sun & Moon + 7Timer */}
+        <div className="space-y-6">
+          {/* Sun & Moon Card */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
+              {isZh ? '日月出没' : 'Sun & Moon'} · {getUtcOffset(location.tz)}
+            </p>
+            <div
+              className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-3 text-xs text-text-light/70 dark:text-text-dark/95"
+            >
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div className="flex justify-between col-span-2">
+                  <span className="opacity-50 font-bold">{locName} {location.lat}°N {location.lng}°E</span>
+                  <span id="ld-date" className="tabular-nums"></span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span>📜 {isZh ? '农历' : 'Lunar'}</span>
+                  <span id="ld-lunar" className="tabular-nums">---</span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span>🌿 {isZh ? '节气' : 'Solar Term'}</span>
+                  <span id="ld-jieqi" className="tabular-nums">---</span>
+                </div>
+                <div className="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5">
+                  <span>🌅 {isZh ? '日出日落' : 'Sunrise-Sunset'}</span>
+                  <span className="tabular-nums"><span id="ld-sun-rise">--:--</span> - <span id="ld-sun-set">--:--</span></span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span>☀️ {isZh ? '正午 · 昼长' : 'Noon · Day'}</span>
+                  <span id="ld-sun-noon" className="tabular-nums">--:-- · --h --m</span>
+                </div>
+                <div className="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5">
+                  <span>🌆 {isZh ? '民用晨光' : 'Civil Dawn'}</span>
+                  <span id="ld-sun-civil" className="tabular-nums">--:-- → --:--</span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span>🌃 {isZh ? '航海晨光' : 'Nautical'}</span>
+                  <span id="ld-sun-naut" className="tabular-nums">--:-- → --:--</span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span>🌌 {isZh ? '天文晨光' : 'Astro'}</span>
+                  <span id="ld-sun-astro" className="tabular-nums">--:-- → --:--</span>
+                </div>
+                {/* Moon info */}
+                <div className="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5">
+                  <span>🌙 {isZh ? '月出' : 'Moonrise'}</span>
+                  <span id="ld-moon-rise" className="tabular-nums">--:--</span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span>🌑 {isZh ? '月落' : 'Moonset'}</span>
+                  <span id="ld-moon-set" className="tabular-nums">--:--</span>
+                </div>
+                <div className="flex justify-between col-span-2">
+                  <span>🌔 {isZh ? '月相' : 'Phase'}</span>
+                  <span><span id="ld-moon-phase" className="tabular-nums">---</span> · <span id="ld-moon-illum" className="tabular-nums">--</span>%</span>
+                </div>
+              </div>
+              <p className="text-right mt-1.5 text-[10px] opacity-30">
+                <a href="https://sunrise-sunset.org/api" target="_blank" rel="noopener noreferrer">sunrise-sunset.org</a>
+              </p>
             </div>
           </div>
 
@@ -1137,6 +1224,67 @@ export default function LiveData({ lang }: Props) {
               decoding="async"
             />
           </div>
+        </div>
+      </div>
+
+      {/* ── Right sidebar: Quick Links (fixed in right margin on xl+) ── */}
+      <div className="mt-8 xl:mt-0 xl:fixed xl:right-[calc(50%_-_38.5rem)] xl:top-32 xl:w-40 xl:z-10">
+        <h3 className="text-lg font-semibold text-heading-light dark:text-heading-dark mb-3">
+          {isZh ? '常用链接' : 'Quick Links'}
+        </h3>
+        <div className="grid grid-cols-2 xl:grid-cols-1 gap-2">
+          {[
+            {
+              icon: '🛰️',
+              name: { en: 'Heavens Above', zh: 'Heavens Above' },
+              url: `https://www.heavens-above.com/PassSummary.aspx?lat=${location.lat}&lng=${location.lng}&loc=${encodeURIComponent(location.name[isZh ? 'zh' : 'en'])}&alt=0`,
+            },
+            {
+              icon: '☀️',
+              name: { en: 'Clear Outside', zh: 'Clear Outside' },
+              url: `https://clearoutside.com/forecast/${location.lat.toFixed(2)}/${location.lng.toFixed(2)}`,
+            },
+            {
+              icon: '💡',
+              name: { en: 'Light Pollution', zh: '光污染地图' },
+              url: `https://lightpollutionmap.info/#zoom=10.00&lat=${location.lat}&lon=${location.lng}`,
+            },
+            {
+              icon: '🌐',
+              name: { en: 'Time and Date', zh: 'Time and Date' },
+              url: 'https://www.timeanddate.com/astronomy/',
+            },
+            {
+              icon: '⭐',
+              name: { en: 'Stellarium Web', zh: 'Stellarium 星图' },
+              url: 'https://stellarium-web.org/',
+            },
+            {
+              icon: '🌌',
+              name: { en: 'SpaceWeatherLive', zh: '太阳活动' },
+              url: 'https://www.spaceweatherlive.com/',
+            },
+            {
+              icon: '🎇',
+              name: { en: 'Aurora Forecast', zh: '极光预报' },
+              url: 'https://www.spaceweather.gov/products/aurora-30-minute-forecast',
+            },
+          ].map((link) => (
+            <a
+              key={link.name.en}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border transition-all duration-150
+                         bg-white/50 dark:bg-white/[0.03] border-slate-200/80 dark:border-white/[0.08]
+                         hover:border-primary-light/20 dark:hover:border-primary-dark/20
+                         text-text-light/70 dark:text-text-dark/70
+                         hover:text-text-light dark:hover:text-text-dark"
+            >
+              <span className="text-base">{link.icon}</span>
+              <span className="truncate">{link.name[isZh ? 'zh' : 'en']}</span>
+            </a>
+          ))}
         </div>
       </div>
     </div>
