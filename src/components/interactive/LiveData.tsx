@@ -1322,6 +1322,11 @@ export default function LiveData({ lang }: Props) {
               name: { en: 'Skyline Webcams', zh: '实景摄像头' },
               url: 'https://www.skylinewebcams.com/',
             },
+            {
+              icon: '🔭',
+              name: { en: 'Nova Astrometry', zh: '星图解析' },
+              url: 'https://nova.astrometry.net/upload',
+            },
           ].map((link) => (
             <a
               key={link.name.en}
