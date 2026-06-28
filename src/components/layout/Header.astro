@@ -27,7 +27,7 @@ const navItems: Array<{
   key: TranslationKey;
   path: string;
   label?: string;
-  children?: Array<{ key?: TranslationKey; hash: string; label?: string }>;
+  children?: Array<{ key?: TranslationKey; hash?: string; path?: string; label?: string }>;
 }> = [
   { key: 'nav.home', path: '/' },
   { key: 'nav.about', path: '/about/', children: [
@@ -41,6 +41,9 @@ const navItems: Array<{
     { key: 'nav.research.data_products', hash: '#data-products' },
   ]},
   { key: 'nav.blog', path: '/blog/' },
+  { key: 'nav.tools', path: '/tools/', children: [
+    { key: 'nav.tools.live_data', path: '/tools/live-data/' },
+  ]},
   { key: 'nav.gallery', path: '/gallery/', children: galleryCountries },
 ];
 
@@ -226,7 +229,7 @@ if (isHomepage) {
                 <div class="desktop-dropdown-scroll max-h-[60vh] overflow-y-auto py-1.5">
                   {item.children.map((child) => (
                     <a
-                      href={`${getLocalizedPath(item.path, lang)}${child.hash}`}
+                      href={child.path ? getLocalizedPath(child.path, lang) : `${getLocalizedPath(item.path, lang)}${child.hash}`}
                             class="desktop-dropdown-link block px-4 py-2 text-sm
                              text-text-light dark:text-text-dark
                              hover:text-primary-light dark:hover:text-primary-dark
@@ -324,7 +327,7 @@ if (isHomepage) {
             <div class="mobile-dropdown-panel overflow-hidden max-h-0 transition-all duration-200 ease-in-out">
               {item.children.map((child) => (
                 <a
-                  href={`${getLocalizedPath(item.path, lang)}${child.hash}`}
+                  href={child.path ? getLocalizedPath(child.path, lang) : `${getLocalizedPath(item.path, lang)}${child.hash}`}
                   class="mobile-nav-link block pl-6 pr-3 py-2 rounded-md text-sm
                          text-text-light/70 dark:text-text-dark/70
                          hover:text-primary-light dark:hover:text-primary-dark

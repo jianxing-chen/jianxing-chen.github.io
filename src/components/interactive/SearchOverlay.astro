@@ -22,6 +22,7 @@ import papers from '@/content/publications/papers.json';
 import type { Paper } from '@/types/publication';
 import newsData from '@/data/news.json';
 import galleryData from '@/data/gallery.json';
+import { tools as toolRegistry } from '@/config/tools';
 
 interface Props {
   lang: string;
@@ -40,7 +41,7 @@ interface SearchEntry {
   id: string;
   title: string;
   href: string;
-  kind: 'paper' | 'blog' | 'research' | 'news' | 'photo' | 'catalog' | 'page';
+  kind: 'paper' | 'blog' | 'research' | 'news' | 'photo' | 'catalog' | 'page' | 'tool';
   section: string;
   subsection?: string;
   meta?: string;         // 额外信息行（作者、日期、标签等）
@@ -276,7 +277,30 @@ function buildSearchIndex(l: string): SearchEntry[] {
     });
   });
 
-  // ── 7. 星表（归入 Research 的 Data Products 子 section）──
+  // ── 7. Tools 工具集 ──
+  entries.push({
+    id: 'tools', title: t('tools.title'), href: getLocalizedPath('/tools/', l),
+    kind: 'page', section: t('nav.tools'),
+    searchTerms: 'tools 工具 utilities live data 实时数据 satellite 卫星 weather 天气',
+  });
+  toolRegistry.forEach((tool) => {
+    entries.push({
+      id: `tool-${tool.slug}`,
+      title: tool.name[l as 'en' | 'zh'],
+      href: getLocalizedPath(`/tools/${tool.slug}/`, l),
+      kind: 'tool',
+      section: t('nav.tools'),
+      description: tool.description[l as 'en' | 'zh'],
+      searchTerms: [
+        tool.name.en, tool.name.zh,
+        tool.description.en, tool.description.zh,
+        tool.searchTerms,
+        'tool utility 工具',
+      ].join(' '),
+    });
+  });
+
+  // ── 8. 星表（归入 Research 的 Data Products 子 section）──
   catalogPages.filter(p => p.id.startsWith(`${l}/`) && !p.data.draft).forEach(p => {
     const slug = extractSlug(p.id);
     entries.push({
@@ -316,6 +340,7 @@ const suggestions: Suggestion[] = [
   { label: t('nav.about'),        href: getLocalizedPath('/about/', lang),     icon: 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z' },
   { label: t('nav.research'),     href: getLocalizedPath('/research/', lang),  icon: 'M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.3 24.3 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5' },
   { label: t('nav.blog'),         href: getLocalizedPath('/blog/', lang),      icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
+  { label: t('nav.tools'),        href: getLocalizedPath('/tools/', lang),     icon: 'M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.274L15.75 15.75' },
   { label: t('nav.gallery'),      href: getLocalizedPath('/gallery/', lang),   icon: 'm2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Zm16.5-16.5H3.75' },
 ];
 ---
@@ -513,6 +538,7 @@ const suggestions: Suggestion[] = [
     news:     '<path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5v3m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />',
     photo:    '<path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Zm16.5-16.5H3.75" />',
     catalog:  '<path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v5.25c0 1.35-.9 2.7-2.625 3.469M3.75 11.625c0 2.278 3.694 4.125 8.25 4.125" />',
+    tool:     '<path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.274L15.75 15.75" />',
     page:     '<path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955a1.126 1.126 0 0 1 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />',
   };
 
@@ -713,7 +739,7 @@ const suggestions: Suggestion[] = [
 
     scored.sort((a, b) => b.score - a.score);
 
-    const kindOrder = { paper: 0, research: 1, blog: 2, news: 3, photo: 4, page: 5 };
+    const kindOrder = { paper: 0, research: 1, blog: 2, news: 3, photo: 4, tool: 5, page: 6 };
     scored.sort((a, b) => {
       const ko = (kindOrder[a.kind] || 9) - (kindOrder[b.kind] || 9);
       if (ko !== 0) return ko;
@@ -741,7 +767,7 @@ const suggestions: Suggestion[] = [
     let lastSection = '';
     const kindLabels = {
       paper: '📄 Papers', research: '🔬 Research', blog: '📝 Blog',
-      news: '📰 News', photo: '🖼 Photos', page: '📌 Pages',
+      news: '📰 News', photo: '🖼 Photos', tool: '🔧 Tools', page: '📌 Pages',
     };
 
     top.forEach((item, idx) => {

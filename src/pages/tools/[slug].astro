@@ -1,0 +1,50 @@
+---
+import BaseLayout from '@/components/layout/BaseLayout.astro';
+import { useTranslations, getLocalizedPath } from '@/i18n/ui';
+import { tools } from '@/config/tools';
+import LiveData from '@/components/interactive/LiveData';
+
+export function getStaticPaths() {
+  return tools.map((tool) => ({
+    params: { slug: tool.slug },
+    props: { tool },
+  }));
+}
+
+const lang = 'en';
+const t = useTranslations(lang);
+const { tool } = Astro.props;
+---
+
+<BaseLayout title={`${tool.name[lang]} - ${t('tools.title')} - ${t('site.title')}`} description={tool.description[lang]} lang={lang}>
+  <!-- Back link -->
+  <a href={getLocalizedPath('/tools/', lang)}
+    class="inline-flex items-center gap-1.5 text-sm text-text-light/60 dark:text-text-dark/60
+           hover:text-primary-light dark:hover:text-primary-dark transition-colors mb-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+    {t('tools.back_to_list')}
+  </a>
+
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl sm:text-4xl font-bold text-heading-light dark:text-heading-dark mb-4">
+      {tool.name[lang]}
+    </h1>
+    <p class="text-lg text-text-light/70 dark:text-text-dark/70">
+      {tool.description[lang]}
+    </p>
+  </div>
+
+  <!-- Tool Content -->
+  {tool.slug === 'live-data' && (
+    <LiveData client:visible lang={lang} />
+  )}
+</BaseLayout>
+
+<style>
+  :global(.n2yo-widget-wrapper) {
+    max-width: 420px;
+  }
+</style>
