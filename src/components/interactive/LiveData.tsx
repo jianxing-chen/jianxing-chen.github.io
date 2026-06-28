@@ -428,6 +428,9 @@ export default function LiveData({ lang }: Props) {
                   <span><span id="ld-moon-phase" className="tabular-nums">---</span> · <span id="ld-moon-illum" className="tabular-nums">--</span>%</span>
                 </div>
               </div>
+              <p className="text-right mt-1.5 text-[10px] opacity-30">
+                <a href="https://sunrise-sunset.org/api" target="_blank" rel="noopener noreferrer">sunrise-sunset.org</a>
+              </p>
             </div>
           </div>
 
