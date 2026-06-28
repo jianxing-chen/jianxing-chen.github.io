@@ -38,9 +38,9 @@ function getUtcOffset(tz: string): string {
       timeZone: tz, timeZoneName: 'longOffset',
     }).formatToParts(now);
     const tzPart = parts.find(p => p.type === 'timeZoneName')?.value || '';
-    const match = tzPart.match(/GMT([+-]\d{1,2}(?::\d{2})?)/);
+    const match = tzPart.match(/GMT([+-])0?(\d{1,2})(?::\d{2})?/);
     if (!match) return tzPart.includes('GMT') ? 'UTC' : tz;
-    return `UTC${match[1]}`;
+    return `UTC${match[1]}${match[2]}`;
   } catch {
     return tz;
   }
