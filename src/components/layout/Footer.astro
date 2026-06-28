@@ -97,6 +97,9 @@ const t = useTranslations(lang);
             <div class="flex justify-between col-span-2"><span>🌑 {lang === 'zh' ? '月落' : 'Moonset'}</span><span id="moon-set" class="tabular-nums">--:--</span></div>
             <div class="flex justify-between col-span-2"><span>🌔 {lang === 'zh' ? '月相' : 'Phase'}</span><span><span id="moon-phase" class="tabular-nums">---</span> · <span id="moon-illum" class="tabular-nums">--</span>%</span></div>
           </div>
+          <p class="text-right mt-1.5 text-[10px] opacity-30">
+            <a href="https://sunrise-sunset.org/api" target="_blank" rel="noopener noreferrer">sunrise-sunset.org</a>
+          </p>
         </div>
         <script>
           import { LOCATION } from '@/config/site';
