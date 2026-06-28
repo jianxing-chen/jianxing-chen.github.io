@@ -638,7 +638,6 @@ export default function LiveData({ lang }: Props) {
 
                       const maxPts = days.map((d, i) => `${xOf(i)},${yOf(d.maxTemp)}`).join(' ');
                       const minPts = days.map((d, i) => `${xOf(i)},${yOf(d.minTemp)}`).join(' ');
-                      const maxPrecip = Math.max(...days.map(d => d.rain), 1);
 
                       // Grid lines at 5° intervals
                       const gridStep = 5;
@@ -663,16 +662,6 @@ export default function LiveData({ lang }: Props) {
                               <text x={padX - 12} y={yOf(t) + 3} textAnchor="end" fontSize={7} fill="currentColor" opacity={0.18}>{t}°</text>
                             </g>
                           ))}
-
-                          {/* Precipitation bars */}
-                          {days.map((d, i) => {
-                            if (d.rain <= 0) return null;
-                            const barH = (d.rain / maxPrecip) * 22;
-                            return (
-                              <rect key={`p${i}`} x={xOf(i) - 9} y={H - padB + 1} width={18} height={barH} rx={2.5}
-                                fill="#3b82f6" opacity={d.isYesterday ? 0.08 : 0.14} />
-                            );
-                          })}
 
                           {/* Area fill between max and min lines */}
                           <polygon
