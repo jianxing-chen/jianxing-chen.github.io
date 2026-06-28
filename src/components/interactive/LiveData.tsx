@@ -1327,6 +1327,11 @@ export default function LiveData({ lang }: Props) {
               name: { en: 'Nova Astrometry', zh: '星图解析' },
               url: 'https://nova.astrometry.net/upload',
             },
+            {
+              icon: '☄️',
+              name: { en: 'Astro vanbuitenen', zh: '彗星追踪' },
+              url: 'https://astro.vanbuitenen.nl/home',
+            },
           ].map((link) => (
             <a
               key={link.name.en}
