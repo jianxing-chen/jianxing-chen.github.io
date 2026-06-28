@@ -376,7 +376,7 @@ export default function LiveData({ lang }: Props) {
           {/* Sun & Moon Card */}
           <div>
             <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
-              {isZh ? '日月出没' : 'Sun & Moon'}
+              {isZh ? '日月出没' : 'Sun & Moon'} · {getUtcOffset(location.tz)}
             </p>
             <div
               className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-3 text-xs text-text-light/70 dark:text-text-dark/95"
