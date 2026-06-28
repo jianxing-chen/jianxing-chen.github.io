@@ -608,43 +608,86 @@ export default function LiveData({ lang }: Props) {
                     </div>
                   </div>
 
-                  {/* Yesterday + Forecast */}
+                  {/* Yesterday + Forecast Chart */}
                   <div className="border-t border-black/[0.04] dark:border-white/[0.04] pt-3">
                     <div className="text-[10px] uppercase tracking-wider opacity-40 text-center mb-2">
                       {isZh ? '昨天 & 预报' : 'Yesterday & Forecast'}
                     </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {/* Yesterday */}
-                      {weather.yesterday && (
-                        <div className="text-center p-2 rounded-md bg-white/20 dark:bg-white/[0.015] opacity-60">
-                          <div className="text-[10px] opacity-50 mb-1">{isZh ? '昨天' : 'Yesterday'}</div>
-                          <div className="text-2xl mb-1">{getWeatherEmoji(weather.yesterday.code)}</div>
-                          <div className="text-[11px] font-medium">{weather.yesterday.maxTemp}° / {weather.yesterday.minTemp}°</div>
-                          {weather.yesterday.precipitation > 0 && (
-                            <div className="text-[10px] text-blue-500 dark:text-blue-400 mt-0.5">💧 {weather.yesterday.precipitation}mm</div>
-                          )}
-                        </div>
-                      )}
-                      {/* Forecast days */}
-                      {weather.forecast.map((f, i) => {
+                    {(() => {
+                      const days: { label: string; maxTemp: number; minTemp: number; code: number; rain: number; isYesterday: boolean }[] = [];
+                      if (weather.yesterday) {
+                        days.push({ label: isZh ? '昨天' : 'Yest.', maxTemp: weather.yesterday.maxTemp, minTemp: weather.yesterday.minTemp, code: weather.yesterday.code, rain: weather.yesterday.precipitation, isYesterday: true });
+                      }
+                      weather.forecast.forEach((f, i) => {
                         const d = new Date(f.date);
-                        const dayLabel = i === 0
-                          ? (isZh ? '今天' : 'Today')
-                          : i === 1
-                            ? (isZh ? '明天' : 'Tmr')
-                            : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                        return (
-                          <div key={f.date} className="text-center p-2 rounded-md bg-white/40 dark:bg-white/[0.03]">
-                            <div className="text-[10px] opacity-50 mb-1">{dayLabel}</div>
-                            <div className="text-2xl mb-1">{getWeatherEmoji(f.code)}</div>
-                            <div className="text-[11px] font-medium">{f.maxTemp}° / {f.minTemp}°</div>
-                            {f.rainChance > 0 && (
-                              <div className="text-[10px] text-blue-500 dark:text-blue-400 mt-0.5">💧 {f.rainChance}%</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                        const label = i === 0 ? (isZh ? '今天' : 'Today')
+                          : i === 1 ? (isZh ? '明天' : 'Tmr')
+                          : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' });
+                        days.push({ label, maxTemp: f.maxTemp, minTemp: f.minTemp, code: f.code, rain: f.rainChance, isYesterday: false });
+                      });
+
+                      const W = 300, H = 155;
+                      const padT = 22, padB = 52, padX = 30;
+                      const chartH = H - padT - padB;
+                      const temps = days.flatMap(d => [d.maxTemp, d.minTemp]);
+                      const tMin = Math.min(...temps) - 2;
+                      const tMax = Math.max(...temps) + 2;
+                      const tRange = Math.max(tMax - tMin, 1);
+                      const stepX = days.length > 1 ? (W - 2 * padX) / (days.length - 1) : 0;
+                      const xOf = (i: number) => padX + i * stepX;
+                      const yOf = (t: number) => padT + chartH - ((t - tMin) / tRange) * chartH;
+
+                      const maxPts = days.map((d, i) => `${xOf(i)},${yOf(d.maxTemp)}`).join(' ');
+                      const minPts = days.map((d, i) => `${xOf(i)},${yOf(d.minTemp)}`).join(' ');
+                      const maxPrecip = Math.max(...days.map(d => d.rain), 1);
+
+                      return (
+                        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+                          {/* Precipitation bars */}
+                          {days.map((d, i) => {
+                            if (d.rain <= 0) return null;
+                            const barH = (d.rain / maxPrecip) * 24;
+                            return (
+                              <rect key={`p${i}`} x={xOf(i) - 10} y={H - padB + 2} width={20} height={barH} rx={3}
+                                fill="#3b82f6" opacity={d.isYesterday ? 0.12 : 0.18} />
+                            );
+                          })}
+
+                          {/* Max temp line + dots */}
+                          <polyline points={maxPts} fill="none" stroke="#f97316" strokeWidth={2} strokeLinejoin="round" opacity={0.7} />
+                          {days.map((d, i) => (
+                            <circle key={`mx${i}`} cx={xOf(i)} cy={yOf(d.maxTemp)} r={3.5} fill="#f97316" opacity={d.isYesterday ? 0.45 : 0.8} />
+                          ))}
+
+                          {/* Min temp line + dots */}
+                          <polyline points={minPts} fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinejoin="round" opacity={0.7} />
+                          {days.map((d, i) => (
+                            <circle key={`mn${i}`} cx={xOf(i)} cy={yOf(d.minTemp)} r={3.5} fill="#3b82f6" opacity={d.isYesterday ? 0.45 : 0.8} />
+                          ))}
+
+                          {/* Temperature labels */}
+                          {days.map((d, i) => (
+                            <g key={`l${i}`}>
+                              <text x={xOf(i)} y={yOf(d.maxTemp) - 8} textAnchor="middle" fontSize={9.5} fontWeight={500} fill="#f97316" opacity={d.isYesterday ? 0.55 : 1}>{d.maxTemp}°</text>
+                              <text x={xOf(i)} y={yOf(d.minTemp) + 14} textAnchor="middle" fontSize={9.5} fontWeight={500} fill="#3b82f6" opacity={d.isYesterday ? 0.55 : 1}>{d.minTemp}°</text>
+                            </g>
+                          ))}
+
+                          {/* Date labels + emojis */}
+                          {days.map((d, i) => (
+                            <g key={`d${i}`}>
+                              <text x={xOf(i)} y={H - padB + 16} textAnchor="middle" fontSize={9} fill="currentColor" opacity={d.isYesterday ? 0.35 : 0.5}>{d.label}</text>
+                              <text x={xOf(i)} y={H - padB + 33} textAnchor="middle" fontSize={15}>{getWeatherEmoji(d.code)}</text>
+                              {d.rain > 0 && (
+                                <text x={xOf(i)} y={H - padB + 2 + (d.rain / maxPrecip) * 24 + 10} textAnchor="middle" fontSize={7.5} fill="#3b82f6" opacity={0.6}>
+                                  {d.isYesterday ? `${d.rain}mm` : `${d.rain}%`}
+                                </text>
+                              )}
+                            </g>
+                          ))}
+                        </svg>
+                      );
+                    })()}
                   </div>
                 </>
               ) : (
