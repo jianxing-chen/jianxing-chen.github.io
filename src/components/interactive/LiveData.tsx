@@ -46,18 +46,43 @@ function getUtcOffset(tz: string): string {
   }
 }
 
-/** Map wttr.in weather codes to emoji icons */
-const WEATHER_EMOJI: Record<string, string> = {
-  '113': '☀️',
-  '116': '⛅', '119': '☁️', '122': '☁️',
-  '143': '🌫️', '248': '🌫️', '260': '🌫️',
-  '176': '🌦️', '263': '🌦️', '266': '🌧️', '293': '🌧️', '296': '🌧️', '353': '🌦️',
-  '200': '⛈️', '386': '⛈️', '389': '⛈️', '392': '⛈️',
-  '227': '🌨️', '230': '❄️', '329': '🌨️', '332': '🌨️', '335': '❄️', '338': '❄️', '371': '🌨️', '395': '🌨️',
-  '281': '🌧️', '284': '🌧️', '302': '🌧️', '305': '🌧️', '308': '🌧️', '311': '🌧️', '314': '🌧️', '317': '🌨️', '320': '🌨️', '323': '🌨️', '326': '🌨️', '350': '🌨️', '356': '🌧️', '359': '🌧️', '362': '🌧️', '365': '🌧️', '368': '🌨️', '374': '🌧️', '377': '🌧️',
+/** Map WMO weather codes (Open-Meteo) to emoji icons */
+const WMO_EMOJI: Record<number, string> = {
+  0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+  45: '🌫️', 48: '🌫️',
+  51: '🌦️', 53: '🌦️', 55: '🌧️', 56: '🌧️', 57: '🌧️',
+  61: '🌧️', 63: '🌧️', 65: '🌧️', 66: '🌧️', 67: '🌧️',
+  71: '🌨️', 73: '🌨️', 75: '❄️', 77: '🌨️',
+  80: '🌦️', 81: '🌧️', 82: '⛈️',
+  85: '🌨️', 86: '❄️',
+  95: '⛈️', 96: '⛈️', 99: '⛈️',
 };
-function getWeatherEmoji(code: string): string {
-  return WEATHER_EMOJI[code] || '🌤️';
+function getWeatherEmoji(code: number): string {
+  return WMO_EMOJI[code] ?? '🌤️';
+}
+
+/** Convert wind direction degrees to compass direction string */
+function windDirCompass(deg: number): string {
+  const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+/** WMO weather code short descriptions (en, zh) */
+const WMO_DESC: Record<number, [string, string]> = {
+  0: ['Clear sky', '晴'], 1: ['Mainly clear', '晴间多云'], 2: ['Partly cloudy', '多云'], 3: ['Overcast', '阴'],
+  45: ['Fog', '雾'], 48: ['Rime fog', '雾凇'],
+  51: ['Light drizzle', '小毛毛雨'], 53: ['Drizzle', '毛毛雨'], 55: ['Dense drizzle', '密毛毛雨'],
+  56: ['Freezing drizzle', '冻毛毛雨'], 57: ['Freezing drizzle', '冻毛毛雨'],
+  61: ['Light rain', '小雨'], 63: ['Rain', '中雨'], 65: ['Heavy rain', '大雨'],
+  66: ['Freezing rain', '冻雨'], 67: ['Freezing rain', '冻雨'],
+  71: ['Light snow', '小雪'], 73: ['Snow', '中雪'], 75: ['Heavy snow', '大雪'], 77: ['Snow grains', '雪粒'],
+  80: ['Light showers', '小阵雨'], 81: ['Showers', '阵雨'], 82: ['Violent showers', '暴雨'],
+  85: ['Snow showers', '阵雪'], 86: ['Heavy snow showers', '大阵雪'],
+  95: ['Thunderstorm', '雷暴'], 96: ['Thunderstorm + hail', '雷暴+冰雹'], 99: ['Severe thunderstorm', '强雷暴'],
+};
+function getWeatherDesc(code: number, isZh: boolean): string {
+  const d = WMO_DESC[code];
+  return d ? d[isZh ? 1 : 0] : '';
 }
 
 function loadSavedLocation(): ToolLocationPreset | null {
@@ -91,13 +116,14 @@ export default function LiveData({ lang }: Props) {
   const n2yoRef = useRef<HTMLDivElement>(null);
   const n2yoLoaded = useRef(false);
 
-  // ── Weather state (wttr.in) ──
+  // ── Weather state (Open-Meteo) ──
   const [weather, setWeather] = useState<{
     temp: number; feelsLike: number; humidity: number;
     windSpeed: number; windDir: string; uvIndex: number;
     visibility: number; pressure: number;
-    desc: string; code: string;
-    forecast: { date: string; maxTemp: number; minTemp: number; code: string; rainChance: number }[];
+    desc: string; code: number;
+    forecast: { date: string; maxTemp: number; minTemp: number; code: number; rainChance: number }[];
+    yesterday: { maxTemp: number; minTemp: number; code: number; precipitation: number } | null;
   } | null>(null);
 
   // ── Location change handler ──
@@ -149,61 +175,83 @@ export default function LiveData({ lang }: Props) {
     document.body.appendChild(s);
   }, []);
 
-  // ── Weather data fetching (wttr.in) ──
+  // ── Weather data fetching (Open-Meteo) ──
   useEffect(() => {
     const lat = location.lat;
     const lng = location.lng;
-    const cacheKey = `weather-v1-${lat.toFixed(2)}-${lng.toFixed(2)}`;
+    const cacheKey = `weather-om-${lat.toFixed(2)}-${lng.toFixed(2)}`;
 
-    function processWeather(data: any) {
-      if (!data?.current_condition?.length || !data?.weather?.length) return;
-      const c = data.current_condition[0];
-      const desc = c.weatherDesc?.[0]?.value || '';
-      setWeather({
-        temp: parseInt(c.temp_C) || 0,
-        feelsLike: parseInt(c.FeelsLikeC) || 0,
-        humidity: parseInt(c.humidity) || 0,
-        windSpeed: parseInt(c.windspeedKmph) || 0,
-        windDir: c.winddir16Point || '',
-        uvIndex: parseInt(c.uvIndex) || 0,
-        visibility: parseInt(c.visibility) || 0,
-        pressure: parseInt(c.pressure) || 0,
-        desc,
-        code: c.weatherCode || '113',
-        forecast: data.weather.slice(0, 3).map((d: any) => ({
-          date: d.date,
-          maxTemp: parseInt(d.maxtempC) || 0,
-          minTemp: parseInt(d.mintempC) || 0,
-          code: d.hourly?.[4]?.weatherCode || '113',
-          rainChance: parseInt(d.hourly?.[4]?.chanceofrain) || 0,
-        })),
-      });
+    async function fetchWeather() {
+      try {
+        // Current weather + 3-day forecast
+        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`;
+        const fRes = await fetch(fUrl);
+        const fData = await fRes.json();
+        if (!fData?.current || !fData?.daily?.time?.length) return;
+
+        const c = fData.current;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yDate = yesterday.toISOString().split('T')[0];
+
+        setWeather({
+          temp: Math.round(c.temperature_2m),
+          feelsLike: Math.round(c.apparent_temperature),
+          humidity: c.relative_humidity_2m,
+          windSpeed: Math.round(c.wind_speed_10m),
+          windDir: windDirCompass(c.wind_direction_10m),
+          uvIndex: Math.round(c.uv_index),
+          visibility: Math.round(c.visibility / 1000),
+          pressure: Math.round(c.surface_pressure),
+          desc: '',
+          code: c.weather_code,
+          forecast: fData.daily.time.map((date: string, i: number) => ({
+            date,
+            maxTemp: Math.round(fData.daily.temperature_2m_max[i]),
+            minTemp: Math.round(fData.daily.temperature_2m_min[i]),
+            code: fData.daily.weather_code[i],
+            rainChance: fData.daily.precipitation_probability_max?.[i] || 0,
+          })),
+          yesterday: null,
+        });
+
+        // Fetch yesterday's weather from archive
+        const aUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${yDate}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`;
+        const aRes = await fetch(aUrl);
+        const aData = await aRes.json();
+        if (aData?.daily?.time?.length) {
+          setWeather(prev => prev ? {
+            ...prev,
+            yesterday: {
+              maxTemp: Math.round(aData.daily.temperature_2m_max[0]),
+              minTemp: Math.round(aData.daily.temperature_2m_min[0]),
+              code: aData.daily.weather_code[0],
+              precipitation: aData.daily.precipitation_sum[0] || 0,
+            },
+          } : prev);
+        }
+      } catch { /* ignore */ }
     }
 
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
         const obj = JSON.parse(cached);
-        if (Date.now() - obj.ts < 1800000) processWeather(obj.data);
+        if (Date.now() - obj.ts < 1800000) {
+          fetchWeather(); // still refresh, but show cached first
+          return;
+        }
       } catch { /* ignore */ }
     }
 
-    fetch(`https://wttr.in/${lat},${lng}?format=j1`)
-      .then(r => r.json())
-      .then(data => {
-        sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
-        processWeather(data);
-      })
-      .catch(() => {});
+    fetchWeather().then(() => {
+      sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now() }));
+    });
 
     const interval = setInterval(() => {
-      fetch(`https://wttr.in/${lat},${lng}?format=j1`)
-        .then(r => r.json())
-        .then(data => {
-          sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
-          processWeather(data);
-        })
-        .catch(() => {});
+      fetchWeather().then(() => {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now() }));
+      });
     }, 1800000);
 
     return () => clearInterval(interval);
@@ -520,7 +568,7 @@ export default function LiveData({ lang }: Props) {
           {/* Weather Detail Card */}
           <div>
             <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
-              {locName} · {isZh ? '天气详情' : 'Weather'} · wttr.in
+              {locName} · {isZh ? '天气详情' : 'Weather'} · Open-Meteo
             </p>
             <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4 text-xs text-text-light/70 dark:text-text-dark/95">
               {weather ? (
@@ -529,7 +577,7 @@ export default function LiveData({ lang }: Props) {
                   <div className="text-center mb-4">
                     <div className="text-6xl mb-1">{getWeatherEmoji(weather.code)}</div>
                     <div className="text-4xl font-light tracking-tight text-text-light dark:text-text-dark">{weather.temp}°C</div>
-                    <div className="text-sm text-text-light/60 dark:text-text-dark/60 mt-0.5">{weather.desc}</div>
+                    <div className="text-sm text-text-light/60 dark:text-text-dark/60 mt-0.5">{getWeatherDesc(weather.code, isZh)}</div>
                   </div>
 
                   {/* Detail metrics */}
@@ -560,17 +608,31 @@ export default function LiveData({ lang }: Props) {
                     </div>
                   </div>
 
-                  {/* 3-day forecast */}
+                  {/* Yesterday + Forecast */}
                   <div className="border-t border-black/[0.04] dark:border-white/[0.04] pt-3">
                     <div className="text-[10px] uppercase tracking-wider opacity-40 text-center mb-2">
-                      {isZh ? '未来预报' : 'Forecast'}
+                      {isZh ? '昨天 & 预报' : 'Yesterday & Forecast'}
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {/* Yesterday */}
+                      {weather.yesterday && (
+                        <div className="text-center p-2 rounded-md bg-white/20 dark:bg-white/[0.015] opacity-60">
+                          <div className="text-[10px] opacity-50 mb-1">{isZh ? '昨天' : 'Yesterday'}</div>
+                          <div className="text-2xl mb-1">{getWeatherEmoji(weather.yesterday.code)}</div>
+                          <div className="text-[11px] font-medium">{weather.yesterday.maxTemp}° / {weather.yesterday.minTemp}°</div>
+                          {weather.yesterday.precipitation > 0 && (
+                            <div className="text-[10px] text-blue-500 dark:text-blue-400 mt-0.5">💧 {weather.yesterday.precipitation}mm</div>
+                          )}
+                        </div>
+                      )}
+                      {/* Forecast days */}
                       {weather.forecast.map((f, i) => {
                         const d = new Date(f.date);
                         const dayLabel = i === 0
                           ? (isZh ? '今天' : 'Today')
-                          : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                          : i === 1
+                            ? (isZh ? '明天' : 'Tmr')
+                            : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
                         return (
                           <div key={f.date} className="text-center p-2 rounded-md bg-white/40 dark:bg-white/[0.03]">
                             <div className="text-[10px] opacity-50 mb-1">{dayLabel}</div>
