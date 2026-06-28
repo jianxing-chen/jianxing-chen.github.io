@@ -621,9 +621,7 @@ export default function LiveData({ lang }: Props) {
                       }
                       weather.forecast.forEach((f, i) => {
                         const d = new Date(f.date);
-                        const label = i === 0 ? (isZh ? '今' : 'T')
-                          : i === 1 ? (isZh ? '明' : 'T+1')
-                          : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'narrow' });
+                        const label = d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' });
                         days.push({ label, maxTemp: f.maxTemp, minTemp: f.minTemp, code: f.code, rain: f.rainChance, isYesterday: false });
                       });
 
@@ -720,14 +718,14 @@ export default function LiveData({ lang }: Props) {
                           {/* Date labels + emojis */}
                           {days.map((d, i) => (
                             <g key={`d${i}`}>
-                              <text x={xOf(i)} y={H - padB + 15} textAnchor="middle" fontSize={8.5} fontWeight={d.isYesterday ? 400 : 500}
-                                fill="currentColor" opacity={d.isYesterday ? 0.28 : 0.45}>{d.label}</text>
-                              <text x={xOf(i)} y={H - padB + 33} textAnchor="middle" fontSize={14}
+                              <text x={xOf(i)} y={H - padB + 13} textAnchor="middle" fontSize={14}
                                 opacity={d.isYesterday ? 0.5 : 1}>{getWeatherEmoji(d.code)}</text>
+                              <text x={xOf(i)} y={H - padB + 27} textAnchor="middle" fontSize={8} fontWeight={400}
+                                fill="currentColor" opacity={d.isYesterday ? 0.3 : 0.45}>{d.label}</text>
                               {d.rain > 0 && (
-                                <text x={xOf(i)} y={H - padB - (d.rain / maxPrecip) * 22 - 2}
-                                  textAnchor="middle" fontSize={7} fill="#3b82f6" opacity={0.5}>
-                                  {d.isYesterday ? `${d.rain}mm` : `${d.rain}%`}
+                                <text x={xOf(i)} y={H - padB + 38} textAnchor="middle" fontSize={7}
+                                  fill="#3b82f6" opacity={0.45}>
+                                  {d.isYesterday ? `${d.rain}mm` : `💧${d.rain}%`}
                                 </text>
                               )}
                             </g>
