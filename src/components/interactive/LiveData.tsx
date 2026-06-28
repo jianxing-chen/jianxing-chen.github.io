@@ -595,15 +595,15 @@ export default function LiveData({ lang }: Props) {
                   {/* Metric cards with accent colors */}
                   <div className="grid grid-cols-3 gap-2 mb-5">
                     {[
-                      { label: isZh ? '体感' : 'Feels', value: `${weather.feelsLike}°`, color: 'text-amber-500' },
-                      { label: isZh ? '湿度' : 'Humidity', value: `${weather.humidity}%`, color: 'text-sky-400' },
-                      { label: isZh ? '风' : 'Wind', value: `${weather.windSpeed}`, unit: 'km/h', color: 'text-teal-500' },
-                      { label: 'UV', value: `${weather.uvIndex}`, color: weather.uvIndex >= 6 ? 'text-rose-400' : 'text-yellow-400' },
-                      { label: isZh ? '能见度' : 'Vis.', value: `${weather.visibility}`, unit: 'km', color: 'text-indigo-400' },
-                      { label: isZh ? '气压' : 'hPa', value: `${weather.pressure}`, color: 'text-purple-400' },
+                      { label: isZh ? '体感' : 'Feels', value: `${weather.feelsLike}°` },
+                      { label: isZh ? '湿度' : 'Humidity', value: `${weather.humidity}%` },
+                      { label: isZh ? '风' : 'Wind', value: `${weather.windSpeed}`, unit: 'km/h' },
+                      { label: 'UV', value: `${weather.uvIndex}` },
+                      { label: isZh ? '能见度' : 'Vis.', value: `${weather.visibility}`, unit: 'km' },
+                      { label: isZh ? '气压' : 'hPa', value: `${weather.pressure}` },
                     ].map((m, i) => (
                       <div key={i} className="rounded-md bg-white/50 dark:bg-white/[0.04] p-2 text-center">
-                        <div className={`text-[10px] uppercase tracking-wider font-medium mb-0.5 ${m.color}`}>{m.label}</div>
+                        <div className="text-[10px] uppercase tracking-wider font-medium mb-0.5 text-text-light/40 dark:text-text-dark/40">{m.label}</div>
                         <div className="font-semibold tabular-nums text-text-light dark:text-text-dark">
                           {m.value}
                           {m.unit && <span className="text-[10px] font-normal opacity-40 ml-0.5">{m.unit}</span>}
@@ -696,8 +696,7 @@ export default function LiveData({ lang }: Props) {
                             strokeLinejoin="round" strokeLinecap="round" opacity={0.75} />
                           {days.map((d, i) => (
                             <circle key={`mx${i}`} cx={xOf(i)} cy={yOf(d.maxTemp)} r={4}
-                              fill="#f97316" stroke="white" strokeWidth={1.5}
-                              opacity={d.isYesterday ? 0.4 : 0.9} />
+                              fill="#f97316" stroke="white" strokeWidth={1.5} opacity={0.9} />
                           ))}
 
                           {/* Min temp line + dots */}
@@ -705,8 +704,7 @@ export default function LiveData({ lang }: Props) {
                             strokeLinejoin="round" strokeLinecap="round" opacity={0.75} />
                           {days.map((d, i) => (
                             <circle key={`mn${i}`} cx={xOf(i)} cy={yOf(d.minTemp)} r={4}
-                              fill="#3b82f6" stroke="white" strokeWidth={1.5}
-                              opacity={d.isYesterday ? 0.4 : 0.9} />
+                              fill="#3b82f6" stroke="white" strokeWidth={1.5} opacity={0.9} />
                           ))}
 
                           {/* Temperature labels */}
@@ -727,7 +725,7 @@ export default function LiveData({ lang }: Props) {
                               <text x={xOf(i)} y={H - padB + 33} textAnchor="middle" fontSize={14}
                                 opacity={d.isYesterday ? 0.5 : 1}>{getWeatherEmoji(d.code)}</text>
                               {d.rain > 0 && (
-                                <text x={xOf(i)} y={H - padB + 1 + (d.rain / maxPrecip) * 22 + 10}
+                                <text x={xOf(i)} y={H - padB - (d.rain / maxPrecip) * 22 - 2}
                                   textAnchor="middle" fontSize={7} fill="#3b82f6" opacity={0.5}>
                                   {d.isYesterday ? `${d.rain}mm` : `${d.rain}%`}
                                 </text>
