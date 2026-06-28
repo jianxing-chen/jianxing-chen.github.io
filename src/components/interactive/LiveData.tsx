@@ -177,8 +177,11 @@ export default function LiveData({ lang }: Props) {
     setSearchError(null);
     setSearchDone(false);
     try {
+      // Auto-detect CJK characters to pick the right API language
+      const hasCJK = /[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/.test(query);
+      const apiLang = hasCJK ? 'zh' : (isZh ? 'zh' : 'en');
       const res = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=${isZh ? 'zh' : 'en'}`
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=${apiLang}`
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
