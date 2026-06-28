@@ -46,6 +46,20 @@ function getUtcOffset(tz: string): string {
   }
 }
 
+/** Map wttr.in weather codes to emoji icons */
+const WEATHER_EMOJI: Record<string, string> = {
+  '113': '☀️',
+  '116': '⛅', '119': '☁️', '122': '☁️',
+  '143': '🌫️', '248': '🌫️', '260': '🌫️',
+  '176': '🌦️', '263': '🌦️', '266': '🌧️', '293': '🌧️', '296': '🌧️', '353': '🌦️',
+  '200': '⛈️', '386': '⛈️', '389': '⛈️', '392': '⛈️',
+  '227': '🌨️', '230': '❄️', '329': '🌨️', '332': '🌨️', '335': '❄️', '338': '❄️', '371': '🌨️', '395': '🌨️',
+  '281': '🌧️', '284': '🌧️', '302': '🌧️', '305': '🌧️', '308': '🌧️', '311': '🌧️', '314': '🌧️', '317': '🌨️', '320': '🌨️', '323': '🌨️', '326': '🌨️', '350': '🌨️', '356': '🌧️', '359': '🌧️', '362': '🌧️', '365': '🌧️', '368': '🌨️', '374': '🌧️', '377': '🌧️',
+};
+function getWeatherEmoji(code: string): string {
+  return WEATHER_EMOJI[code] || '🌤️';
+}
+
 function loadSavedLocation(): ToolLocationPreset | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -76,6 +90,15 @@ export default function LiveData({ lang }: Props) {
   const [manualLng, setManualLng] = useState(location.lng.toString());
   const n2yoRef = useRef<HTMLDivElement>(null);
   const n2yoLoaded = useRef(false);
+
+  // ── Weather state (wttr.in) ──
+  const [weather, setWeather] = useState<{
+    temp: number; feelsLike: number; humidity: number;
+    windSpeed: number; windDir: string; uvIndex: number;
+    visibility: number; pressure: number;
+    desc: string; code: string;
+    forecast: { date: string; maxTemp: number; minTemp: number; code: string; rainChance: number }[];
+  } | null>(null);
 
   // ── Location change handler ──
   const selectLocation = useCallback((loc: ToolLocationPreset) => {
@@ -125,6 +148,66 @@ export default function LiveData({ lang }: Props) {
     s.onload = s.onerror = () => { document.write = origWrite; };
     document.body.appendChild(s);
   }, []);
+
+  // ── Weather data fetching (wttr.in) ──
+  useEffect(() => {
+    const lat = location.lat;
+    const lng = location.lng;
+    const cacheKey = `weather-v1-${lat.toFixed(2)}-${lng.toFixed(2)}`;
+
+    function processWeather(data: any) {
+      if (!data?.current_condition?.length || !data?.weather?.length) return;
+      const c = data.current_condition[0];
+      const desc = c.weatherDesc?.[0]?.value || '';
+      setWeather({
+        temp: parseInt(c.temp_C) || 0,
+        feelsLike: parseInt(c.FeelsLikeC) || 0,
+        humidity: parseInt(c.humidity) || 0,
+        windSpeed: parseInt(c.windspeedKmph) || 0,
+        windDir: c.winddir16Point || '',
+        uvIndex: parseInt(c.uvIndex) || 0,
+        visibility: parseInt(c.visibility) || 0,
+        pressure: parseInt(c.pressure) || 0,
+        desc,
+        code: c.weatherCode || '113',
+        forecast: data.weather.slice(0, 3).map((d: any) => ({
+          date: d.date,
+          maxTemp: parseInt(d.maxtempC) || 0,
+          minTemp: parseInt(d.mintempC) || 0,
+          code: d.hourly?.[4]?.weatherCode || '113',
+          rainChance: parseInt(d.hourly?.[4]?.chanceofrain) || 0,
+        })),
+      });
+    }
+
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const obj = JSON.parse(cached);
+        if (Date.now() - obj.ts < 1800000) processWeather(obj.data);
+      } catch { /* ignore */ }
+    }
+
+    fetch(`https://wttr.in/${lat},${lng}?format=j1`)
+      .then(r => r.json())
+      .then(data => {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
+        processWeather(data);
+      })
+      .catch(() => {});
+
+    const interval = setInterval(() => {
+      fetch(`https://wttr.in/${lat},${lng}?format=j1`)
+        .then(r => r.json())
+        .then(data => {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ data, ts: Date.now() }));
+          processWeather(data);
+        })
+        .catch(() => {});
+    }, 1800000);
+
+    return () => clearInterval(interval);
+  }, [location.lat, location.lng]);
 
   // ── Sun & Moon card data fetching ──
   useEffect(() => {
@@ -431,6 +514,80 @@ export default function LiveData({ lang }: Props) {
               <p className="text-right mt-1.5 text-[10px] opacity-30">
                 <a href="https://sunrise-sunset.org/api" target="_blank" rel="noopener noreferrer">sunrise-sunset.org</a>
               </p>
+            </div>
+          </div>
+
+          {/* Weather Detail Card */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '天气详情' : 'Weather'} · wttr.in
+            </p>
+            <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4 text-xs text-text-light/70 dark:text-text-dark/95">
+              {weather ? (
+                <>
+                  {/* Current weather hero */}
+                  <div className="text-center mb-4">
+                    <div className="text-6xl mb-1">{getWeatherEmoji(weather.code)}</div>
+                    <div className="text-4xl font-light tracking-tight text-text-light dark:text-text-dark">{weather.temp}°C</div>
+                    <div className="text-sm text-text-light/60 dark:text-text-dark/60 mt-0.5">{weather.desc}</div>
+                  </div>
+
+                  {/* Detail metrics */}
+                  <div className="grid grid-cols-3 gap-x-3 gap-y-2 mb-4">
+                    <div className="text-center">
+                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '体感' : 'Feels'}</div>
+                      <div className="font-medium">{weather.feelsLike}°C</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '湿度' : 'Humidity'}</div>
+                      <div className="font-medium">{weather.humidity}%</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '风速' : 'Wind'}</div>
+                      <div className="font-medium">{weather.windSpeed} km/h {weather.windDir}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[10px] uppercase tracking-wider opacity-40">UV</div>
+                      <div className="font-medium">{weather.uvIndex}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '能见度' : 'Visibility'}</div>
+                      <div className="font-medium">{weather.visibility} km</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '气压' : 'Pressure'}</div>
+                      <div className="font-medium">{weather.pressure} hPa</div>
+                    </div>
+                  </div>
+
+                  {/* 3-day forecast */}
+                  <div className="border-t border-black/[0.04] dark:border-white/[0.04] pt-3">
+                    <div className="text-[10px] uppercase tracking-wider opacity-40 text-center mb-2">
+                      {isZh ? '未来预报' : 'Forecast'}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {weather.forecast.map((f, i) => {
+                        const d = new Date(f.date);
+                        const dayLabel = i === 0
+                          ? (isZh ? '今天' : 'Today')
+                          : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        return (
+                          <div key={f.date} className="text-center p-2 rounded-md bg-white/40 dark:bg-white/[0.03]">
+                            <div className="text-[10px] opacity-50 mb-1">{dayLabel}</div>
+                            <div className="text-2xl mb-1">{getWeatherEmoji(f.code)}</div>
+                            <div className="text-[11px] font-medium">{f.maxTemp}° / {f.minTemp}°</div>
+                            {f.rainChance > 0 && (
+                              <div className="text-[10px] text-blue-500 dark:text-blue-400 mt-0.5">💧 {f.rainChance}%</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-10 opacity-30">{isZh ? '加载天气数据…' : 'Loading weather…'}</div>
+              )}
             </div>
           </div>
 
