@@ -1317,6 +1317,11 @@ export default function LiveData({ lang }: Props) {
               name: { en: 'Aurora Forecast', zh: '极光预报' },
               url: 'https://www.spaceweather.gov/products/aurora-30-minute-forecast',
             },
+            {
+              icon: '📷',
+              name: { en: 'Skyline Webcams', zh: '实景摄像头' },
+              url: 'https://www.skylinewebcams.com/',
+            },
           ].map((link) => (
             <a
               key={link.name.en}
