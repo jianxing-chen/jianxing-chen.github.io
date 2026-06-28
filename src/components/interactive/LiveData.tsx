@@ -119,6 +119,8 @@ export default function LiveData({ lang }: Props) {
     country?: string; admin1?: string; timezone?: string;
   }>>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchDone, setSearchDone] = useState(false);
   const n2yoRef = useRef<HTMLDivElement>(null);
   const n2yoLoaded = useRef(false);
 
@@ -170,16 +172,22 @@ export default function LiveData({ lang }: Props) {
   }, [selectLocation]);
 
   const handleSearch = useCallback(async (query: string) => {
-    if (!query.trim()) { setSearchResults([]); return; }
+    if (!query.trim()) { setSearchResults([]); setSearchError(null); setSearchDone(false); return; }
     setSearchLoading(true);
+    setSearchError(null);
+    setSearchDone(false);
     try {
       const res = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=${isZh ? 'zh' : 'en'}`
       );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setSearchResults(data.results || []);
-    } catch {
+      setSearchDone(true);
+    } catch (err) {
       setSearchResults([]);
+      setSearchError(err instanceof Error ? err.message : 'Unknown error');
+      setSearchDone(false);
     } finally {
       setSearchLoading(false);
     }
@@ -190,6 +198,8 @@ export default function LiveData({ lang }: Props) {
     setManualLat(r.latitude.toString());
     setSearchQuery('');
     setSearchResults([]);
+    setSearchError(null);
+    setSearchDone(false);
   }, []);
 
   // ── N2YO Widget loader ──
@@ -624,6 +634,16 @@ export default function LiveData({ lang }: Props) {
             </div>
             {searchLoading && (
               <p className="text-xs text-text-light/40 dark:text-text-dark/40 mt-1">{isZh ? '搜索中…' : 'Searching…'}</p>
+            )}
+            {!searchLoading && searchError && (
+              <p className="text-xs text-rose-500/70 dark:text-rose-400/70 mt-1">
+                {isZh ? '⚠ 无法连接搜索服务，请检查网络后重试' : '⚠ Search service unavailable, check your network'}
+              </p>
+            )}
+            {!searchLoading && !searchError && searchDone && searchResults.length === 0 && (
+              <p className="text-xs text-text-light/40 dark:text-text-dark/40 mt-1">
+                {isZh ? '未找到匹配地点' : 'No matching places found'}
+              </p>
             )}
             {searchResults.length > 0 && (
               <ul className="mt-1 space-y-1">
