@@ -570,68 +570,69 @@ export default function LiveData({ lang }: Props) {
             <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
               {locName} · {isZh ? '天气详情' : 'Weather'} · Open-Meteo
             </p>
-            <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4 text-xs text-text-light/70 dark:text-text-dark/95">
+            <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-5 text-xs text-text-light/70 dark:text-text-dark/95">
               {weather ? (
                 <>
-                  {/* Current weather hero */}
-                  <div className="text-center mb-4">
-                    <div className="text-6xl mb-1">{getWeatherEmoji(weather.code)}</div>
-                    <div className="text-4xl font-light tracking-tight text-text-light dark:text-text-dark">{weather.temp}°C</div>
-                    <div className="text-sm text-text-light/60 dark:text-text-dark/60 mt-0.5">{getWeatherDesc(weather.code, isZh)}</div>
-                  </div>
-
-                  {/* Detail metrics */}
-                  <div className="grid grid-cols-3 gap-x-3 gap-y-2 mb-4">
-                    <div className="text-center">
-                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '体感' : 'Feels'}</div>
-                      <div className="font-medium">{weather.feelsLike}°C</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '湿度' : 'Humidity'}</div>
-                      <div className="font-medium">{weather.humidity}%</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '风速' : 'Wind'}</div>
-                      <div className="font-medium">{weather.windSpeed} km/h {weather.windDir}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[10px] uppercase tracking-wider opacity-40">UV</div>
-                      <div className="font-medium">{weather.uvIndex}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '能见度' : 'Visibility'}</div>
-                      <div className="font-medium">{weather.visibility} km</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-[10px] uppercase tracking-wider opacity-40">{isZh ? '气压' : 'Pressure'}</div>
-                      <div className="font-medium">{weather.pressure} hPa</div>
+                  {/* Hero: horizontal layout */}
+                  <div className="flex items-center gap-4 mb-5">
+                    <div className="text-6xl leading-none flex-shrink-0">{getWeatherEmoji(weather.code)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-extralight tracking-tighter tabular-nums text-text-light dark:text-text-dark">{weather.temp}</span>
+                        <span className="text-lg text-text-light/40 dark:text-text-dark/40 font-light">°C</span>
+                      </div>
+                      <div className="text-sm text-text-light/50 dark:text-text-dark/50 mt-0.5">{getWeatherDesc(weather.code, isZh)}</div>
+                      {weather.forecast[0] && (
+                        <div className="text-[11px] text-text-light/35 dark:text-text-dark/35 mt-1 tabular-nums">
+                          <span className="text-orange-400">{weather.forecast[0].maxTemp}°</span>
+                          <span className="mx-1">/</span>
+                          <span className="text-blue-400">{weather.forecast[0].minTemp}°</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Yesterday + Forecast Chart */}
+                  {/* Metric cards with accent colors */}
+                  <div className="grid grid-cols-3 gap-2 mb-5">
+                    {[
+                      { label: isZh ? '体感' : 'Feels', value: `${weather.feelsLike}°`, color: 'text-amber-500' },
+                      { label: isZh ? '湿度' : 'Humidity', value: `${weather.humidity}%`, color: 'text-sky-400' },
+                      { label: isZh ? '风' : 'Wind', value: `${weather.windSpeed}`, unit: 'km/h', color: 'text-teal-500' },
+                      { label: 'UV', value: `${weather.uvIndex}`, color: weather.uvIndex >= 6 ? 'text-rose-400' : 'text-yellow-400' },
+                      { label: isZh ? '能见度' : 'Vis.', value: `${weather.visibility}`, unit: 'km', color: 'text-indigo-400' },
+                      { label: isZh ? '气压' : 'hPa', value: `${weather.pressure}`, color: 'text-purple-400' },
+                    ].map((m, i) => (
+                      <div key={i} className="rounded-md bg-white/50 dark:bg-white/[0.04] p-2 text-center">
+                        <div className={`text-[10px] uppercase tracking-wider font-medium mb-0.5 ${m.color}`}>{m.label}</div>
+                        <div className="font-semibold tabular-nums text-text-light dark:text-text-dark">
+                          {m.value}
+                          {m.unit && <span className="text-[10px] font-normal opacity-40 ml-0.5">{m.unit}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Forecast Chart */}
                   <div className="border-t border-black/[0.04] dark:border-white/[0.04] pt-3">
-                    <div className="text-[10px] uppercase tracking-wider opacity-40 text-center mb-2">
-                      {isZh ? '昨天 & 预报' : 'Yesterday & Forecast'}
-                    </div>
                     {(() => {
                       const days: { label: string; maxTemp: number; minTemp: number; code: number; rain: number; isYesterday: boolean }[] = [];
                       if (weather.yesterday) {
-                        days.push({ label: isZh ? '昨天' : 'Yest.', maxTemp: weather.yesterday.maxTemp, minTemp: weather.yesterday.minTemp, code: weather.yesterday.code, rain: weather.yesterday.precipitation, isYesterday: true });
+                        days.push({ label: isZh ? '昨' : 'Y', maxTemp: weather.yesterday.maxTemp, minTemp: weather.yesterday.minTemp, code: weather.yesterday.code, rain: weather.yesterday.precipitation, isYesterday: true });
                       }
                       weather.forecast.forEach((f, i) => {
                         const d = new Date(f.date);
-                        const label = i === 0 ? (isZh ? '今天' : 'Today')
-                          : i === 1 ? (isZh ? '明天' : 'Tmr')
-                          : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' });
+                        const label = i === 0 ? (isZh ? '今' : 'T')
+                          : i === 1 ? (isZh ? '明' : 'T+1')
+                          : d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'narrow' });
                         days.push({ label, maxTemp: f.maxTemp, minTemp: f.minTemp, code: f.code, rain: f.rainChance, isYesterday: false });
                       });
 
-                      const W = 300, H = 155;
-                      const padT = 22, padB = 52, padX = 30;
+                      const W = 300, H = 170;
+                      const padT = 20, padB = 56, padX = 28;
                       const chartH = H - padT - padB;
                       const temps = days.flatMap(d => [d.maxTemp, d.minTemp]);
-                      const tMin = Math.min(...temps) - 2;
-                      const tMax = Math.max(...temps) + 2;
+                      const tMin = Math.min(...temps) - 3;
+                      const tMax = Math.max(...temps) + 3;
                       const tRange = Math.max(tMax - tMin, 1);
                       const stepX = days.length > 1 ? (W - 2 * padX) / (days.length - 1) : 0;
                       const xOf = (i: number) => padX + i * stepX;
@@ -641,45 +642,93 @@ export default function LiveData({ lang }: Props) {
                       const minPts = days.map((d, i) => `${xOf(i)},${yOf(d.minTemp)}`).join(' ');
                       const maxPrecip = Math.max(...days.map(d => d.rain), 1);
 
+                      // Grid lines at 5° intervals
+                      const gridStep = 5;
+                      const gridStart = Math.ceil(tMin / gridStep) * gridStep;
+                      const gridLines: number[] = [];
+                      for (let t = gridStart; t <= tMax; t += gridStep) gridLines.push(t);
+
                       return (
                         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+                          <defs>
+                            <linearGradient id="wm-fill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#f97316" stopOpacity="0.12" />
+                              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.06" />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Grid lines */}
+                          {gridLines.map(t => (
+                            <g key={`g${t}`}>
+                              <line x1={padX - 8} y1={yOf(t)} x2={W - padX + 8} y2={yOf(t)}
+                                stroke="currentColor" strokeWidth={0.5} opacity={0.06} />
+                              <text x={padX - 12} y={yOf(t) + 3} textAnchor="end" fontSize={7} fill="currentColor" opacity={0.18}>{t}°</text>
+                            </g>
+                          ))}
+
                           {/* Precipitation bars */}
                           {days.map((d, i) => {
                             if (d.rain <= 0) return null;
-                            const barH = (d.rain / maxPrecip) * 24;
+                            const barH = (d.rain / maxPrecip) * 22;
                             return (
-                              <rect key={`p${i}`} x={xOf(i) - 10} y={H - padB + 2} width={20} height={barH} rx={3}
-                                fill="#3b82f6" opacity={d.isYesterday ? 0.12 : 0.18} />
+                              <rect key={`p${i}`} x={xOf(i) - 9} y={H - padB + 1} width={18} height={barH} rx={2.5}
+                                fill="#3b82f6" opacity={d.isYesterday ? 0.08 : 0.14} />
                             );
                           })}
 
+                          {/* Area fill between max and min lines */}
+                          <polygon
+                            points={[...days.map((d, i) => `${xOf(i)},${yOf(d.maxTemp)}`), ...days.map((d, i) => `${xOf(days.length - 1 - i)},${yOf(days[days.length - 1 - i].minTemp)}`)].join(' ')}
+                            fill="url(#wm-fill)" />
+
+                          {/* Yesterday→Today dashed connector */}
+                          {days.length >= 2 && days[0].isYesterday && (
+                            <>
+                              <line x1={xOf(0)} y1={yOf(days[0].maxTemp)} x2={xOf(1)} y2={yOf(days[1].maxTemp)}
+                                stroke="#f97316" strokeWidth={1.2} strokeDasharray="3 3" opacity={0.25} />
+                              <line x1={xOf(0)} y1={yOf(days[0].minTemp)} x2={xOf(1)} y2={yOf(days[1].minTemp)}
+                                stroke="#3b82f6" strokeWidth={1.2} strokeDasharray="3 3" opacity={0.25} />
+                            </>
+                          )}
+
                           {/* Max temp line + dots */}
-                          <polyline points={maxPts} fill="none" stroke="#f97316" strokeWidth={2} strokeLinejoin="round" opacity={0.7} />
+                          <polyline points={maxPts} fill="none" stroke="#f97316" strokeWidth={2.2}
+                            strokeLinejoin="round" strokeLinecap="round" opacity={0.75} />
                           {days.map((d, i) => (
-                            <circle key={`mx${i}`} cx={xOf(i)} cy={yOf(d.maxTemp)} r={3.5} fill="#f97316" opacity={d.isYesterday ? 0.45 : 0.8} />
+                            <circle key={`mx${i}`} cx={xOf(i)} cy={yOf(d.maxTemp)} r={4}
+                              fill="#f97316" stroke="white" strokeWidth={1.5}
+                              opacity={d.isYesterday ? 0.4 : 0.9} />
                           ))}
 
                           {/* Min temp line + dots */}
-                          <polyline points={minPts} fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinejoin="round" opacity={0.7} />
+                          <polyline points={minPts} fill="none" stroke="#3b82f6" strokeWidth={2.2}
+                            strokeLinejoin="round" strokeLinecap="round" opacity={0.75} />
                           {days.map((d, i) => (
-                            <circle key={`mn${i}`} cx={xOf(i)} cy={yOf(d.minTemp)} r={3.5} fill="#3b82f6" opacity={d.isYesterday ? 0.45 : 0.8} />
+                            <circle key={`mn${i}`} cx={xOf(i)} cy={yOf(d.minTemp)} r={4}
+                              fill="#3b82f6" stroke="white" strokeWidth={1.5}
+                              opacity={d.isYesterday ? 0.4 : 0.9} />
                           ))}
 
                           {/* Temperature labels */}
                           {days.map((d, i) => (
                             <g key={`l${i}`}>
-                              <text x={xOf(i)} y={yOf(d.maxTemp) - 8} textAnchor="middle" fontSize={9.5} fontWeight={500} fill="#f97316" opacity={d.isYesterday ? 0.55 : 1}>{d.maxTemp}°</text>
-                              <text x={xOf(i)} y={yOf(d.minTemp) + 14} textAnchor="middle" fontSize={9.5} fontWeight={500} fill="#3b82f6" opacity={d.isYesterday ? 0.55 : 1}>{d.minTemp}°</text>
+                              <text x={xOf(i)} y={yOf(d.maxTemp) - 9} textAnchor="middle" fontSize={9} fontWeight={600}
+                                fill="#f97316" opacity={d.isYesterday ? 0.45 : 0.9}>{d.maxTemp}°</text>
+                              <text x={xOf(i)} y={yOf(d.minTemp) + 14} textAnchor="middle" fontSize={9} fontWeight={600}
+                                fill="#3b82f6" opacity={d.isYesterday ? 0.45 : 0.9}>{d.minTemp}°</text>
                             </g>
                           ))}
 
                           {/* Date labels + emojis */}
                           {days.map((d, i) => (
                             <g key={`d${i}`}>
-                              <text x={xOf(i)} y={H - padB + 16} textAnchor="middle" fontSize={9} fill="currentColor" opacity={d.isYesterday ? 0.35 : 0.5}>{d.label}</text>
-                              <text x={xOf(i)} y={H - padB + 33} textAnchor="middle" fontSize={15}>{getWeatherEmoji(d.code)}</text>
+                              <text x={xOf(i)} y={H - padB + 15} textAnchor="middle" fontSize={8.5} fontWeight={d.isYesterday ? 400 : 500}
+                                fill="currentColor" opacity={d.isYesterday ? 0.28 : 0.45}>{d.label}</text>
+                              <text x={xOf(i)} y={H - padB + 33} textAnchor="middle" fontSize={14}
+                                opacity={d.isYesterday ? 0.5 : 1}>{getWeatherEmoji(d.code)}</text>
                               {d.rain > 0 && (
-                                <text x={xOf(i)} y={H - padB + 2 + (d.rain / maxPrecip) * 24 + 10} textAnchor="middle" fontSize={7.5} fill="#3b82f6" opacity={0.6}>
+                                <text x={xOf(i)} y={H - padB + 1 + (d.rain / maxPrecip) * 22 + 10}
+                                  textAnchor="middle" fontSize={7} fill="#3b82f6" opacity={0.5}>
                                   {d.isYesterday ? `${d.rain}mm` : `${d.rain}%`}
                                 </text>
                               )}
@@ -691,7 +740,7 @@ export default function LiveData({ lang }: Props) {
                   </div>
                 </>
               ) : (
-                <div className="text-center py-10 opacity-30">{isZh ? '加载天气数据…' : 'Loading weather…'}</div>
+                <div className="text-center py-12 opacity-30 text-sm">{isZh ? '加载天气数据…' : 'Loading weather…'}</div>
               )}
             </div>
           </div>
