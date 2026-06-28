@@ -30,6 +30,22 @@ const JIEQI_EN: Record<string, string> = {
 const MP_ZH = ['朔', '蛾眉月', '上弦月', '盈凸月', '满月', '亏凸月', '下弦月', '残月'];
 const MP_EN = ['New', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous', 'Full', 'Waning Gibbous', 'Last Quarter', 'Waning Crescent'];
 
+/** Compute a human-readable UTC offset string for a given IANA timezone (e.g. "UTC+8", "UTC-5") */
+function getUtcOffset(tz: string): string {
+  try {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, timeZoneName: 'longOffset',
+    }).formatToParts(now);
+    const tzPart = parts.find(p => p.type === 'timeZoneName')?.value || '';
+    const match = tzPart.match(/GMT([+-]\d{1,2}(?::\d{2})?)/);
+    if (!match) return tzPart.includes('GMT') ? 'UTC' : tz;
+    return `UTC${match[1]}`;
+  } catch {
+    return tz;
+  }
+}
+
 function loadSavedLocation(): ToolLocationPreset | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -253,7 +269,8 @@ export default function LiveData({ lang }: Props) {
                   : 'bg-white/50 dark:bg-white/[0.03] border-slate-200/80 dark:border-white/[0.08] hover:border-primary-light/20 dark:hover:border-primary-dark/20 text-text-light/70 dark:text-text-dark/70'
               }`}
             >
-              {preset.name[isZh ? 'zh' : 'en']}
+              {preset.name[isZh ? 'zh' : 'en']}{' '}
+              <span className="opacity-50 text-xs">{getUtcOffset(preset.tz)}</span>
             </button>
           ))}
           <button
@@ -322,35 +339,42 @@ export default function LiveData({ lang }: Props) {
       </div>
 
       {/* ── Live Data Content ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-10">
-        {/* Left: N2YO Satellite Tracker */}
-        <div className="flex flex-col items-center w-full">
-          <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase">
-            {isZh ? '航天器 · 实时轨道追踪' : 'Spacecraft · Live Tracking'}
-          </p>
-          <div
-            ref={n2yoRef}
-            className="n2yo-widget-wrapper w-full rounded-lg overflow-hidden border border-black/[0.06] dark:border-white/[0.08]"
-            style={{ maxWidth: 420 }}
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left column: Windy + N2YO */}
+        <div className="space-y-6">
+          {/* Windy Weather Map */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '实时气象' : 'Live Weather'} · Windy
+            </p>
+            <iframe
+              key={`windy-${location.lat}-${location.lng}`}
+              src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=m/s&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=${location.lat}&lon=${location.lng}&detailLat=${location.lat}&detailLon=${location.lng}&detail=true&message=true`}
+              width="100%"
+              height="450"
+              frameBorder="0"
+              className="rounded-lg"
+              loading="lazy"
+              title="Windy weather map"
+            />
+          </div>
+
+          {/* N2YO Satellite Tracker */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
+              {isZh ? '航天器 · 实时轨道追踪' : 'Spacecraft · Live Tracking'}
+            </p>
+            <div
+              ref={n2yoRef}
+              className="n2yo-widget-wrapper w-full rounded-lg overflow-hidden border border-black/[0.06] dark:border-white/[0.08]"
+            />
+          </div>
         </div>
 
-        {/* Right: 7Timer + Sun/Moon Card */}
-        <div className="flex flex-col items-center w-full h-full">
-          <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase">
-            {locName} · {isZh ? '天文气象预报' : 'Astro Forecast'} · 7Timer
-          </p>
-          <img
-            key={`timer7-${location.lat}-${location.lng}`}
-            src={`https://www.7timer.info/bin/astro.php?lon=${location.timer7.lng}&lat=${location.timer7.lat}&lang=${isZh ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
-            alt={isZh ? '天文气象预报' : 'Astro weather forecast'}
-            className="forecast-img w-full rounded-lg"
-            style={{ maxWidth: 420 }}
-            loading="lazy"
-            decoding="async"
-          />
-
-          <div className="mt-2 lg:mt-auto w-full" style={{ maxWidth: 420 }}>
+        {/* Right column: Sun & Moon + 7Timer */}
+        <div className="space-y-6">
+          {/* Sun & Moon Card */}
+          <div>
             <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
               {isZh ? '日月出没' : 'Sun & Moon'}
             </p>
@@ -405,6 +429,21 @@ export default function LiveData({ lang }: Props) {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* 7Timer Astro Forecast */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '天文气象预报' : 'Astro Forecast'} · 7Timer
+            </p>
+            <img
+              key={`timer7-${location.lat}-${location.lng}`}
+              src={`https://www.7timer.info/bin/astro.php?lon=${location.timer7.lng}&lat=${location.timer7.lat}&lang=${isZh ? 'zh' : 'en'}&ac=0&unit=metric&tzshift=0`}
+              alt={isZh ? '天文气象预报' : 'Astro weather forecast'}
+              className="forecast-img w-full rounded-lg"
+              loading="lazy"
+              decoding="async"
+            />
           </div>
         </div>
       </div>
