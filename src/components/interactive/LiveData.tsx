@@ -121,10 +121,20 @@ export default function LiveData({ lang }: Props) {
     temp: number; feelsLike: number; humidity: number;
     windSpeed: number; windDir: string; uvIndex: number;
     visibility: number; pressure: number;
+    dewPoint: number; cloudCover: number; windGusts: number; precipitation: number;
     desc: string; code: number;
     forecast: { date: string; maxTemp: number; minTemp: number; code: number; rainChance: number }[];
     yesterday: { maxTemp: number; minTemp: number; code: number; precipitation: number } | null;
   } | null>(null);
+
+  // ── Air Quality state (Open-Meteo AQ API) ──
+  const [aqi, setAqi] = useState<{
+    index: number; pm25: number; pm10: number;
+    o3: number; no2: number; so2: number; co: number;
+  } | null>(null);
+
+  // ── Sun & Moon Position state (SunCalc) ──
+  const [sunPos, setSunPos] = useState<{ alt: number; az: number; dayProg: number; maxAlt: number; moonAlt: number; moonProg: number; moonMaxAlt: number } | null>(null);
 
   // ── Location change handler ──
   const selectLocation = useCallback((loc: ToolLocationPreset) => {
@@ -184,7 +194,7 @@ export default function LiveData({ lang }: Props) {
     async function fetchWeather() {
       try {
         // Current weather + 3-day forecast
-        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`;
+        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`;
         const fRes = await fetch(fUrl);
         const fData = await fRes.json();
         if (!fData?.current || !fData?.daily?.time?.length) return;
@@ -203,6 +213,10 @@ export default function LiveData({ lang }: Props) {
           uvIndex: Math.round(c.uv_index),
           visibility: Math.round(c.visibility / 1000),
           pressure: Math.round(c.surface_pressure),
+          dewPoint: Math.round(c.dew_point_2m),
+          cloudCover: Math.round(c.cloud_cover),
+          windGusts: Math.round(c.wind_gusts_10m),
+          precipitation: c.precipitation || 0,
           desc: '',
           code: c.weather_code,
           forecast: fData.daily.time.map((date: string, i: number) => ({
@@ -254,6 +268,112 @@ export default function LiveData({ lang }: Props) {
       });
     }, 1800000);
 
+    return () => clearInterval(interval);
+  }, [location.lat, location.lng]);
+
+  // ── Air Quality fetch (Open-Meteo AQ API) ──
+  useEffect(() => {
+    const lat = location.lat;
+    const lng = location.lng;
+    const cacheKey = `aqi-${lat.toFixed(2)}-${lng.toFixed(2)}`;
+
+    async function fetchAqi() {
+      try {
+        const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide&timezone=auto`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data?.current) return;
+        const c = data.current;
+        setAqi({
+          index: c.us_aqi ?? 0,
+          pm25: c.pm2_5 ?? 0,
+          pm10: c.pm10 ?? 0,
+          o3: c.ozone ?? 0,
+          no2: c.nitrogen_dioxide ?? 0,
+          so2: c.sulphur_dioxide ?? 0,
+          co: c.carbon_monoxide ?? 0,
+        });
+      } catch { /* ignore */ }
+    }
+
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const obj = JSON.parse(cached);
+        if (Date.now() - obj.ts < 1800000) {
+          fetchAqi();
+          return;
+        }
+      } catch { /* ignore */ }
+    }
+
+    fetchAqi().then(() => {
+      sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now() }));
+    });
+    const interval = setInterval(() => {
+      fetchAqi().then(() => {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now() }));
+      });
+    }, 1800000);
+    return () => clearInterval(interval);
+  }, [location.lat, location.lng]);
+
+  // ── Sun position (SunCalc) ──
+  useEffect(() => {
+    const lat = location.lat;
+    const lng = location.lng;
+
+    function compute() {
+      import('suncalc').then((SC: any) => {
+        const now = new Date();
+        const pos = SC.getPosition(now, lat, lng);
+        const times = SC.getTimes(now, lat, lng);
+        const altDeg = pos.altitude;
+        const azDeg = (pos.azimuth + 360) % 360;
+        let dayProg = 0.5;
+        if (times.sunrise && times.sunset) {
+          const sr = times.sunrise.getTime();
+          const ss = times.sunset.getTime();
+          const nt = now.getTime();
+          if (ss > sr) dayProg = Math.max(0, Math.min(1, (nt - sr) / (ss - sr)));
+        }
+        // Max altitude at solar noon
+        let maxAlt = 45;
+        if (times.solarNoon) {
+          const noonPos = SC.getPosition(times.solarNoon, lat, lng);
+          maxAlt = noonPos.altitude;
+        }
+        // Moon position
+        const moonPos = SC.getMoonPosition(now, lat, lng);
+        const moonAlt = moonPos.altitude;
+        const moonTimes = SC.getMoonTimes(now, lat, lng);
+        let moonProg = 0.5;
+        let moonMaxAlt = 45;
+        if (moonTimes.rise && moonTimes.set) {
+          const mr = moonTimes.rise.getTime();
+          const ms = moonTimes.set.getTime();
+          const nt = now.getTime();
+          if (ms > mr) {
+            moonProg = Math.max(0, Math.min(1, (nt - mr) / (ms - mr)));
+            const midTime = new Date((mr + ms) / 2);
+            moonMaxAlt = SC.getMoonPosition(midTime, lat, lng).altitude;
+          } else if (nt < ms) {
+            moonProg = Math.max(0, Math.min(1, (nt + 86400000 - mr) / (ms + 86400000 - mr)));
+            const midTime = new Date((mr + ms + 86400000) / 2);
+            moonMaxAlt = SC.getMoonPosition(midTime, lat, lng).altitude;
+          }
+        } else if (moonTimes.alwaysUp) {
+          moonProg = 0.5;
+          moonMaxAlt = SC.getMoonPosition(now, lat, lng).altitude;
+        } else {
+          moonProg = -1; // moon never rises today
+        }
+        setSunPos({ alt: altDeg, az: azDeg, dayProg, maxAlt, moonAlt, moonProg, moonMaxAlt });
+      }).catch(() => {});
+    }
+
+    compute();
+    const interval = setInterval(compute, 300_000); // refresh every 5 min
     return () => clearInterval(interval);
   }, [location.lat, location.lng]);
 
@@ -381,6 +501,28 @@ export default function LiveData({ lang }: Props) {
   }, [location, isZh]);
 
   const locName = location.name[isZh ? 'zh' : 'en'];
+
+  // ── Observation condition score (0-100) ──
+  const obsScore = (() => {
+    if (!weather) return null;
+    let score = 0;
+    // Cloud cover (35 pts) — lower is better
+    const cc = weather.cloudCover;
+    score += cc <= 5 ? 35 : cc <= 15 ? 30 : cc <= 30 ? 24 : Math.max(0, 35 - (cc / 100) * 35);
+    // Humidity (20 pts) — lower is better
+    const rh = weather.humidity;
+    score += rh <= 30 ? 20 : rh <= 60 ? 20 - ((rh - 30) / 30) * 8 : Math.max(0, 12 - ((rh - 60) / 40) * 12);
+    // Visibility (20 pts) — higher is better
+    score += Math.min(weather.visibility, 25) / 25 * 20;
+    // AQI (15 pts) — lower is better
+    if (aqi) score += Math.max(0, 15 - (aqi.index / 150) * 15);
+    else score += 8;
+    // Wind (5 pts) — lower is better
+    score += Math.max(0, 5 - (weather.windSpeed / 40) * 5);
+    // Precipitation (5 pts) — none is ideal
+    score += weather.precipitation === 0 ? 5 : 0;
+    return Math.round(Math.min(100, Math.max(0, score)));
+  })();
 
   return (
     <div>
@@ -565,6 +707,130 @@ export default function LiveData({ lang }: Props) {
             </div>
           </div>
 
+          {/* Sun Position Diagram */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '太阳位置' : 'Sun Position'} · SunCalc
+            </p>
+            <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4">
+              {sunPos ? (() => {
+                const W = 300, H = 155;
+                const horY = 82, padX = 28;
+                const skyH = horY;
+                const belowH = H - horY - 22;
+                const civilH = belowH / 3;
+                const altToY = (alt: number) => {
+                  if (alt >= 0) return Math.max(15, horY - Math.min(alt / 90, 1) * (skyH - 15));
+                  if (alt >= -6) return horY + ((-alt) / 6) * civilH;
+                  if (alt >= -12) return horY + civilH + ((-alt - 6) / 6) * civilH;
+                  if (alt >= -18) return horY + 2 * civilH + ((-alt - 12) / 6) * civilH;
+                  return horY + belowH;
+                };
+                const sunX = padX + sunPos.dayProg * (W - 2 * padX);
+                const sunY = altToY(sunPos.alt);
+                const peakY = altToY(sunPos.maxAlt);
+                const arcControlY = 2 * peakY - horY;
+                const srX = padX, ssX = W - padX, noonX = W / 2;
+                const azDir = (az: number) => {
+                  if (az >= 337.5 || az < 22.5) return isZh ? '北' : 'N';
+                  if (az < 67.5) return isZh ? '东北' : 'NE';
+                  if (az < 112.5) return isZh ? '东' : 'E';
+                  if (az < 157.5) return isZh ? '东南' : 'SE';
+                  if (az < 202.5) return isZh ? '南' : 'S';
+                  if (az < 247.5) return isZh ? '西南' : 'SW';
+                  if (az < 292.5) return isZh ? '西' : 'W';
+                  return isZh ? '西北' : 'NW';
+                };
+                const nowLabel = new Intl.DateTimeFormat('en-GB', {
+                  timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false,
+                }).format(new Date());
+                return (
+                  <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                      <linearGradient id="sp-sky" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0f172a" stopOpacity={0.55} />
+                        <stop offset="100%" stopColor="#7dd3fc" stopOpacity={0.15} />
+                      </linearGradient>
+                      <filter id="sp-glow">
+                        <feGaussianBlur stdDeviation="3.5" result="b" />
+                        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      </filter>
+                      <filter id="sp-moon-glow">
+                        <feGaussianBlur stdDeviation="2" result="b" />
+                        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      </filter>
+                    </defs>
+                    {/* Sky */}
+                    <rect x={0} y={0} width={W} height={horY} fill="url(#sp-sky)" />
+                    {/* Civil twilight band */}
+                    <rect x={0} y={horY} width={W} height={civilH} fill="#d97706" opacity={0.12} />
+                    {/* Nautical twilight band */}
+                    <rect x={0} y={horY + civilH} width={W} height={civilH} fill="#1e3a5f" opacity={0.25} />
+                    {/* Astronomical twilight band */}
+                    <rect x={0} y={horY + 2 * civilH} width={W} height={civilH} fill="#0c0a3e" opacity={0.35} />
+                    {/* Horizon line */}
+                    <line x1={0} y1={horY} x2={W} y2={horY} stroke="currentColor" strokeWidth={0.8} opacity={0.2} />
+                    {/* Zone dividers */}
+                    <line x1={0} y1={horY + civilH} x2={W} y2={horY + civilH} stroke="currentColor" strokeWidth={0.4} opacity={0.08} strokeDasharray="4 3" />
+                    <line x1={0} y1={horY + 2 * civilH} x2={W} y2={horY + 2 * civilH} stroke="currentColor" strokeWidth={0.4} opacity={0.08} strokeDasharray="4 3" />
+                    {/* Altitude labels (left) */}
+                    <text x={4} y={8} fontSize={7} fill="currentColor" opacity={0.2}>90°</text>
+                    <text x={4} y={horY - 3} fontSize={7} fill="currentColor" opacity={0.25}>0°</text>
+                    <text x={4} y={horY + civilH - 2} fontSize={7} fill="currentColor" opacity={0.18}>-6°</text>
+                    <text x={4} y={horY + 2 * civilH - 2} fontSize={7} fill="currentColor" opacity={0.18}>-12°</text>
+                    <text x={4} y={horY + 3 * civilH - 2} fontSize={7} fill="currentColor" opacity={0.18}>-18°</text>
+                    {/* Zone labels (right) */}
+                    <text x={W - 4} y={horY + civilH / 2 + 2} textAnchor="end" fontSize={7} fill="currentColor" opacity={0.2}>{isZh ? '民用' : 'Civil'}</text>
+                    <text x={W - 4} y={horY + civilH * 1.5 + 2} textAnchor="end" fontSize={7} fill="currentColor" opacity={0.2}>{isZh ? '航海' : 'Naut.'}</text>
+                    <text x={W - 4} y={horY + civilH * 2.5 + 2} textAnchor="end" fontSize={7} fill="currentColor" opacity={0.2}>{isZh ? '天文' : 'Astro'}</text>
+                    {/* Sun arc path (dashed) */}
+                    <path d={`M${srX},${horY} Q${noonX},${arcControlY} ${ssX},${horY}`} fill="none"
+                      stroke="#f59e0b" strokeWidth={1} strokeDasharray="3 4" opacity={0.3} />
+                    {/* Sun orb with glow */}
+                    <circle cx={sunX} cy={sunY} r={sunPos.alt >= 0 ? 8 : 6}
+                      fill="#fbbf24" filter="url(#sp-glow)"
+                      opacity={sunPos.alt >= 0 ? 0.9 : 0.45} />
+                    {/* Sun altitude label */}
+                    <text x={sunX + 12} y={sunY + 3} fontSize={8} fontWeight={600}
+                      fill="#f59e0b" opacity={0.7}>☀ {sunPos.alt.toFixed(1)}° {azDir(sunPos.az)}</text>
+                    {/* Moon arc path (dashed) */}
+                    {sunPos.moonProg >= 0 && (() => {
+                      const moonPeakY = altToY(sunPos.moonMaxAlt);
+                      const moonControlY = 2 * moonPeakY - horY;
+                      return (
+                        <path d={`M${padX},${horY} Q${noonX},${moonControlY} ${W - padX},${horY}`} fill="none"
+                          stroke="#a78bfa" strokeWidth={0.7} strokeDasharray="2 5" opacity={0.2} />
+                      );
+                    })()}
+                    {/* Moon marker */}
+                    {sunPos.moonProg >= 0 && (() => {
+                      const moonX = padX + sunPos.moonProg * (W - 2 * padX);
+                      const moonY = altToY(sunPos.moonAlt);
+                      return (
+                        <>
+                          <circle cx={moonX} cy={moonY} r={sunPos.moonAlt >= 0 ? 6 : 4.5}
+                            fill="#c4b5fd" filter="url(#sp-moon-glow)"
+                            opacity={sunPos.moonAlt >= 0 ? 0.8 : 0.35} />
+                          <text x={moonX - 12} y={moonY + 3} textAnchor="end" fontSize={8} fontWeight={600}
+                            fill="#a78bfa" opacity={0.6}>🌙 {sunPos.moonAlt.toFixed(1)}°</text>
+                        </>
+                      );
+                    })()}
+                    {/* Current time marker line */}
+                    <line x1={sunX} y1={horY + 1} x2={sunX} y2={horY + belowH}
+                      stroke="#f59e0b" strokeWidth={0.5} opacity={0.12} strokeDasharray="2 2" />
+                    {/* Time labels at bottom */}
+                    <text x={srX} y={H - 5} fontSize={7} textAnchor="start" fill="currentColor" opacity={0.3}>{isZh ? '日出' : 'SR'}</text>
+                    <text x={noonX} y={H - 5} fontSize={7} textAnchor="middle" fill="currentColor" opacity={0.35}>{nowLabel}</text>
+                    <text x={ssX} y={H - 5} fontSize={7} textAnchor="end" fill="currentColor" opacity={0.3}>{isZh ? '日落' : 'SS'}</text>
+                  </svg>
+                );
+              })() : (
+                <div className="text-center py-8 opacity-30 text-sm">{isZh ? '计算太阳位置…' : 'Computing sun position…'}</div>
+              )}
+            </div>
+          </div>
+
           {/* Weather Detail Card */}
           <div>
             <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
@@ -576,19 +842,36 @@ export default function LiveData({ lang }: Props) {
                   {/* Hero: horizontal layout */}
                   <div className="flex items-center gap-4 mb-5">
                     <div className="text-6xl leading-none flex-shrink-0">{getWeatherEmoji(weather.code)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-extralight tracking-tighter tabular-nums text-text-light dark:text-text-dark">{weather.temp}</span>
-                        <span className="text-lg text-text-light/40 dark:text-text-dark/40 font-light">°C</span>
-                      </div>
-                      <div className="text-sm text-text-light/50 dark:text-text-dark/50 mt-0.5">{getWeatherDesc(weather.code, isZh)}</div>
-                      {weather.forecast[0] && (
-                        <div className="text-[11px] text-text-light/35 dark:text-text-dark/35 mt-1 tabular-nums">
-                          <span className="text-orange-400">{weather.forecast[0].maxTemp}°</span>
-                          <span className="mx-1">/</span>
-                          <span className="text-blue-400">{weather.forecast[0].minTemp}°</span>
+                    <div className="flex-1 min-w-0 flex items-center gap-6">
+                      <div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-extralight tracking-tighter tabular-nums text-text-light dark:text-text-dark">{weather.temp}</span>
+                          <span className="text-lg text-text-light/40 dark:text-text-dark/40 font-light">°C</span>
                         </div>
-                      )}
+                        <div className="text-sm text-text-light/50 dark:text-text-dark/50 mt-0.5">{getWeatherDesc(weather.code, isZh)}</div>
+                        {weather.forecast[0] && (
+                          <div className="text-[11px] text-text-light/35 dark:text-text-dark/35 mt-1 tabular-nums">
+                            <span className="text-orange-400">{weather.forecast[0].maxTemp}°</span>
+                            <span className="mx-1">/</span>
+                            <span className="text-blue-400">{weather.forecast[0].minTemp}°</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 flex-shrink-0">
+                        {[
+                          { label: isZh ? '露点' : 'Dew', val: `${weather.dewPoint}°` },
+                          { label: isZh ? '云量' : 'Cloud', val: `${weather.cloudCover}%` },
+                          { label: isZh ? '阵风' : 'Gust', val: `${weather.windGusts}`, unit: 'km/h' },
+                          { label: isZh ? '降水' : 'Precip', val: `${weather.precipitation}`, unit: 'mm' },
+                        ].map((m, i) => (
+                          <div key={i}>
+                            <div className="text-[9px] uppercase tracking-wider leading-tight text-text-light/30 dark:text-text-dark/30">{m.label}</div>
+                            <div className="text-[11px] font-medium tabular-nums text-text-light/50 dark:text-text-dark/50">
+                              {m.val}{m.unit && <span className="text-[8px] font-normal opacity-50 ml-0.5">{m.unit}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -612,6 +895,37 @@ export default function LiveData({ lang }: Props) {
                     ))}
                   </div>
 
+                  {/* Observation Condition Score */}
+                  {obsScore !== null && (() => {
+                    const grades = [
+                      { min: 85, color: '#22c55e', label: isZh ? '极佳' : 'Excellent', desc: isZh ? '晴朗通透，非常适合观测' : 'Clear & transparent, ideal for observing' },
+                      { min: 70, color: '#14b8a6', label: isZh ? '良好' : 'Good', desc: isZh ? '条件不错，可以出摊' : 'Decent conditions, worth setting up' },
+                      { min: 55, color: '#eab308', label: isZh ? '一般' : 'Fair', desc: isZh ? '有些限制，碰运气' : 'Some limitations, try your luck' },
+                      { min: 40, color: '#f97316', label: isZh ? '较差' : 'Poor', desc: isZh ? '不太理想' : 'Not ideal for observing' },
+                      { min: 0, color: '#ef4444', label: isZh ? '不宜' : 'Bad', desc: isZh ? '建议改天' : 'Better wait for another night' },
+                    ];
+                    const g = grades.find(gr => obsScore >= gr.min) || grades[grades.length - 1];
+                    return (
+                      <div className="border-t border-black/[0.04] dark:border-white/[0.04] pt-3 mb-4">
+                        <div className="text-[10px] uppercase tracking-wider text-text-light/40 dark:text-text-dark/40 mb-2">
+                          {isZh ? '🔭 今晚观测条件' : '🔭 Observing Conditions Tonight'}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl font-extralight tabular-nums" style={{ color: g.color }}>{obsScore}</span>
+                          <div className="flex-1">
+                            <div className="h-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.04] overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${obsScore}%`, background: `linear-gradient(90deg, #ef4444, #eab308, #22c55e)` }} />
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs font-medium" style={{ color: g.color }}>{g.label}</span>
+                              <span className="text-[10px] text-text-light/35 dark:text-text-dark/35">{g.desc}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Forecast Chart */}
                   <div className="border-t border-black/[0.04] dark:border-white/[0.04] pt-3">
                     {(() => {
@@ -625,13 +939,16 @@ export default function LiveData({ lang }: Props) {
                         days.push({ label, maxTemp: f.maxTemp, minTemp: f.minTemp, code: f.code, rain: f.rainChance, isYesterday: false });
                       });
 
-                      const W = 300, H = 182;
-                      const padT = 20, padB = 68, padX = 28;
+                      const W = 300, H = 170;
+                      const padT = 22, padB = 55, padX = 28;
                       const chartH = H - padT - padB;
                       const temps = days.flatMap(d => [d.maxTemp, d.minTemp]);
-                      const tMin = Math.min(...temps) - 4;
-                      const tMax = Math.max(...temps) + 4;
-                      const tRange = Math.max(tMax - tMin, 1);
+                      const dataMin = Math.min(...temps);
+                      const dataMax = Math.max(...temps);
+                      const dataRange = Math.max(dataMax - dataMin, 4);
+                      const tMin = dataMin - dataRange * 0.30;
+                      const tMax = dataMax + dataRange * 0.15;
+                      const tRange = tMax - tMin;
                       const stepX = days.length > 1 ? (W - 2 * padX) / (days.length - 1) : 0;
                       const xOf = (i: number) => padX + i * stepX;
                       const yOf = (t: number) => padT + chartH - ((t - tMin) / tRange) * chartH;
@@ -707,12 +1024,12 @@ export default function LiveData({ lang }: Props) {
                           {/* Date labels + emojis */}
                           {days.map((d, i) => (
                             <g key={`d${i}`}>
-                              <text x={xOf(i)} y={H - padB + 13} textAnchor="middle" fontSize={14}
+                              <text x={xOf(i)} y={H - padB + 17} textAnchor="middle" fontSize={14}
                                 opacity={d.isYesterday ? 0.5 : 1}>{getWeatherEmoji(d.code)}</text>
-                              <text x={xOf(i)} y={H - padB + 27} textAnchor="middle" fontSize={8} fontWeight={400}
+                              <text x={xOf(i)} y={H - padB + 30} textAnchor="middle" fontSize={8} fontWeight={400}
                                 fill="currentColor" opacity={d.isYesterday ? 0.3 : 0.45}>{d.label}</text>
                               {d.rain > 0 && (
-                                <text x={xOf(i)} y={H - padB + 38} textAnchor="middle" fontSize={7}
+                                <text x={xOf(i)} y={H - padB + 41} textAnchor="middle" fontSize={7}
                                   fill="#3b82f6" opacity={0.45}>
                                   {d.isYesterday ? `${d.rain}mm` : `💧${d.rain}%`}
                                 </text>
@@ -726,6 +1043,82 @@ export default function LiveData({ lang }: Props) {
                 </>
               ) : (
                 <div className="text-center py-12 opacity-30 text-sm">{isZh ? '加载天气数据…' : 'Loading weather…'}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Air Quality Card */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '空气质量' : 'Air Quality'} · Open-Meteo
+            </p>
+            <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-5">
+              {aqi ? (() => {
+                const aqiLevel = (v: number) =>
+                  v <= 50 ? { color: '#22c55e', label: isZh ? '优' : 'Good' } :
+                  v <= 100 ? { color: '#eab308', label: isZh ? '良' : 'Moderate' } :
+                  v <= 150 ? { color: '#f97316', label: isZh ? '轻度' : 'USG' } :
+                  v <= 200 ? { color: '#ef4444', label: isZh ? '中度' : 'Unhealthy' } :
+                  v <= 300 ? { color: '#a855f7', label: isZh ? '重度' : 'Very Unhealthy' } :
+                  { color: '#7c2d12', label: isZh ? '严重' : 'Hazardous' };
+                const level = aqiLevel(aqi.index);
+                const pollutants = [
+                  { label: 'PM2.5', val: aqi.pm25, unit: 'µg/m³' },
+                  { label: 'PM10', val: aqi.pm10, unit: 'µg/m³' },
+                  { label: 'O₃', val: aqi.o3, unit: 'µg/m³' },
+                  { label: 'NO₂', val: aqi.no2, unit: 'µg/m³' },
+                  { label: 'SO₂', val: aqi.so2, unit: 'µg/m³' },
+                  { label: 'CO', val: aqi.co, unit: 'µg/m³' },
+                ];
+                return (
+                  <div>
+                    {/* AQI hero */}
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex-shrink-0 text-center">
+                        <div className="text-4xl font-extralight tabular-nums" style={{ color: level.color }}>{aqi.index}</div>
+                        <div className="text-[10px] uppercase tracking-wider mt-0.5 font-medium" style={{ color: level.color }}>{level.label}</div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs text-text-light/40 dark:text-text-dark/40 mb-1.5">{isZh ? 'US AQI 指数' : 'US AQI Index'}</div>
+                        {/* AQI scale bar */}
+                        <div className="h-1.5 rounded-full flex overflow-hidden">
+                          {[
+                            { w: '10%', c: '#22c55e' }, { w: '10%', c: '#eab308' },
+                            { w: '10%', c: '#f97316' }, { w: '10%', c: '#ef4444' },
+                            { w: '20%', c: '#a855f7' }, { w: '40%', c: '#7c2d12' },
+                          ].map((s, i) => (
+                            <div key={i} style={{ width: s.w, background: s.c, opacity: 0.5 }} />
+                          ))}
+                        </div>
+                        {/* Indicator triangle */}
+                        <div className="relative h-2 mt-0.5">
+                          <div
+                            className="absolute text-[8px] leading-none"
+                            style={{
+                              left: `${Math.min(aqi.index / 500 * 100, 100)}%`,
+                              transform: 'translateX(-50%)',
+                              color: level.color,
+                            }}
+                          >▲</div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Pollutant grid */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {pollutants.map((p, i) => (
+                        <div key={i} className="rounded-md bg-white/50 dark:bg-white/[0.04] p-2 text-center">
+                          <div className="text-[10px] uppercase tracking-wider font-medium mb-0.5 text-text-light/40 dark:text-text-dark/40">{p.label}</div>
+                          <div className="font-semibold tabular-nums text-text-light dark:text-text-dark text-sm">
+                            {Math.round(p.val)}
+                            <span className="text-[9px] font-normal opacity-40 ml-0.5">{p.unit}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div className="text-center py-8 opacity-30 text-sm">{isZh ? '加载空气质量…' : 'Loading air quality…'}</div>
               )}
             </div>
           </div>
