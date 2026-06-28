@@ -88,8 +88,7 @@ const t = useTranslations(lang);
             <div class="flex justify-between col-span-2"><span>📜 {lang === 'zh' ? '农历' : 'Lunar'}</span><span id="lunar-date" class="tabular-nums">---</span></div>
             <div class="flex justify-between col-span-2"><span>🌿 {lang === 'zh' ? '节气' : 'Solar Term'}</span><span id="jieqi" class="tabular-nums">---</span></div>
             <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>🌅 {lang === 'zh' ? '日出日落' : 'Sunrise-Sunset'}</span><span class="tabular-nums"><span id="sun-rise">--:--</span> - <span id="sun-set">--:--</span></span></div>
-            <div class="flex justify-between col-span-2"><span>☀️ {lang === 'zh' ? '正午 · 昼长' : 'Noon · Day'}</span><span id="sun-noon-day" class="tabular-nums">--:-- · --h --m</span></div>
-            <div class="flex justify-between col-span-2 border-t border-black/[0.04] dark:border-white/[0.04] pt-1 mt-0.5"><span>🌆 {lang === 'zh' ? '民用晨光' : 'Civil dawn'}</span><span id="sun-civil" class="tabular-nums">--:-- → --:--</span></div>
+            <div class="flex justify-between col-span-2"><span>🌆 {lang === 'zh' ? '民用晨光' : 'Civil dawn'}</span><span id="sun-civil" class="tabular-nums">--:-- → --:--</span></div>
             <div class="flex justify-between col-span-2"><span>🌃 {lang === 'zh' ? '航海晨光' : 'Nautical'}</span><span id="sun-naut" class="tabular-nums">--:-- → --:--</span></div>
             <div class="flex justify-between col-span-2"><span>🌌 {lang === 'zh' ? '天文晨光' : 'Astro'}</span><span id="sun-astro" class="tabular-nums">--:-- → --:--</span></div>
             <!-- 月亮信息：SunCalc 本地计算 -->
@@ -107,7 +106,7 @@ const t = useTranslations(lang);
             var card = document.getElementById('beijing-sun-card');
             if (!card) return;
             var els = { rise: document.getElementById('sun-rise'), set: document.getElementById('sun-set'),
-              noon: document.getElementById('sun-noon-day'), civil: document.getElementById('sun-civil'),
+              civil: document.getElementById('sun-civil'),
               naut: document.getElementById('sun-naut'), astro: document.getElementById('sun-astro'),
               date: document.getElementById('sun-card-date'),
               moonRise: document.getElementById('moon-rise'), moonSet: document.getElementById('moon-set'),
@@ -127,8 +126,6 @@ const t = useTranslations(lang);
               if (!d) return;
               els.rise.textContent = fmt(d.sunrise);
               els.set.textContent = fmt(d.sunset);
-              var daySec = d.day_length || 0;
-              els.noon.textContent = fmt(d.solar_noon) + ' · ' + Math.floor(daySec/3600) + 'h ' + Math.floor((daySec%3600)/60) + 'm';
               els.civil.textContent = fmt(d.civil_twilight_begin) + ' → ' + fmt(d.civil_twilight_end);
               els.naut.textContent = fmt(d.nautical_twilight_begin) + ' → ' + fmt(d.nautical_twilight_end);
               els.astro.textContent = fmt(d.astronomical_twilight_begin) + ' → ' + fmt(d.astronomical_twilight_end);
