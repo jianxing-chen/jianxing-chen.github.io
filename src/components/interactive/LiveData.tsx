@@ -115,8 +115,8 @@ export default function LiveData({ lang }: Props) {
   const [manualLng, setManualLng] = useState(location.lng.toString());
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{
-    name: string; latitude: number; longitude: number;
-    country?: string; admin1?: string; timezone?: string;
+    id: number; name: string; latitude: number; longitude: number;
+    country?: string; admin1?: string; timezone?: string; feature_code?: string;
   }>>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -180,12 +180,37 @@ export default function LiveData({ lang }: Props) {
       // Auto-detect CJK characters to pick the right API language
       const hasCJK = /[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/.test(query);
       const apiLang = hasCJK ? 'zh' : (isZh ? 'zh' : 'en');
-      const res = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=${apiLang}`
+
+      // For CJK queries without admin suffix, also try with 市 appended
+      // e.g. 安庆 → also search 安庆市 to find the real city
+      const needsCitySuffix = hasCJK && !/[市区县省]$/.test(query.trim());
+      const queries = needsCitySuffix ? [query, query.trim() + '市'] : [query];
+
+      const responses = await Promise.all(
+        queries.map(q =>
+          fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${apiLang}`)
+            .then(res => {
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return res.json();
+            })
+        )
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setSearchResults(data.results || []);
+
+      // Merge, deduplicate by id, sort by city-level feature codes first
+      const featurePriority: Record<string, number> = {
+        PPLC: 0, PPLA: 1, PPLA2: 2, PPLA4: 3, PPL: 4,
+      };
+      const merged = new Map<number, any>();
+      for (const data of responses) {
+        for (const r of (data.results || [])) {
+          if (!merged.has(r.id)) merged.set(r.id, r);
+        }
+      }
+      const results = Array.from(merged.values())
+        .sort((a, b) => (featurePriority[a.feature_code] ?? 5) - (featurePriority[b.feature_code] ?? 5))
+        .slice(0, 8);
+
+      setSearchResults(results);
       setSearchDone(true);
     } catch (err) {
       setSearchResults([]);
