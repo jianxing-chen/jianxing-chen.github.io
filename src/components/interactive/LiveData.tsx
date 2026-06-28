@@ -3,6 +3,7 @@ import {
   LOCATION_PRESETS,
   DEFAULT_TOOL_LOCATION,
   LOCATION_STORAGE_KEY,
+  estimateTimezone,
   type ToolLocationPreset,
 } from '@/config/tools';
 
@@ -35,7 +36,11 @@ function loadSavedLocation(): ToolLocationPreset | null {
     const saved = localStorage.getItem(LOCATION_STORAGE_KEY);
     if (!saved) return null;
     const loc = JSON.parse(saved) as ToolLocationPreset;
-    if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') return loc;
+    if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+      // Backward compat: old saves may lack tz field
+      if (!loc.tz) loc.tz = estimateTimezone(loc.lng);
+      return loc;
+    }
   } catch { /* ignore */ }
   return null;
 }
@@ -71,6 +76,7 @@ export default function LiveData({ lang }: Props) {
       name: { en: `${lat.toFixed(2)}°N ${lng.toFixed(2)}°E`, zh: `${lat.toFixed(2)}°N ${lng.toFixed(2)}°E` },
       lat, lng,
       timer7: { lat, lng },
+      tz: estimateTimezone(lng),
     };
     selectLocation(loc);
   }, [manualLat, manualLng, selectLocation]);
@@ -110,17 +116,28 @@ export default function LiveData({ lang }: Props) {
     const lng = location.lng;
     const cacheKey = `sun-v3-${lat}-${lng}-${new Date().toDateString()}`;
 
+    const tz = location.tz;
     function fmt(t: string | number) {
       if (!t) return '--:--';
       const d = new Date(typeof t === 'string' ? t : t);
-      return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+      }).format(d);
     }
     function fmtMoon(t: any) {
       if (!t) return '--:--';
       const d = new Date(t);
-      const hhmm = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
-      if (isZh) return `${d.getMonth() + 1}月${d.getDate()}日 ${hhmm}`;
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + hhmm;
+      const hhmm = new Intl.DateTimeFormat('en-GB', {
+        timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+      }).format(d);
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, month: 'numeric', day: 'numeric',
+      }).formatToParts(d);
+      const month = parts.find(p => p.type === 'month')?.value || '1';
+      const day = parts.find(p => p.type === 'day')?.value || '1';
+      if (isZh) return `${month}月${day}日 ${hhmm}`;
+      const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${monthNames[+month]} ${day} ${hhmm}`;
     }
 
     function displaySun(d: any) {
@@ -135,8 +152,8 @@ export default function LiveData({ lang }: Props) {
       el('ld-sun-astro')!.textContent = fmt(d.astronomical_twilight_begin) + ' → ' + fmt(d.astronomical_twilight_end);
       const now = new Date();
       el('ld-date')!.textContent = isZh
-        ? `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
-        : now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        ? new Intl.DateTimeFormat('zh-CN', { timeZone: tz, year: 'numeric', month: 'long', day: 'numeric' }).format(now)
+        : new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'long', day: 'numeric' }).format(now);
     }
 
     // Sunrise-sunset API
@@ -153,8 +170,16 @@ export default function LiveData({ lang }: Props) {
       if (!Lunar) return;
       const el = document.getElementById('ld-lunar');
       if (!el) return;
-      const d = new Date();
-      const lunar = Lunar.fromDate(d);
+      // Build a Date whose local components match the location's current date
+      const now = new Date();
+      const dateParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+      }).formatToParts(now);
+      const y = +(dateParts.find(p => p.type === 'year')?.value || '2026');
+      const mo = +(dateParts.find(p => p.type === 'month')?.value || '1');
+      const da = +(dateParts.find(p => p.type === 'day')?.value || '1');
+      const localDate = new Date(y, mo - 1, da);
+      const lunar = Lunar.fromDate(localDate);
       if (isZh) {
         el.textContent = lunar.getYearInGanZhi() + '年' + lunar.getMonthInChinese() + '月' + lunar.getDayInChinese();
       } else {
@@ -170,7 +195,7 @@ export default function LiveData({ lang }: Props) {
         if (next) {
           const ns = next.getSolar();
           const nextDate = new Date(ns.getYear(), ns.getMonth() - 1, ns.getDay());
-          const today = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+          const today = new Date(y, mo - 1, da);
           const days = Math.round((nextDate.getTime() - today.getTime()) / 86400000);
           const jqNameZh = next.getName();
           const jqName = isZh ? jqNameZh : (JIEQI_EN[jqNameZh] || jqNameZh);
