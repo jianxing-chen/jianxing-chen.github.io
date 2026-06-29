@@ -837,8 +837,25 @@ export default function LiveData({ lang }: Props) {
 
       {/* ── Live Data Content ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left column: Sun Position + Windy + N2YO */}
+        {/* Left column: Windy + Sun Position + Glow Forecast + N2YO */}
         <div className="space-y-6">
+          {/* Windy Weather Map */}
+          <div>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '实时气象' : 'Live Weather'} · Windy
+            </p>
+            <iframe
+              key={`windy-${location.lat}-${location.lng}`}
+              src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=m/s&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=${location.lat}&lon=${location.lng}&detailLat=${location.lat}&detailLon=${location.lng}&detail=true&message=true`}
+              width="100%"
+              height="450"
+              frameBorder="0"
+              className="rounded-lg"
+              loading="lazy"
+              title="Windy weather map"
+            />
+          </div>
+
           {/* Sun Position Diagram */}
           <div>
             <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
@@ -963,22 +980,72 @@ export default function LiveData({ lang }: Props) {
             </div>
           </div>
 
-          {/* Windy Weather Map */}
-          <div>
-            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-2 tracking-wide uppercase text-center">
-              {locName} · {isZh ? '实时气象' : 'Live Weather'} · Windy
-            </p>
-            <iframe
-              key={`windy-${location.lat}-${location.lng}`}
-              src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=%C2%B0C&metricWind=m/s&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=${location.lat}&lon=${location.lng}&detailLat=${location.lat}&detailLon=${location.lng}&detail=true&message=true`}
-              width="100%"
-              height="450"
-              frameBorder="0"
-              className="rounded-lg"
-              loading="lazy"
-              title="Windy weather map"
-            />
-          </div>
+          {/* Glow Forecast Card (Sunrise/Sunset) */}
+          {glowForecast.length > 0 && (
+            <div>
+              <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
+                {locName} · {isZh ? '朝霞晚霞预报' : 'Sunrise/Sunset Glow'} · Open-Meteo
+              </p>
+              <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4">
+                <div className="space-y-3">
+                  {glowForecast.map((day, i) => {
+                    const dayLabel = i === 0
+                      ? (isZh ? '今天' : 'Today')
+                      : i === 1
+                        ? (isZh ? '明天' : 'Tomorrow')
+                        : (() => { const d = new Date(day.date + 'T12:00:00'); return d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' }); })();
+
+                    const glowRating = (s: number) =>
+                      s >= 75 ? { label: isZh ? '极佳' : 'Excellent', color: '#f97316' }
+                      : s >= 55 ? { label: isZh ? '良好' : 'Good', color: '#22c55e' }
+                      : s >= 35 ? { label: isZh ? '一般' : 'Fair', color: '#eab308' }
+                      : { label: isZh ? '较差' : 'Poor', color: '#94a3b8' };
+
+                    const renderRow = (type: 'sunrise' | 'sunset', data: { time: string; score: number } | null) => {
+                      if (!data) return null;
+                      const rating = glowRating(data.score);
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span className="text-base flex-shrink-0">{type === 'sunrise' ? '🌅' : '🌇'}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-xs font-medium text-text-light/80 dark:text-text-dark/80">
+                                {dayLabel} {data.time}
+                              </span>
+                              <span className="text-xs font-medium" style={{ color: rating.color }}>
+                                {rating.label} {data.score}
+                              </span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-slate-200/50 dark:bg-white/10 overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: `${data.score}%`,
+                                  background: `linear-gradient(90deg, #94a3b8, #eab308, #22c55e, #f97316)`,
+                                  backgroundSize: '150% 100%',
+                                  backgroundPosition: `${100 - data.score}% 0`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div key={day.date} className="space-y-2">
+                        {renderRow('sunrise', day.sunrise)}
+                        {renderRow('sunset', day.sunset)}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-text-light/30 dark:text-text-dark/30 mt-3 text-center">
+                  {isZh ? '基于中高云层、低云、能见度、湿度与 AQI 综合评分' : 'Scored by mid/high cloud, low cloud, visibility, humidity & AQI'}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* N2YO Satellite Tracker */}
           <div>
@@ -992,7 +1059,7 @@ export default function LiveData({ lang }: Props) {
           </div>
         </div>
 
-        {/* Right column: Sun & Moon + 7Timer */}
+        {/* Right column: Sun & Moon + Weather + AQI + 7Timer */}
         <div className="space-y-6">
           {/* Sun & Moon Card */}
           <div>
@@ -1346,73 +1413,6 @@ export default function LiveData({ lang }: Props) {
               )}
             </div>
           </div>
-
-          {/* Glow Forecast Card (Sunrise/Sunset) */}
-          {glowForecast.length > 0 && (
-            <div>
-              <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
-                {locName} · {isZh ? '朝霞晚霞预报' : 'Sunrise/Sunset Glow'} · Open-Meteo
-              </p>
-              <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4">
-                <div className="space-y-3">
-                  {glowForecast.map((day, i) => {
-                    const dayLabel = i === 0
-                      ? (isZh ? '今天' : 'Today')
-                      : i === 1
-                        ? (isZh ? '明天' : 'Tomorrow')
-                        : (() => { const d = new Date(day.date + 'T12:00:00'); return d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' }); })();
-
-                    const glowRating = (s: number) =>
-                      s >= 75 ? { label: isZh ? '极佳' : 'Excellent', color: '#f97316' }
-                      : s >= 55 ? { label: isZh ? '良好' : 'Good', color: '#22c55e' }
-                      : s >= 35 ? { label: isZh ? '一般' : 'Fair', color: '#eab308' }
-                      : { label: isZh ? '较差' : 'Poor', color: '#94a3b8' };
-
-                    const renderRow = (type: 'sunrise' | 'sunset', data: { time: string; score: number } | null) => {
-                      if (!data) return null;
-                      const rating = glowRating(data.score);
-                      return (
-                        <div className="flex items-center gap-2">
-                          <span className="text-base flex-shrink-0">{type === 'sunrise' ? '🌅' : '🌇'}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-0.5">
-                              <span className="text-xs font-medium text-text-light/80 dark:text-text-dark/80">
-                                {dayLabel} {data.time}
-                              </span>
-                              <span className="text-xs font-medium" style={{ color: rating.color }}>
-                                {rating.label} {data.score}
-                              </span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-slate-200/50 dark:bg-white/10 overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{
-                                  width: `${data.score}%`,
-                                  background: `linear-gradient(90deg, #94a3b8, #eab308, #22c55e, #f97316)`,
-                                  backgroundSize: '150% 100%',
-                                  backgroundPosition: `${100 - data.score}% 0`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    };
-
-                    return (
-                      <div key={day.date} className="space-y-2">
-                        {renderRow('sunrise', day.sunrise)}
-                        {renderRow('sunset', day.sunset)}
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="text-[10px] text-text-light/30 dark:text-text-dark/30 mt-3 text-center">
-                  {isZh ? '基于中高云层、低云、能见度、湿度与 AQI 综合评分' : 'Scored by mid/high cloud, low cloud, visibility, humidity & AQI'}
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* 7Timer Astro Forecast */}
           <div>
