@@ -151,6 +151,20 @@ export default function LiveData({ lang }: Props) {
     sunset: { time: string; score: number } | null;
   }>>([]);
 
+  // ── Eclipse forecast state (astronomy-engine, dynamic import) ──
+  const [eclipseData, setEclipseData] = useState<{
+    lunar: { kind: string; peak: Date; obscuration: number; sdPenum: number; sdPartial: number; sdTotal: number;
+             phases: Array<{ label: string; time: Date; alt: number; az: number }> } | null;
+    lunarVisible: 'yes' | 'no' | 'partial';
+    lunarVisibilityDetail: string;
+    solarGlobal: { kind: string; peak: Date; lat?: number; lng?: number; obscuration?: number } | null;
+    solarLocal: { kind: string; peak: Date; peakAlt: number; obscuration?: number } | null;
+    nextLocalSolarPeak: Date | null;
+    solarCenterName: string;
+    loading: boolean;
+    error: boolean;
+  }>({ lunar: null, lunarVisible: 'no', lunarVisibilityDetail: '', solarGlobal: null, solarLocal: null, nextLocalSolarPeak: null, solarCenterName: '', loading: true, error: false });
+
   // ── Location change handler ──
   const selectLocation = useCallback((loc: ToolLocationPreset) => {
     setLocation(loc);
@@ -756,6 +770,213 @@ export default function LiveData({ lang }: Props) {
     return Math.round(Math.min(100, Math.max(0, score)));
   })();
 
+  // ── Eclipse forecast (astronomy-engine, dynamic import on viewport entry) ──
+  const eclipseCardRef = useRef<HTMLDivElement>(null);
+  const eclipseComputed = useRef(false);
+  useEffect(() => {
+    const lat = location.lat;
+    const lng = location.lng;
+    const tz = location.tz;
+    const cacheKey = `eclipse-${lat.toFixed(2)}-${lng.toFixed(2)}`;
+    // Reset on location change.
+    eclipseComputed.current = false;
+    setEclipseData(prev => ({ ...prev, loading: true, error: false }));
+
+    // Visibility check + lazy compute on first viewport entry.
+    const el = eclipseCardRef.current;
+    if (!el) return;
+    const compute = () => {
+      if (eclipseComputed.current) return;
+      eclipseComputed.current = true;
+
+      // Try sessionStorage cache (1h TTL).
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const obj = JSON.parse(cached);
+          if (obj && obj.ts && Date.now() - obj.ts < 3600000 && obj.data) {
+            // revive Dates
+            const d = obj.data;
+            const revive = (x: any) => x ? {
+              ...x,
+              peak: new Date(x.peak),
+              phases: x.phases ? x.phases.map((p: any) => ({ ...p, time: new Date(p.time) })) : x.phases,
+            } : null;
+            setEclipseData({
+              lunar: revive(d.lunar),
+              lunarVisible: d.lunarVisible,
+              lunarVisibilityDetail: d.lunarVisibilityDetail,
+              solarGlobal: revive(d.solarGlobal),
+              solarLocal: revive(d.solarLocal),
+              nextLocalSolarPeak: d.nextLocalSolarPeak ? new Date(d.nextLocalSolarPeak) : null,
+              solarCenterName: d.solarCenterName || '',
+              loading: false, error: false,
+            });
+            return;
+          }
+        }
+      } catch {}
+
+      setEclipseData(prev => ({ ...prev, loading: true, error: false }));
+      Promise.all([
+        import('astronomy-engine'),
+        import('suncalc'),
+      ]).then(([Ae, SunCalc]: any) => {
+        try {
+          const now = new Date();
+
+          // --- Lunar eclipse (next one) ---
+          let lunar: any = null;
+          try { lunar = Ae.SearchLunarEclipse(now); } catch {}
+
+          // Local moon visibility at lunar eclipse peak.
+          let lunarVisible: 'yes' | 'no' | 'partial' = 'no';
+          let lunarVisibilityDetail = '';
+          let lunarPhases: Array<{ label: string; time: Date; alt: number; az: number }> = [];
+          if (lunar) {
+            const peak = lunar.peak.date instanceof Date ? lunar.peak.date : new Date(lunar.peak.date);
+            // Determine local moon visibility at lunar eclipse peak using SunCalc
+            // (astronomy-engine has no simple moon-altitude helper; SunCalc's
+            // getMoonPosition.altitude is sufficient for a visible/above-horizon check).
+            const suncalcMoonAltAt = (t: Date) => {
+              try { return SunCalc.getMoonPosition(t, lat, lng).altitude; } catch { return -1; }
+            };
+            const altPeak = suncalcMoonAltAt(peak);
+            const sdPen = lunar.sd_penum || 0, sdPar = lunar.sd_partial || 0, sdTot = lunar.sd_total || 0;
+            const penStart = new Date(peak.getTime() - sdPen * 60000);
+            const parStart = sdPar > 0 ? new Date(peak.getTime() - sdPar * 60000) : null;
+            const totStart = sdTot > 0 ? new Date(peak.getTime() - sdTot * 60000) : null;
+            const totEnd = sdTot > 0 ? new Date(peak.getTime() + sdTot * 60000) : null;
+            const parEnd = sdPar > 0 ? new Date(peak.getTime() + sdPar * 60000) : null;
+            const penEnd = new Date(peak.getTime() + sdPen * 60000);
+            // Sample altitudes at key phase boundaries to decide visibility.
+            const keyTimes = [penStart, parStart, peak, parEnd, penEnd].filter(Boolean) as Date[];
+            const alts = keyTimes.map(t => suncalcMoonAltAt(t));
+            const visibleCount = alts.filter(a => a > 0).length;
+            if (altPeak > 0) lunarVisible = visibleCount === alts.length ? 'yes' : 'partial';
+            else lunarVisible = 'no';
+            if (lunarVisible === 'no') {
+              // Distinguish moon-set vs not-risen.
+              try {
+                const mt = SunCalc.getMoonTimes(peak, lat, lng);
+                lunarVisibilityDetail = mt.alwaysUp ? 'visible' : (mt.rise ? (mt.rise < peak ? 'set' : 'notRisen') : 'notRisen');
+              } catch { lunarVisibilityDetail = 'notRisen'; }
+            }
+
+            // Build phase list with local alt/az for the sky-position diagram.
+            const moonPosAt = (t: Date): { alt: number; az: number } => {
+              try { const p = SunCalc.getMoonPosition(t, lat, lng); return { alt: p.altitude, az: p.azimuth }; }
+              catch { return { alt: -99, az: 0 }; }
+            };
+            const sdPen2 = lunar.sd_penum || 0, sdPar2 = lunar.sd_partial || 0, sdTot2 = lunar.sd_total || 0;
+            lunarPhases.push({ label: 'P1', time: new Date(peak.getTime() - sdPen2 * 60000), ...moonPosAt(new Date(peak.getTime() - sdPen2 * 60000)) });
+            if (sdPar2 > 0) {
+              lunarPhases.push({ label: 'U1', time: new Date(peak.getTime() - sdPar2 * 60000), ...moonPosAt(new Date(peak.getTime() - sdPar2 * 60000)) });
+              if (sdTot2 > 0) lunarPhases.push({ label: 'U2', time: new Date(peak.getTime() - sdTot2 * 60000), ...moonPosAt(new Date(peak.getTime() - sdTot2 * 60000)) });
+            }
+            lunarPhases.push({ label: 'max', time: peak, ...moonPosAt(peak) });
+            if (sdPar2 > 0) {
+              if (sdTot2 > 0) lunarPhases.push({ label: 'U3', time: new Date(peak.getTime() + sdTot2 * 60000), ...moonPosAt(new Date(peak.getTime() + sdTot2 * 60000)) });
+              lunarPhases.push({ label: 'U4', time: new Date(peak.getTime() + sdPar2 * 60000), ...moonPosAt(new Date(peak.getTime() + sdPar2 * 60000)) });
+            }
+            lunarPhases.push({ label: 'P4', time: new Date(peak.getTime() + sdPen2 * 60000), ...moonPosAt(new Date(peak.getTime() + sdPen2 * 60000)) });
+          }
+
+          // --- Global solar eclipse (next one) ---
+          let solarGlobal: any = null;
+          try { solarGlobal = Ae.SearchGlobalSolarEclipse(now); } catch {}
+
+          // --- Local solar eclipse (next one visible at this location) ---
+          let solarLocal: any = null;
+          let nextLocalSolarPeak: Date | null = null;
+          try {
+            const observer = new Ae.Observer(lat, lng, 0);
+            solarLocal = Ae.SearchLocalSolarEclipse(now, observer);
+            // If the peak altitude is <= 0, the eclipse is not actually visible;
+            // find the next visible one.
+            if (solarLocal && solarLocal.peak.altitude <= 0) {
+              const next = Ae.NextLocalSolarEclipse(solarLocal.peak.time, observer);
+              if (next && next.peak.altitude > 0) {
+                nextLocalSolarPeak = next.peak.time.date instanceof Date ? next.peak.time.date : new Date(next.peak.time.date);
+              }
+            } else if (solarLocal) {
+              nextLocalSolarPeak = solarLocal.peak.time.date instanceof Date ? solarLocal.peak.time.date : new Date(solarLocal.peak.time.date);
+            }
+          } catch {}
+
+          const data = {
+            lunar: lunar ? {
+              kind: lunar.kind, peak: new Date(lunar.peak.date),
+              obscuration: lunar.obscuration, sdPenum: lunar.sd_penum, sdPartial: lunar.sd_partial, sdTotal: lunar.sd_total,
+              phases: lunarPhases,
+            } : null,
+            lunarVisible,
+            lunarVisibilityDetail,
+            solarGlobal: solarGlobal ? {
+              kind: solarGlobal.kind, peak: new Date(solarGlobal.peak.date),
+              lat: solarGlobal.latitude, lng: solarGlobal.longitude, obscuration: solarGlobal.obscuration,
+            } : null,
+            solarLocal: solarLocal ? {
+              kind: solarLocal.kind,
+              peak: new Date(solarLocal.peak.time.date),
+              peakAlt: solarLocal.peak.altitude,
+              obscuration: solarLocal.obscuration,
+            } : null,
+            nextLocalSolarPeak,
+            solarCenterName: '',
+          };
+          setEclipseData({ ...data, loading: false, error: false });
+          try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data })); } catch {}
+
+          // Reverse-geocode the solar eclipse center point to a place name.
+          // BigDataCloud's free client-side API returns the nearest land
+          // administrative region even for ocean coordinates. Only meaningful
+          // for total/annular eclipses (which carry a center point).
+          const sg = data.solarGlobal;
+          if (sg && (sg.kind === 'total' || sg.kind === 'annular') && sg.lat != null && sg.lng != null) {
+            const langCode = isZh ? 'zh' : 'en';
+            fetch(`https://api-bdc.io/data/reverse-geocode-client?latitude=${sg.lat}&longitude=${sg.lng}&localityLanguage=${langCode}`)
+              .then(r => r.ok ? r.json() : null)
+              .then((g: any) => {
+                if (!g) return;
+                const parts: string[] = [];
+                const place = g.city || g.locality || g.principalSubdivision;
+                if (place) parts.push(String(place));
+                if (g.countryName) parts.push(String(g.countryName));
+                const name = parts.join(', ');
+                if (name) {
+                  setEclipseData(prev => ({ ...prev, solarCenterName: name }));
+                  // Update the cache with the resolved name.
+                  try {
+                    const cached = sessionStorage.getItem(cacheKey);
+                    if (cached) {
+                      const obj = JSON.parse(cached);
+                      obj.data.solarCenterName = name;
+                      sessionStorage.setItem(cacheKey, JSON.stringify(obj));
+                    }
+                  } catch {}
+                }
+              }).catch(() => {});
+          }
+        } catch (e) {
+          setEclipseData(prev => ({ ...prev, loading: false, error: true }));
+        }
+      }).catch(() => {
+        setEclipseData(prev => ({ ...prev, loading: false, error: true }));
+      });
+    };
+
+    if ('IntersectionObserver' in window && el) {
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some(e => e.isIntersecting)) { compute(); io.disconnect(); }
+      }, { rootMargin: '200px' });
+      io.observe(el);
+      return () => io.disconnect();
+    } else {
+      compute();
+    }
+  }, [location.lat, location.lng, location.tz, isZh]);
+
   return (
     <div>
       {/* ── Location Selector (fixed in left margin on xl+) ── */}
@@ -1121,6 +1342,283 @@ export default function LiveData({ lang }: Props) {
               </div>
             </div>
           )}
+
+          {/* Eclipse Forecast Card (Solar & Lunar) */}
+          <div ref={eclipseCardRef}>
+            <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
+              {locName} · {isZh ? '日食月食预报' : 'Solar & Lunar Eclipse'} · astronomy-engine
+            </p>
+            <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4">
+              {(() => {
+                if (eclipseData.loading) {
+                  return <div className="text-center py-6 opacity-40 text-sm">{isZh ? '计算日食月食…' : 'Computing eclipses…'}</div>;
+                }
+                if (eclipseData.error) {
+                  return <div className="text-center py-6 opacity-40 text-sm">{isZh ? '加载失败，请刷新' : 'Failed to load, please refresh'}</div>;
+                }
+                const fmtDt = (d: Date) => {
+                  const parts = new Intl.DateTimeFormat(isZh ? 'zh-CN' : 'en-US', {
+                    timeZone: location.tz, month: 'numeric', day: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false,
+                  }).formatToParts(d);
+                  const g = (t: string) => parts.find(p => p.type === t)?.value || '';
+                  if (isZh) return `${g('month')}月${g('day')}日 ${g('hour')}:${g('minute')}`;
+                  const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                  return `${months[+g('month')]} ${g('day')} ${g('hour')}:${g('minute')}`;
+                };
+                // Eclipse kind helpers
+                const lunarKindZh = (k: string) => k === 'total' ? '全食' : k === 'partial' ? '偏食' : '半影';
+                const lunarKindEn = (k: string) => k === 'total' ? 'Total' : k === 'partial' ? 'Partial' : 'Penumbral';
+                const lunarKindColor = (k: string) => k === 'total' ? '#ef4444' : k === 'partial' ? '#f97316' : '#94a3b8';
+                const solarKindZh = (k: string) => k === 'total' ? '全食' : k === 'annular' ? '环食' : '偏食';
+                const solarKindEn = (k: string) => k === 'total' ? 'Total' : k === 'annular' ? 'Annular' : 'Partial';
+                const solarKindColor = (k: string) => k === 'total' ? '#ef4444' : k === 'annular' ? '#f97316' : '#94a3b8';
+
+                return (
+                  <div className="space-y-3">
+                    {/* Lunar eclipse block */}
+                    {eclipseData.lunar ? (
+                      <div className="space-y-1.5">
+                        {/* ── Two diagrams: umbra penetration + local sky position ── */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-1">
+                          {(() => {
+                            // ── Diagram 1: Earth-shadow penetration (umbra/penumbra) ──
+                            const L = eclipseData.lunar!;
+                            const W = 150, H = 110;
+                            const cx = W / 2, cy = H / 2 - 4;
+                            // Penumbra & umbra radii (qualitative, not to scale).
+                            const rPen = 42;
+                            const rUmb = L.kind === 'penumbral' ? 6 : L.kind === 'total' ? 30 : 20;
+                            // Moon trajectory: a horizontal chord crossing the shadow.
+                            // Use obscuration to set the moon's offset from center at peak
+                            // (closer to umbra center = deeper eclipse).
+                            const moonR = 7;
+                            // peak moon X offset: total → 0 (center), partial → near umbra edge.
+                            const peakOffsetX = L.kind === 'total' ? 0
+                              : L.kind === 'partial' ? (rUmb - moonR * 0.6) * (1 - L.obscuration * 0.5)
+                              : rUmb + moonR;
+                            // trajectory endpoints (moon enters from left, exits right).
+                            const trajY = cy;
+                            const trajX1 = cx - rPen - 8, trajX2 = cx + rPen + 8;
+                            // Phase points along the trajectory (mapped by their time relative to penStart..penEnd).
+                            const penStartT = L.peak.getTime() - L.sdPenum * 60000;
+                            const penEndT = L.peak.getTime() + L.sdPenum * 60000;
+                            const span = penEndT - penStartT || 1;
+                            const phasePt = (t: Date) => ({ x: trajX1 + (t.getTime() - penStartT) / span * (trajX2 - trajX1), y: trajY });
+                            const phaseColor: Record<string, string> = { P1: '#94a3b8', P4: '#94a3b8', U1: '#f97316', U4: '#f97316', U2: '#ef4444', U3: '#ef4444', max: '#ef4444' };
+                            const isBlood = L.kind === 'total';
+                            return (
+                              <div>
+                                <p className="text-[10px] text-text-light/40 dark:text-text-dark/40 mb-1 text-center">{isZh ? '月食穿透地影' : 'Earth Shadow Penetration'}</p>
+                                <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 130 }}>
+                                  <defs>
+                                    <radialGradient id="umbralGrad" cx="50%" cy="50%" r="50%">
+                                      <stop offset="0%" stopColor="#0f172a" />
+                                      <stop offset="70%" stopColor="#1e293b" />
+                                      <stop offset="100%" stopColor="#334155" />
+                                    </radialGradient>
+                                    <radialGradient id="penumbralGrad" cx="50%" cy="50%" r="50%">
+                                      <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.35" />
+                                      <stop offset="60%" stopColor="#94a3b8" stopOpacity="0.15" />
+                                      <stop offset="100%" stopColor="#94a3b8" stopOpacity="0" />
+                                    </radialGradient>
+                                    <radialGradient id="moonGrad" cx="35%" cy="35%" r="65%">
+                                      <stop offset="0%" stopColor="#f8fafc" />
+                                      <stop offset="100%" stopColor="#cbd5e1" />
+                                    </radialGradient>
+                                  </defs>
+                                  {/* penumbra */}
+                                  <circle cx={cx} cy={cy} r={rPen} fill="url(#penumbralGrad)" />
+                                  {/* umbra */}
+                                  <circle cx={cx} cy={cy} r={rUmb} fill="url(#umbralGrad)" />
+                                  {/* umbra edge label */}
+                                  <text x={cx + rUmb + 2} y={cy - rUmb - 1} fontSize={6} fill="currentColor" opacity={0.35}>{isZh ? '本影' : 'umbra'}</text>
+                                  <text x={cx + rPen - 2} y={cy - rPen - 1} fontSize={6} fill="currentColor" opacity={0.25} textAnchor="end">{isZh ? '半影' : 'penumbra'}</text>
+                                  {/* moon trajectory */}
+                                  <line x1={trajX1} y1={trajY} x2={trajX2} y2={trajY} stroke="currentColor" strokeWidth={0.5} strokeDasharray="2 2" opacity={0.2} />
+                                  {/* phase points */}
+                                  {L.phases.map((ph) => {
+                                    const pt = phasePt(ph.time);
+                                    return <circle key={ph.label} cx={pt.x} cy={pt.y} r={ph.label === 'max' ? 2 : 1.5} fill={phaseColor[ph.label] || '#94a3b8'} />;
+                                  })}
+                                  {/* peak moon at peakOffsetX */}
+                                  <circle cx={cx + peakOffsetX} cy={trajY} r={moonR} fill="url(#moonGrad)" stroke="#e2e8f0" strokeWidth={0.4} />
+                                  {isBlood && <circle cx={cx + peakOffsetX} cy={trajY} r={moonR} fill="#b91c1c" opacity={0.35} />}
+                                  <text x={cx + peakOffsetX} y={trajY + moonR + 6} fontSize={6} fill="#ef4444" textAnchor="middle">{isZh ? '食甚' : 'peak'}</text>
+                                </svg>
+                              </div>
+                            );
+                          })()}
+                          {(() => {
+                            // ── Diagram 2: Moon local sky position ──
+                            const L = eclipseData.lunar!;
+                            const W = 150, H = 110;
+                            const horY = H - 16;       // horizon line Y
+                            const zenithY = 6;         // top of dome
+                            const padX = 14;
+                            const domeW = W - 2 * padX;
+                            const cx = W / 2;
+                            // alt → Y: alt=0 → horY, alt=90 → zenithY
+                            const altToY = (alt: number) => alt >= 0 ? horY - (alt / 90) * (horY - zenithY) : horY + Math.min(8, -alt);
+                            // az → X: az=0(N)→center, 90(E)→right, 180(S)→center(back), 270(W)→left
+                            // Simple: map az 0..360 to a horizontal position; here treat the dome
+                            // as a side view where E-W is the X axis. Map az to X so that 90°(E)=right,
+                            // 270°(W)=left, 0/180(N/S)=center.
+                            const azToX = (az: number) => {
+                              // Convert az to a signed east-west offset: sin(az-180) gives -1 at W(270)? Use:
+                              // E(90)=+1, W(270)=-1, N/S(0/180)=0
+                              const ew = Math.sin((az - 0) * Math.PI / 180); // E=+1, W=-1... check: az=90→sin(90°)=1 ✓, az=270→sin(270°)=-1 ✓
+                              return cx + ew * domeW / 2 * 0.8;
+                            };
+                            const peakPhase = L.phases.find(p => p.label === 'max');
+                            const peakAlt = peakPhase ? peakPhase.alt : -99;
+                            const peakAz = peakPhase ? peakPhase.az : 0;
+                            const visible = peakAlt > 0;
+                            const visiblePhases = L.phases.filter(p => p.alt > 0);
+                            return (
+                              <div>
+                                <p className="text-[10px] text-text-light/40 dark:text-text-dark/40 mb-1 text-center">
+                                  {isZh ? '当地天空位置' : 'Local Sky Position'}
+                                  <span className="ml-1.5" style={{ color: visible ? '#22c55e' : '#94a3b8' }}>{visible ? (isZh ? '·可见 ✓' : '·visible ✓') : (isZh ? '·不可见 ✗' : '·not visible ✗')}</span>
+                                </p>
+                                <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 130 }}>
+                                  <defs>
+                                    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="0%" stopColor="#1e3a5f" />
+                                      <stop offset="100%" stopColor="#0f172a" />
+                                    </linearGradient>
+                                    <radialGradient id="moonSkyGrad" cx="35%" cy="35%" r="65%">
+                                      <stop offset="0%" stopColor="#f8fafc" />
+                                      <stop offset="100%" stopColor="#cbd5e1" />
+                                    </radialGradient>
+                                    <filter id="moonGlow" x="-100%" y="-100%" width="300%" height="300%">
+                                      <feGaussianBlur stdDeviation="2.5" result="b" />
+                                      <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                                    </filter>
+                                  </defs>
+                                  {/* sky dome */}
+                                  <path d={`M ${padX} ${horY} A ${domeW / 2} ${(horY - zenithY)} 0 0 1 ${W - padX} ${horY} Z`} fill="url(#skyGrad)" />
+                                  {/* horizon line */}
+                                  <line x1={padX - 4} y1={horY} x2={W - padX + 4} y2={horY} stroke="currentColor" strokeWidth={0.6} opacity={0.4} />
+                                  {/* cardinal labels */}
+                                  <text x={padX - 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="middle">W</text>
+                                  <text x={W - padX + 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="middle">E</text>
+                                  <text x={cx} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.3} textAnchor="middle">N/S</text>
+                                  {/* moon trajectory through visible phases */}
+                                  {visiblePhases.length > 1 && (
+                                    <polyline points={visiblePhases.map(p => `${azToX(p.az)},${altToY(p.alt)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth={0.4} strokeDasharray="1.5 1.5" opacity={0.3} />
+                                  )}
+                                  {/* phase markers */}
+                                  {visiblePhases.map(p => (
+                                    <circle key={p.label} cx={azToX(p.az)} cy={altToY(p.alt)} r={p.label === 'max' ? 1.8 : 1.2} fill={p.label === 'max' ? '#ef4444' : (p.label.startsWith('U') ? '#f97316' : '#94a3b8')} />
+                                  ))}
+                                  {/* peak moon */}
+                                  {peakAlt > -90 && (() => {
+                                    const mx = azToX(peakAz), my = altToY(peakAlt);
+                                    return <>
+                                      <circle cx={mx} cy={my} r={6} fill="url(#moonSkyGrad)" filter="url(#moonGlow)" opacity={visible ? 1 : 0.4} strokeDasharray={visible ? '' : '2 1.5'} stroke="#e2e8f0" strokeWidth={0.4} />
+                                      {L.kind === 'total' && visible && <circle cx={mx} cy={my} r={6} fill="#b91c1c" opacity={0.3} />}
+                                    </>;
+                                  })()}
+                                  {/* altitude/azimuth readout */}
+                                  <text x={cx} y={H - 2} fontSize={5.5} fill="currentColor" opacity={0.4} textAnchor="middle">
+                                    {isZh ? '高度' : 'alt'} {peakAlt > -90 ? peakAlt.toFixed(0) : '?'}° · {isZh ? '方位' : 'az'} {peakAz.toFixed(0)}°
+                                  </text>
+                                </svg>
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-text-light/80 dark:text-text-dark/80 flex items-center gap-1.5">
+                            <span className="text-base">🌗</span> {fmtDt(eclipseData.lunar.peak)}
+                          </span>
+                          <span className="text-xs font-medium" style={{ color: lunarKindColor(eclipseData.lunar.kind) }}>
+                            {isZh ? '月食' + lunarKindZh(eclipseData.lunar.kind) : lunarKindEn(eclipseData.lunar.kind) + ' Lunar'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-text-light/50 dark:text-text-dark/60">
+                          <span>{isZh ? '遮蔽' : 'Obscuration'}: {eclipseData.lunar.kind === 'penumbral' ? (isZh ? '轻微变暗' : 'slight dimming') : `${(eclipseData.lunar.obscuration * 100).toFixed(0)}%`}</span>
+                          <span style={{ color: eclipseData.lunarVisible === 'yes' ? '#22c55e' : eclipseData.lunarVisible === 'partial' ? '#eab308' : '#94a3b8' }}>
+                            {eclipseData.lunarVisible === 'yes' ? (isZh ? '当地可见' : 'Visible locally')
+                              : eclipseData.lunarVisible === 'partial' ? (isZh ? '部分可见' : 'Partially visible')
+                              : eclipseData.lunarVisibilityDetail === 'set' ? (isZh ? '月已落' : 'Moon set')
+                              : (isZh ? '月未升' : 'Moon not risen')}
+                          </span>
+                        </div>
+                        {/* Phase timeline */}
+                        <div className="text-[10px] text-text-light/40 dark:text-text-dark/40 tabular-nums">
+                          {(() => {
+                            const p = eclipseData.lunar!;
+                            const parts: string[] = [];
+                            parts.push((isZh ? '半影始 ' : 'P1 ') + fmtDt(new Date(p.peak.getTime() - p.sdPenum * 60000)));
+                            if (p.sdPartial > 0) parts.push((isZh ? '偏食始 ' : 'U1 ') + fmtDt(new Date(p.peak.getTime() - p.sdPartial * 60000)));
+                            parts.push((isZh ? '食甚 ' : 'Max ') + fmtDt(p.peak));
+                            if (p.sdPartial > 0) parts.push((isZh ? '偏食终 ' : 'U4 ') + fmtDt(new Date(p.peak.getTime() + p.sdPartial * 60000)));
+                            parts.push((isZh ? '半影终' : 'P4') + ' ' + fmtDt(new Date(p.peak.getTime() + p.sdPenum * 60000)));
+                            return parts.join(' → ');
+                          })()}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs opacity-40">{isZh ? '近期无月食预报' : 'No upcoming lunar eclipse'}</div>
+                    )}
+
+                    {/* Divider */}
+                    <div className="border-t border-black/[0.06] dark:border-white/[0.08]" />
+
+                    {/* Solar eclipse block */}
+                    {eclipseData.solarGlobal ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-text-light/80 dark:text-text-dark/80 flex items-center gap-1.5">
+                            <span className="text-base">☀️</span> {fmtDt(eclipseData.solarGlobal.peak)}
+                          </span>
+                          <span className="text-xs font-medium" style={{ color: solarKindColor(eclipseData.solarGlobal.kind) }}>
+                            {isZh ? '日食' + solarKindZh(eclipseData.solarGlobal.kind) : solarKindEn(eclipseData.solarGlobal.kind) + ' Solar'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap justify-between gap-x-2 text-[11px] text-text-light/50 dark:text-text-dark/60">
+                          <span>
+                            {isZh ? '全球' : 'Global'}
+                            {(eclipseData.solarGlobal.kind === 'total' || eclipseData.solarGlobal.kind === 'annular') && eclipseData.solarGlobal.lat != null
+                              ? ` · ${isZh ? '中心' : 'Center'}: ${eclipseData.solarGlobal.lat.toFixed(1)}°, ${eclipseData.solarGlobal.lng.toFixed(1)}°`
+                              : ''}
+                          </span>
+                          {eclipseData.solarLocal ? (
+                            <span style={{ color: eclipseData.solarLocal.peakAlt > 0 ? '#22c55e' : '#94a3b8' }}>
+                              {isZh ? '当地' : 'Local'}: {eclipseData.solarLocal.peakAlt > 0 ? (isZh ? '可见' : 'Visible') : (isZh ? '不可见' : 'Not visible')}
+                              {eclipseData.solarLocal.obscuration != null ? ` · ${isZh ? '食分' : 'Obsc.'} ${(eclipseData.solarLocal.obscuration * 100).toFixed(0)}%` : ''}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>{isZh ? '当地：不可见' : 'Local: not visible'}</span>
+                          )}
+                        </div>
+                        {/* Nearest place / country of the solar eclipse center point */}
+                        {(eclipseData.solarGlobal.kind === 'total' || eclipseData.solarGlobal.kind === 'annular') && eclipseData.solarGlobal.lat != null && (
+                          <div className="text-[11px] text-text-light/50 dark:text-text-dark/60">
+                            {isZh ? '最近地区' : 'Nearest'}: {eclipseData.solarCenterName || (isZh ? '查询中…' : 'resolving…')}
+                          </div>
+                        )}
+                        {/* Next visible local solar eclipse (if current is not visible) */}
+                        {eclipseData.solarLocal && eclipseData.solarLocal.peakAlt <= 0 && eclipseData.nextLocalSolarPeak && (
+                          <div className="text-[10px] text-text-light/40 dark:text-text-dark/40">
+                            {isZh ? '下次当地可见日食：' : 'Next visible locally: '}{fmtDt(eclipseData.nextLocalSolarPeak)}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs opacity-40">{isZh ? '近期无日食预报' : 'No upcoming solar eclipse'}</div>
+                    )}
+                  </div>
+                );
+              })()}
+              <p className="text-[10px] text-text-light/30 dark:text-text-dark/30 mt-3 text-center">
+                {isZh ? '基于 astronomy-engine 天文算法，本地计算' : 'Computed locally via astronomy-engine'}
+              </p>
+            </div>
+          </div>
 
           {/* N2YO Satellite Tracker */}
           <div>
