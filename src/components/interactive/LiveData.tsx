@@ -144,6 +144,13 @@ export default function LiveData({ lang }: Props) {
   // ── Sun & Moon Position state (SunCalc) ──
   const [sunPos, setSunPos] = useState<{ alt: number; az: number; dayProg: number; maxAlt: number; moonAlt: number; moonProg: number; moonMaxAlt: number } | null>(null);
 
+  // ── Glow forecast state (sunrise/sunset glow prediction) ──
+  const [glowForecast, setGlowForecast] = useState<Array<{
+    date: string;
+    sunrise: { time: string; score: number } | null;
+    sunset: { time: string; score: number } | null;
+  }>>([]);
+
   // ── Location change handler ──
   const selectLocation = useCallback((loc: ToolLocationPreset) => {
     setLocation(loc);
@@ -262,7 +269,7 @@ export default function LiveData({ lang }: Props) {
     async function fetchWeather() {
       try {
         // Current weather + 3-day forecast
-        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=3`;
+        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility&timezone=auto&forecast_days=3&forecast_hours=72`;
         const fRes = await fetch(fUrl);
         const fData = await fRes.json();
         if (!fData?.current || !fData?.daily?.time?.length) return;
@@ -296,6 +303,88 @@ export default function LiveData({ lang }: Props) {
           })),
           yesterday: null,
         });
+
+        // ── Glow forecast computation (cloud layers + SunCalc sunrise/sunset) ──
+        if (fData?.hourly?.time?.length) {
+          const h = fData.hourly;
+          const aqiIdx = aqi ? aqi.index : 50; // fallback if AQI not yet loaded
+
+          import('suncalc').then((SC: any) => {
+            const predictions: Array<{ date: string; sunrise: { time: string; score: number } | null; sunset: { time: string; score: number } | null }> = [];
+
+            for (let d = 0; d < Math.min(fData.daily.time.length, 3); d++) {
+              const dateStr = fData.daily.time[d];
+              const dayDate = new Date(dateStr + 'T12:00:00');
+              const times = SC.getTimes(dayDate, lat, lng);
+
+              const computeGlow = (sunTime: Date | undefined): { time: string; score: number } | null => {
+                if (!sunTime || isNaN(sunTime.getTime())) return null;
+                const targetMs = sunTime.getTime();
+                // Find closest hourly index
+                let bestIdx = 0;
+                let bestDiff = Infinity;
+                for (let i = 0; i < h.time.length; i++) {
+                  const diff = Math.abs(new Date(h.time[i]).getTime() - targetMs);
+                  if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+                }
+
+                const cLow = h.cloud_cover_low?.[bestIdx] ?? 0;
+                const cMid = h.cloud_cover_mid?.[bestIdx] ?? 0;
+                const cHigh = h.cloud_cover_high?.[bestIdx] ?? 0;
+                const hum = h.relative_humidity_2m?.[bestIdx] ?? 50;
+                const vis = h.visibility?.[bestIdx] ?? 10000;
+
+                let score = 0;
+
+                // Mid+High cloud (40 pts) — 20-60% ideal (canvas for glow)
+                const mhCloud = Math.max(cMid, cHigh);
+                if (mhCloud >= 20 && mhCloud <= 60) {
+                  score += 35 + (1 - Math.abs(mhCloud - 40) / 20) * 5;
+                } else if (mhCloud >= 10 && mhCloud <= 70) {
+                  score += 15 + (1 - Math.abs(mhCloud - 40) / 30) * 15;
+                } else {
+                  score += Math.max(0, 10 - Math.abs(mhCloud - 40) / 6);
+                }
+
+                // Low cloud (25 pts) — lower is better (clear horizon)
+                if (cLow < 15) score += 22 + (1 - cLow / 15) * 3;
+                else if (cLow < 30) score += 10 + (1 - (cLow - 15) / 15) * 12;
+                else if (cLow < 50) score += 3 + (1 - (cLow - 30) / 20) * 7;
+                else score += Math.max(0, 3 - (cLow - 50) / 15);
+
+                // Visibility (15 pts) — higher is better
+                const visKm = vis / 1000;
+                if (visKm >= 20) score += 15;
+                else if (visKm >= 15) score += 10 + (visKm - 15) / 5 * 5;
+                else if (visKm >= 10) score += 5 + (visKm - 10) / 5 * 5;
+                else score += Math.max(0, visKm / 10 * 5);
+
+                // Humidity (10 pts) — 40-70% ideal
+                if (hum >= 40 && hum <= 70) score += 10;
+                else if (hum >= 30 && hum <= 80) score += 6;
+                else score += 3;
+
+                // AQI (10 pts) — lower is better
+                if (aqiIdx < 30) score += 10;
+                else if (aqiIdx < 50) score += 8;
+                else if (aqiIdx < 100) score += 5;
+                else score += 2;
+
+                const hh = sunTime.getHours().toString().padStart(2, '0');
+                const mm = sunTime.getMinutes().toString().padStart(2, '0');
+                return { time: `${hh}:${mm}`, score: Math.round(Math.min(100, Math.max(0, score))) };
+              };
+
+              predictions.push({
+                date: dateStr,
+                sunrise: computeGlow(times.sunrise),
+                sunset: computeGlow(times.sunset),
+              });
+            }
+
+            setGlowForecast(predictions);
+          }).catch(() => {});
+        }
 
         // Fetch yesterday's weather from archive
         const aUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${yDate}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`;
@@ -1257,6 +1346,73 @@ export default function LiveData({ lang }: Props) {
               )}
             </div>
           </div>
+
+          {/* Glow Forecast Card (Sunrise/Sunset) */}
+          {glowForecast.length > 0 && (
+            <div>
+              <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
+                {locName} · {isZh ? '朝霞晚霞预报' : 'Sunrise/Sunset Glow'} · Open-Meteo
+              </p>
+              <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4">
+                <div className="space-y-3">
+                  {glowForecast.map((day, i) => {
+                    const dayLabel = i === 0
+                      ? (isZh ? '今天' : 'Today')
+                      : i === 1
+                        ? (isZh ? '明天' : 'Tomorrow')
+                        : (() => { const d = new Date(day.date + 'T12:00:00'); return d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' }); })();
+
+                    const glowRating = (s: number) =>
+                      s >= 75 ? { label: isZh ? '极佳' : 'Excellent', color: '#f97316' }
+                      : s >= 55 ? { label: isZh ? '良好' : 'Good', color: '#22c55e' }
+                      : s >= 35 ? { label: isZh ? '一般' : 'Fair', color: '#eab308' }
+                      : { label: isZh ? '较差' : 'Poor', color: '#94a3b8' };
+
+                    const renderRow = (type: 'sunrise' | 'sunset', data: { time: string; score: number } | null) => {
+                      if (!data) return null;
+                      const rating = glowRating(data.score);
+                      return (
+                        <div className="flex items-center gap-2">
+                          <span className="text-base flex-shrink-0">{type === 'sunrise' ? '🌅' : '🌇'}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-xs font-medium text-text-light/80 dark:text-text-dark/80">
+                                {dayLabel} {data.time}
+                              </span>
+                              <span className="text-xs font-medium" style={{ color: rating.color }}>
+                                {rating.label} {data.score}
+                              </span>
+                            </div>
+                            <div className="h-1.5 rounded-full bg-slate-200/50 dark:bg-white/10 overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{
+                                  width: `${data.score}%`,
+                                  background: `linear-gradient(90deg, #94a3b8, #eab308, #22c55e, #f97316)`,
+                                  backgroundSize: '150% 100%',
+                                  backgroundPosition: `${100 - data.score}% 0`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div key={day.date} className="space-y-2">
+                        {renderRow('sunrise', day.sunrise)}
+                        {renderRow('sunset', day.sunset)}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-text-light/30 dark:text-text-dark/30 mt-3 text-center">
+                  {isZh ? '基于中高云层、低云、能见度、湿度与 AQI 综合评分' : 'Scored by mid/high cloud, low cloud, visibility, humidity & AQI'}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* 7Timer Astro Forecast */}
           <div>
