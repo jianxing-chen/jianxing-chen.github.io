@@ -154,7 +154,8 @@ export default function LiveData({ lang }: Props) {
   // ── Eclipse forecast state (astronomy-engine, dynamic import) ──
   const [eclipseData, setEclipseData] = useState<{
     lunar: { kind: string; peak: Date; obscuration: number; sdPenum: number; sdPartial: number; sdTotal: number;
-             phases: Array<{ label: string; time: Date; alt: number; az: number }> } | null;
+             phases: Array<{ label: string; time: Date; alt: number; az: number }>;
+             track: Array<{ alt: number; az: number }> } | null;
     lunarVisible: 'yes' | 'no' | 'partial';
     lunarVisibilityDetail: string;
     solarGlobal: { kind: string; peak: Date; lat?: number; lng?: number; obscuration?: number } | null;
@@ -833,6 +834,7 @@ export default function LiveData({ lang }: Props) {
           let lunarVisible: 'yes' | 'no' | 'partial' = 'no';
           let lunarVisibilityDetail = '';
           let lunarPhases: Array<{ label: string; time: Date; alt: number; az: number }> = [];
+          let lunarTrack: Array<{ alt: number; az: number }> = [];
           if (lunar) {
             const peak = lunar.peak.date instanceof Date ? lunar.peak.date : new Date(lunar.peak.date);
             // Determine local moon visibility at lunar eclipse peak using SunCalc
@@ -880,6 +882,35 @@ export default function LiveData({ lang }: Props) {
               lunarPhases.push({ label: 'U4', time: new Date(peak.getTime() + sdPar2 * 60000), ...moonPosAt(new Date(peak.getTime() + sdPar2 * 60000)) });
             }
             lunarPhases.push({ label: 'P4', time: new Date(peak.getTime() + sdPen2 * 60000), ...moonPosAt(new Date(peak.getTime() + sdPen2 * 60000)) });
+
+            // Sample the moon's path across the whole eclipse night to draw a
+            // continuous all-night trajectory in the sky diagram. Center on the
+            // peak and expand outward until the moon stays below the horizon,
+            // so the window always covers the visible arc regardless of whether
+            // moonrise/moonset fall before or after the peak on the calendar day.
+            try {
+              const stepMs = 20 * 60000;
+              const maxReachMs = 12 * 3600000; // ±12h cap
+              let t = peak.getTime();
+              // Expand backward while the moon is (or recently was) above horizon.
+              let start = t;
+              for (let k = 1; k * stepMs <= maxReachMs; k++) {
+                const a = moonPosAt(new Date(t - k * stepMs)).alt;
+                if (a < 0 && moonPosAt(new Date(t - (k - 1) * stepMs)).alt < 0) break;
+                start = t - k * stepMs;
+              }
+              // Expand forward similarly.
+              let end = t;
+              for (let k = 1; k * stepMs <= maxReachMs; k++) {
+                const a = moonPosAt(new Date(t + k * stepMs)).alt;
+                if (a < 0 && moonPosAt(new Date(t + (k - 1) * stepMs)).alt < 0) break;
+                end = t + k * stepMs;
+              }
+              if (end < start) { const s2 = start; start = end; end = s2; }
+              for (let tt = start; tt <= end; tt += stepMs) {
+                lunarTrack.push(moonPosAt(new Date(tt)));
+              }
+            } catch {}
           }
 
           // --- Global solar eclipse (next one) ---
@@ -909,6 +940,7 @@ export default function LiveData({ lang }: Props) {
               kind: lunar.kind, peak: new Date(lunar.peak.date),
               obscuration: lunar.obscuration, sdPenum: lunar.sd_penum, sdPartial: lunar.sd_partial, sdTotal: lunar.sd_total,
               phases: lunarPhases,
+              track: lunarTrack,
             } : null,
             lunarVisible,
             lunarVisibilityDetail,
@@ -1411,38 +1443,25 @@ export default function LiveData({ lang }: Props) {
                               <div>
                                 <p className="text-[10px] text-text-light/40 dark:text-text-dark/40 mb-1 text-center">{isZh ? '月食穿透地影' : 'Earth Shadow Penetration'}</p>
                                 <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 130 }}>
-                                  <defs>
-                                    <radialGradient id="umbralGrad" cx="50%" cy="50%" r="50%">
-                                      <stop offset="0%" stopColor="#0f172a" />
-                                      <stop offset="70%" stopColor="#1e293b" />
-                                      <stop offset="100%" stopColor="#334155" />
-                                    </radialGradient>
-                                    <radialGradient id="penumbralGrad" cx="50%" cy="50%" r="50%">
-                                      <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.35" />
-                                      <stop offset="60%" stopColor="#94a3b8" stopOpacity="0.15" />
-                                      <stop offset="100%" stopColor="#94a3b8" stopOpacity="0" />
-                                    </radialGradient>
-                                    <radialGradient id="moonGrad" cx="35%" cy="35%" r="65%">
-                                      <stop offset="0%" stopColor="#f8fafc" />
-                                      <stop offset="100%" stopColor="#cbd5e1" />
-                                    </radialGradient>
-                                  </defs>
+                                  {/* Flat fill colors (no gradients). Fresh, clean palette.
+                                      umbra: muted slate-blue (visible but not pitch black).
+                                      penumbra: light sky-blue ring, clearly visible against bg. */}
                                   {/* penumbra */}
-                                  <circle cx={cx} cy={cy} r={rPen} fill="url(#penumbralGrad)" />
+                                  <circle cx={cx} cy={cy} r={rPen} fill="#bfdbfe" />
                                   {/* umbra */}
-                                  <circle cx={cx} cy={cy} r={rUmb} fill="url(#umbralGrad)" />
+                                  <circle cx={cx} cy={cy} r={rUmb} fill="#64748b" />
                                   {/* umbra edge label */}
-                                  <text x={cx + rUmb + 2} y={cy - rUmb - 1} fontSize={6} fill="currentColor" opacity={0.35}>{isZh ? '本影' : 'umbra'}</text>
-                                  <text x={cx + rPen - 2} y={cy - rPen - 1} fontSize={6} fill="currentColor" opacity={0.25} textAnchor="end">{isZh ? '半影' : 'penumbra'}</text>
+                                  <text x={cx + rUmb + 2} y={cy - rUmb - 1} fontSize={6} fill="currentColor" opacity={0.4}>{isZh ? '本影' : 'umbra'}</text>
+                                  <text x={cx + rPen - 2} y={cy - rPen - 1} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="end">{isZh ? '半影' : 'penumbra'}</text>
                                   {/* moon trajectory */}
-                                  <line x1={trajX1} y1={trajY} x2={trajX2} y2={trajY} stroke="currentColor" strokeWidth={0.5} strokeDasharray="2 2" opacity={0.2} />
+                                  <line x1={trajX1} y1={trajY} x2={trajX2} y2={trajY} stroke="currentColor" strokeWidth={0.5} strokeDasharray="2 2" opacity={0.25} />
                                   {/* phase points */}
                                   {L.phases.map((ph) => {
                                     const pt = phasePt(ph.time);
                                     return <circle key={ph.label} cx={pt.x} cy={pt.y} r={ph.label === 'max' ? 2 : 1.5} fill={phaseColor[ph.label] || '#94a3b8'} />;
                                   })}
                                   {/* peak moon at peakOffsetX */}
-                                  <circle cx={cx + peakOffsetX} cy={trajY} r={moonR} fill="url(#moonGrad)" stroke="#e2e8f0" strokeWidth={0.4} />
+                                  <circle cx={cx + peakOffsetX} cy={trajY} r={moonR} fill="#f8fafc" stroke="#cbd5e1" strokeWidth={0.6} />
                                   {isBlood && <circle cx={cx + peakOffsetX} cy={trajY} r={moonR} fill="#b91c1c" opacity={0.35} />}
                                   <text x={cx + peakOffsetX} y={trajY + moonR + 6} fontSize={6} fill="#ef4444" textAnchor="middle">{isZh ? '食甚' : 'peak'}</text>
                                 </svg>
@@ -1483,32 +1502,37 @@ export default function LiveData({ lang }: Props) {
                                 </p>
                                 <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 130 }}>
                                   <defs>
-                                    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
-                                      <stop offset="0%" stopColor="#1e3a5f" />
-                                      <stop offset="100%" stopColor="#0f172a" />
-                                    </linearGradient>
-                                    <radialGradient id="moonSkyGrad" cx="35%" cy="35%" r="65%">
-                                      <stop offset="0%" stopColor="#f8fafc" />
-                                      <stop offset="100%" stopColor="#cbd5e1" />
-                                    </radialGradient>
                                     <filter id="moonGlow" x="-100%" y="-100%" width="300%" height="300%">
                                       <feGaussianBlur stdDeviation="2.5" result="b" />
                                       <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                                     </filter>
                                   </defs>
-                                  {/* sky dome */}
-                                  <path d={`M ${padX} ${horY} A ${domeW / 2} ${(horY - zenithY)} 0 0 1 ${W - padX} ${horY} Z`} fill="url(#skyGrad)" />
+                                  {/* sky dome — flat fill, clean light sky-blue */}
+                                  <path d={`M ${padX} ${horY} A ${domeW / 2} ${(horY - zenithY)} 0 0 1 ${W - padX} ${horY} Z`} fill="#dbeafe" />
                                   {/* horizon line */}
-                                  <line x1={padX - 4} y1={horY} x2={W - padX + 4} y2={horY} stroke="currentColor" strokeWidth={0.6} opacity={0.4} />
+                                  <line x1={padX - 4} y1={horY} x2={W - padX + 4} y2={horY} stroke="currentColor" strokeWidth={0.6} opacity={0.5} />
                                   {/* cardinal labels */}
-                                  <text x={padX - 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="middle">W</text>
-                                  <text x={W - padX + 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="middle">E</text>
-                                  <text x={cx} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.3} textAnchor="middle">N/S</text>
-                                  {/* moon trajectory through visible phases */}
-                                  {visiblePhases.length > 1 && (
-                                    <polyline points={visiblePhases.map(p => `${azToX(p.az)},${altToY(p.alt)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth={0.4} strokeDasharray="1.5 1.5" opacity={0.3} />
-                                  )}
-                                  {/* phase markers */}
+                                  <text x={padX - 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.5} textAnchor="middle">W</text>
+                                  <text x={W - padX + 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.5} textAnchor="middle">E</text>
+                                  <text x={cx} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="middle">N/S</text>
+                                  {/* moon all-night trajectory (continuous path from sampled track) */}
+                                  {L.track && L.track.length > 1 && (() => {
+                                    // Build a continuous path; only the above-horizon (alt>0) segments
+                                    // are drawn solid — below-horizon segments are dropped so the curve
+                                    // breaks at rise/set, matching what's actually visible.
+                                    const pts = L.track.filter(p => p.alt > -90).map(p => ({ x: azToX(p.az), y: altToY(p.alt), v: p.alt > 0 }));
+                                    const segs: string[][] = [];
+                                    let cur: string[] = [];
+                                    for (const p of pts) {
+                                      if (p.v) cur.push(`${p.x},${p.y}`);
+                                      else if (cur.length) { segs.push(cur); cur = []; }
+                                    }
+                                    if (cur.length) segs.push(cur);
+                                    return segs.map((seg, i) => (
+                                      <polyline key={i} points={seg.join(' ')} fill="none" stroke="#475569" strokeWidth={0.7} strokeLinecap="round" strokeLinejoin="round" opacity={0.55} />
+                                    ));
+                                  })()}
+                                  {/* phase markers on the trajectory (only visible ones) */}
                                   {visiblePhases.map(p => (
                                     <circle key={p.label} cx={azToX(p.az)} cy={altToY(p.alt)} r={p.label === 'max' ? 1.8 : 1.2} fill={p.label === 'max' ? '#ef4444' : (p.label.startsWith('U') ? '#f97316' : '#94a3b8')} />
                                   ))}
@@ -1516,7 +1540,7 @@ export default function LiveData({ lang }: Props) {
                                   {peakAlt > -90 && (() => {
                                     const mx = azToX(peakAz), my = altToY(peakAlt);
                                     return <>
-                                      <circle cx={mx} cy={my} r={6} fill="url(#moonSkyGrad)" filter="url(#moonGlow)" opacity={visible ? 1 : 0.4} strokeDasharray={visible ? '' : '2 1.5'} stroke="#e2e8f0" strokeWidth={0.4} />
+                                      <circle cx={mx} cy={my} r={6} fill="#f8fafc" filter="url(#moonGlow)" opacity={visible ? 1 : 0.4} strokeDasharray={visible ? '' : '2 1.5'} stroke="#cbd5e1" strokeWidth={0.6} />
                                       {L.kind === 'total' && visible && <circle cx={mx} cy={my} r={6} fill="#b91c1c" opacity={0.3} />}
                                     </>;
                                   })()}
