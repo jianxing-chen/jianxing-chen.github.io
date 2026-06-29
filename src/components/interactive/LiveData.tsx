@@ -885,25 +885,29 @@ export default function LiveData({ lang }: Props) {
 
             // Sample the moon's path across the whole eclipse night to draw a
             // continuous all-night trajectory in the sky diagram. Center on the
-            // peak and expand outward until the moon stays below the horizon,
-            // so the window always covers the visible arc regardless of whether
-            // moonrise/moonset fall before or after the peak on the calendar day.
+            // peak and expand outward until the moon has been below the horizon
+            // for a while, so the trajectory visibly dips under the horizon line.
             try {
               const stepMs = 20 * 60000;
               const maxReachMs = 12 * 3600000; // ±12h cap
               let t = peak.getTime();
-              // Expand backward while the moon is (or recently was) above horizon.
+              // Expand backward: keep going while above horizon, or for a few steps below it
+              // so the curve extends past the horizon line on the rising side.
               let start = t;
+              let belowCount = 0;
               for (let k = 1; k * stepMs <= maxReachMs; k++) {
                 const a = moonPosAt(new Date(t - k * stepMs)).alt;
-                if (a < 0 && moonPosAt(new Date(t - (k - 1) * stepMs)).alt < 0) break;
+                if (a < 0) belowCount++; else belowCount = 0;
+                if (belowCount > 2) break;
                 start = t - k * stepMs;
               }
               // Expand forward similarly.
               let end = t;
+              belowCount = 0;
               for (let k = 1; k * stepMs <= maxReachMs; k++) {
                 const a = moonPosAt(new Date(t + k * stepMs)).alt;
-                if (a < 0 && moonPosAt(new Date(t + (k - 1) * stepMs)).alt < 0) break;
+                if (a < 0) belowCount++; else belowCount = 0;
+                if (belowCount > 2) break;
                 end = t + k * stepMs;
               }
               if (end < start) { const s2 = start; start = end; end = s2; }
@@ -1450,9 +1454,12 @@ export default function LiveData({ lang }: Props) {
                                   <circle cx={cx} cy={cy} r={rPen} fill="#bfdbfe" />
                                   {/* umbra */}
                                   <circle cx={cx} cy={cy} r={rUmb} fill="#64748b" />
-                                  {/* umbra edge label */}
-                                  <text x={cx + rUmb + 2} y={cy - rUmb - 1} fontSize={6} fill="currentColor" opacity={0.4}>{isZh ? '本影' : 'umbra'}</text>
-                                  <text x={cx + rPen - 2} y={cy - rPen - 1} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="end">{isZh ? '半影' : 'penumbra'}</text>
+                                  {/* labels: umbra inside its disc (top), penumbra outside lower-right.
+                                      Skip the umbra label for penumbral eclipses (umbra is tiny). */}
+                                  {L.kind !== 'penumbral' && (
+                                    <text x={cx} y={cy - rUmb + 7} fontSize={6} fill="#f8fafc" opacity={0.85} textAnchor="middle">{isZh ? '本影' : 'umbra'}</text>
+                                  )}
+                                  <text x={cx + rPen * 0.7} y={cy + rPen * 0.7 + 4} fontSize={6} fill="currentColor" opacity={0.5} textAnchor="start">{isZh ? '半影' : 'penumbra'}</text>
                                   {/* moon trajectory */}
                                   <line x1={trajX1} y1={trajY} x2={trajX2} y2={trajY} stroke="currentColor" strokeWidth={0.5} strokeDasharray="2 2" opacity={0.25} />
                                   {/* phase points */}
@@ -1469,26 +1476,34 @@ export default function LiveData({ lang }: Props) {
                             );
                           })()}
                           {(() => {
-                            // ── Diagram 2: Moon local sky position ──
+                            // ── Diagram 2: Moon local sky position (side-view dome) ──
+                            // Look up at the sky: the horizon is the bottom line, the zenith
+                            // is the top of the dome. Altitude → Y (0 at horizon, 90 at zenith),
+                            // azimuth → X (W on the left, E on the right, N/S in the back/middle).
+                            // A sin(az) east-west mapping gives a realistic side view where the
+                            // moon rises on one side and sets on the other.
                             const L = eclipseData.lunar!;
-                            const W = 150, H = 110;
-                            const horY = H - 16;       // horizon line Y
-                            const zenithY = 6;         // top of dome
-                            const padX = 14;
+                            const W = 150, H = 116;
+                            const horY = H - 14;        // horizon line Y
+                            const zenY = 6;             // zenith (top of dome)
+                            const padX = 12;
                             const domeW = W - 2 * padX;
                             const cx = W / 2;
-                            // alt → Y: alt=0 → horY, alt=90 → zenithY
-                            const altToY = (alt: number) => alt >= 0 ? horY - (alt / 90) * (horY - zenithY) : horY + Math.min(8, -alt);
-                            // az → X: az=0(N)→center, 90(E)→right, 180(S)→center(back), 270(W)→left
-                            // Simple: map az 0..360 to a horizontal position; here treat the dome
-                            // as a side view where E-W is the X axis. Map az to X so that 90°(E)=right,
-                            // 270°(W)=left, 0/180(N/S)=center.
+                            // alt → Y: 0 at horizon, 90 at zenith; below 0 dips under the horizon.
+                            const altToY = (alt: number) => alt >= 0
+                              ? horY - (alt / 90) * (horY - zenY)
+                              : horY + Math.min(10, -alt * 0.6);
+                            // az → X: treat as a side projection along the E-W axis.
+                            // az=90(E)→right edge, 270(W)→left edge, 0/180(N/S)→center.
+                            // sin(az): E=+1, W=-1, N/S=0 — but to spread the path, scale so the
+                            // whole horizon arc maps across the dome width.
                             const azToX = (az: number) => {
-                              // Convert az to a signed east-west offset: sin(az-180) gives -1 at W(270)? Use:
-                              // E(90)=+1, W(270)=-1, N/S(0/180)=0
-                              const ew = Math.sin((az - 0) * Math.PI / 180); // E=+1, W=-1... check: az=90→sin(90°)=1 ✓, az=270→sin(270°)=-1 ✓
-                              return cx + ew * domeW / 2 * 0.8;
+                              // Use sin so E/W go to the sides and N/S to the middle; the moon's
+                              // rising (E) and setting (W) thus appear on opposite sides.
+                              const ew = Math.sin(az * Math.PI / 180);
+                              return cx + ew * domeW / 2;
                             };
+                            const project = (alt: number, az: number) => ({ x: azToX(az), y: altToY(alt), v: alt > 0 });
                             const peakPhase = L.phases.find(p => p.label === 'max');
                             const peakAlt = peakPhase ? peakPhase.alt : -99;
                             const peakAz = peakPhase ? peakPhase.az : 0;
@@ -1500,52 +1515,53 @@ export default function LiveData({ lang }: Props) {
                                   {isZh ? '当地天空位置' : 'Local Sky Position'}
                                   <span className="ml-1.5" style={{ color: visible ? '#22c55e' : '#94a3b8' }}>{visible ? (isZh ? '·可见 ✓' : '·visible ✓') : (isZh ? '·不可见 ✗' : '·not visible ✗')}</span>
                                 </p>
-                                <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 130 }}>
+                                <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: 140 }}>
                                   <defs>
-                                    <filter id="moonGlow" x="-100%" y="-100%" width="300%" height="300%">
+                                    <filter id="moonGlow2" x="-100%" y="-100%" width="300%" height="300%">
                                       <feGaussianBlur stdDeviation="2.5" result="b" />
                                       <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                                     </filter>
                                   </defs>
-                                  {/* sky dome — flat fill, clean light sky-blue */}
-                                  <path d={`M ${padX} ${horY} A ${domeW / 2} ${(horY - zenithY)} 0 0 1 ${W - padX} ${horY} Z`} fill="#dbeafe" />
+                                  {/* sky dome (flat fill) */}
+                                  <path d={`M ${padX} ${horY} A ${domeW / 2} ${horY - zenY} 0 0 1 ${W - padX} ${horY} Z`} fill="#dbeafe" />
                                   {/* horizon line */}
-                                  <line x1={padX - 4} y1={horY} x2={W - padX + 4} y2={horY} stroke="currentColor" strokeWidth={0.6} opacity={0.5} />
-                                  {/* cardinal labels */}
-                                  <text x={padX - 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.5} textAnchor="middle">W</text>
-                                  <text x={W - padX + 2} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.5} textAnchor="middle">E</text>
-                                  <text x={cx} y={horY + 9} fontSize={6} fill="currentColor" opacity={0.4} textAnchor="middle">N/S</text>
-                                  {/* moon all-night trajectory (continuous path from sampled track) */}
+                                  <line x1={padX - 6} y1={horY} x2={W - padX + 6} y2={horY} stroke="currentColor" strokeWidth={0.7} opacity={0.5} />
+                                  {/* cardinal directions */}
+                                  <text x={padX - 2} y={horY + 9} fontSize={6.5} fill="currentColor" opacity={0.5} textAnchor="middle">W</text>
+                                  <text x={W - padX + 2} y={horY + 9} fontSize={6.5} fill="currentColor" opacity={0.5} textAnchor="middle">E</text>
+                                  <text x={cx} y={zenY - 1} fontSize={6.5} fill="currentColor" opacity={0.35} textAnchor="middle">{isZh ? '天顶' : 'zen'}</text>
+                                  {/* moon all-night trajectory (continuous). Above horizon solid,
+                                      below horizon faint dashed under the horizon line. */}
                                   {L.track && L.track.length > 1 && (() => {
-                                    // Build a continuous path; only the above-horizon (alt>0) segments
-                                    // are drawn solid — below-horizon segments are dropped so the curve
-                                    // breaks at rise/set, matching what's actually visible.
-                                    const pts = L.track.filter(p => p.alt > -90).map(p => ({ x: azToX(p.az), y: altToY(p.alt), v: p.alt > 0 }));
-                                    const segs: string[][] = [];
-                                    let cur: string[] = [];
+                                    const pts = L.track.filter(p => p.alt > -90).map(p => project(p.alt, p.az));
+                                    const runs: Array<{ pts: string[]; above: boolean }> = [];
+                                    let cur: string[] = []; let curAbove = pts[0]?.v;
                                     for (const p of pts) {
-                                      if (p.v) cur.push(`${p.x},${p.y}`);
-                                      else if (cur.length) { segs.push(cur); cur = []; }
+                                      if (p.v === curAbove) cur.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+                                      else { runs.push({ pts: cur, above: !!curAbove }); cur = [`${p.x.toFixed(1)},${p.y.toFixed(1)}`]; curAbove = p.v; }
                                     }
-                                    if (cur.length) segs.push(cur);
-                                    return segs.map((seg, i) => (
-                                      <polyline key={i} points={seg.join(' ')} fill="none" stroke="#475569" strokeWidth={0.7} strokeLinecap="round" strokeLinejoin="round" opacity={0.55} />
+                                    if (cur.length) runs.push({ pts: cur, above: !!curAbove });
+                                    return runs.map((run, i) => (
+                                      <polyline key={i} points={run.pts.join(' ')} fill="none"
+                                        stroke="#3b82f6" strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round"
+                                        opacity={run.above ? 0.7 : 0.35} strokeDasharray={run.above ? undefined : '2 2'} />
                                     ));
                                   })()}
-                                  {/* phase markers on the trajectory (only visible ones) */}
-                                  {visiblePhases.map(p => (
-                                    <circle key={p.label} cx={azToX(p.az)} cy={altToY(p.alt)} r={p.label === 'max' ? 1.8 : 1.2} fill={p.label === 'max' ? '#ef4444' : (p.label.startsWith('U') ? '#f97316' : '#94a3b8')} />
-                                  ))}
+                                  {/* phase markers on the trajectory (visible ones only) */}
+                                  {visiblePhases.map(p => {
+                                    const pt = project(p.alt, p.az);
+                                    return <circle key={p.label} cx={pt.x} cy={pt.y} r={p.label === 'max' ? 1.8 : 1.2} fill={p.label === 'max' ? '#ef4444' : (p.label.startsWith('U') ? '#f97316' : '#94a3b8')} />;
+                                  })}
                                   {/* peak moon */}
                                   {peakAlt > -90 && (() => {
-                                    const mx = azToX(peakAz), my = altToY(peakAlt);
+                                    const pt = project(peakAlt, peakAz);
                                     return <>
-                                      <circle cx={mx} cy={my} r={6} fill="#f8fafc" filter="url(#moonGlow)" opacity={visible ? 1 : 0.4} strokeDasharray={visible ? '' : '2 1.5'} stroke="#cbd5e1" strokeWidth={0.6} />
-                                      {L.kind === 'total' && visible && <circle cx={mx} cy={my} r={6} fill="#b91c1c" opacity={0.3} />}
+                                      <circle cx={pt.x} cy={pt.y} r={5} fill="#f8fafc" filter="url(#moonGlow2)" opacity={visible ? 1 : 0.4} strokeDasharray={visible ? '' : '2 1.5'} stroke="#cbd5e1" strokeWidth={0.6} />
+                                      {L.kind === 'total' && visible && <circle cx={pt.x} cy={pt.y} r={5} fill="#b91c1c" opacity={0.3} />}
                                     </>;
                                   })()}
                                   {/* altitude/azimuth readout */}
-                                  <text x={cx} y={H - 2} fontSize={5.5} fill="currentColor" opacity={0.4} textAnchor="middle">
+                                  <text x={cx} y={H - 1} fontSize={5.5} fill="currentColor" opacity={0.4} textAnchor="middle">
                                     {isZh ? '高度' : 'alt'} {peakAlt > -90 ? peakAlt.toFixed(0) : '?'}° · {isZh ? '方位' : 'az'} {peakAz.toFixed(0)}°
                                   </text>
                                 </svg>
