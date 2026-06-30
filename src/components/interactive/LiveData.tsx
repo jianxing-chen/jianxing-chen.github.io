@@ -1327,11 +1327,13 @@ export default function LiveData({ lang }: Props) {
                         ? (isZh ? '明天' : 'Tomorrow')
                         : (() => { const d = new Date(day.date + 'T12:00:00'); return d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' }); })();
 
+                    // YlOrRd sequential color scale (ColorBrewer): warm sunset tones.
+                    // Poor→Excellent maps light-yellow → gold → orange → red.
                     const glowRating = (s: number) =>
-                      s >= 75 ? { label: isZh ? '极佳' : 'Excellent', color: '#f97316' }
-                      : s >= 55 ? { label: isZh ? '良好' : 'Good', color: '#22c55e' }
-                      : s >= 35 ? { label: isZh ? '一般' : 'Fair', color: '#eab308' }
-                      : { label: isZh ? '较差' : 'Poor', color: '#94a3b8' };
+                      s >= 75 ? { label: isZh ? '极佳' : 'Excellent', color: '#e31a1c' }
+                      : s >= 55 ? { label: isZh ? '良好' : 'Good', color: '#fd8d3c' }
+                      : s >= 35 ? { label: isZh ? '一般' : 'Fair', color: '#fed976' }
+                      : { label: isZh ? '较差' : 'Poor', color: '#f0c860' };
 
                     const renderRow = (type: 'sunrise' | 'sunset', data: { time: string; score: number } | null) => {
                       if (!data) return null;
@@ -1348,14 +1350,18 @@ export default function LiveData({ lang }: Props) {
                                 {rating.label} {data.score}
                               </span>
                             </div>
-                            <div className="h-1.5 rounded-full bg-slate-200/50 dark:bg-white/10 overflow-hidden">
+                            <div className="relative h-1.5 rounded-full bg-slate-200/50 dark:bg-white/10 overflow-hidden">
+                              {/* Colorbar: the gradient spans the FULL track width (backgroundSize
+                                  pinned to the track, not the fill), and the fill width = score clips
+                                  it from the left. So a 44-score bar shows only gray→yellow (the left
+                                  44% of the colorbar), while an 85-score bar reaches orange. The same
+                                  horizontal position is always the same color. */}
                               <div
-                                className="h-full rounded-full transition-all duration-500"
+                                className="h-full rounded-l-full transition-all duration-500"
                                 style={{
                                   width: `${data.score}%`,
-                                  background: `linear-gradient(90deg, #94a3b8, #eab308, #22c55e, #f97316)`,
-                                  backgroundSize: '150% 100%',
-                                  backgroundPosition: `${100 - data.score}% 0`,
+                                  background: `linear-gradient(90deg, #f0c860 0%, #fed976 33%, #fd8d3c 67%, #e31a1c 100%)`,
+                                  backgroundSize: `${100 / Math.max(data.score, 1) * 100}% 100%`,
                                 }}
                               />
                             </div>
