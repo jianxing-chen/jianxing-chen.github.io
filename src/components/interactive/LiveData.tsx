@@ -1807,12 +1807,15 @@ export default function LiveData({ lang }: Props) {
 
                   {/* Observation Condition Score */}
                   {obsScore !== null && (() => {
+                    // YlGnBu sequential color scale (ColorBrewer): cool, clear-sky tones.
+                    // Bad→Excellent maps light-yellow → green → cyan → blue → dark-blue.
+                    // Rating text colors use a slightly deeper step for legibility on light bg.
                     const grades = [
-                      { min: 85, color: '#22c55e', label: isZh ? '极佳' : 'Excellent', desc: isZh ? '晴朗通透，非常适合观测' : 'Clear & transparent, ideal for observing' },
-                      { min: 70, color: '#14b8a6', label: isZh ? '良好' : 'Good', desc: isZh ? '条件不错，可以出摊' : 'Decent conditions, worth setting up' },
-                      { min: 55, color: '#eab308', label: isZh ? '一般' : 'Fair', desc: isZh ? '有些限制，碰运气' : 'Some limitations, try your luck' },
-                      { min: 40, color: '#f97316', label: isZh ? '较差' : 'Poor', desc: isZh ? '不太理想' : 'Not ideal for observing' },
-                      { min: 0, color: '#ef4444', label: isZh ? '不宜' : 'Bad', desc: isZh ? '建议改天' : 'Better wait for another night' },
+                      { min: 85, color: '#1d4e89', label: isZh ? '极佳' : 'Excellent', desc: isZh ? '晴朗通透，非常适合观测' : 'Clear & transparent, ideal for observing' },
+                      { min: 70, color: '#2c7fb8', label: isZh ? '良好' : 'Good', desc: isZh ? '条件不错，可以出摊' : 'Decent conditions, worth setting up' },
+                      { min: 55, color: '#41b6c4', label: isZh ? '一般' : 'Fair', desc: isZh ? '有些限制，碰运气' : 'Some limitations, try your luck' },
+                      { min: 40, color: '#7fcdbb', label: isZh ? '较差' : 'Poor', desc: isZh ? '不太理想' : 'Not ideal for observing' },
+                      { min: 0, color: '#a1dab4', label: isZh ? '不宜' : 'Bad', desc: isZh ? '建议改天' : 'Better wait for another night' },
                     ];
                     const g = grades.find(gr => obsScore >= gr.min) || grades[grades.length - 1];
                     return (
@@ -1823,8 +1826,16 @@ export default function LiveData({ lang }: Props) {
                         <div className="flex items-center gap-3">
                           <span className="text-3xl font-extralight tabular-nums" style={{ color: g.color }}>{obsScore}</span>
                           <div className="flex-1">
-                            <div className="h-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.04] overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${obsScore}%`, background: `linear-gradient(90deg, #ef4444, #eab308, #22c55e)` }} />
+                            <div className="relative h-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.04] overflow-hidden">
+                              {/* Colorbar: gradient stretched wider than the fill (backgroundSize
+                                  = 100/score*100%) so each bar clips the left score% of a fixed
+                                  YlGnBu scale. Low scores show only the pale range; high scores
+                                  reach deep blue. Same position = same color across bars. */}
+                              <div className="h-full rounded-full transition-all duration-700" style={{
+                                width: `${obsScore}%`,
+                                background: `linear-gradient(90deg, #ffffcc 0%, #a1dab4 25%, #41b6c4 50%, #2c7fb8 75%, #253494 100%)`,
+                                backgroundSize: `${100 / Math.max(obsScore, 1) * 100}% 100%`,
+                              }} />
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs font-medium" style={{ color: g.color }}>{g.label}</span>
