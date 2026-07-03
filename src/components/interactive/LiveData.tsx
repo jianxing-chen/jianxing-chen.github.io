@@ -134,6 +134,7 @@ export default function LiveData({ lang }: Props) {
     forecast: { date: string; maxTemp: number; minTemp: number; code: number; rainChance: number }[];
     yesterday: { maxTemp: number; minTemp: number; code: number; precipitation: number } | null;
   } | null>(null);
+  const [weatherError, setWeatherError] = useState<string | null>(null);
 
   // ── Air Quality state (Open-Meteo AQ API) ──
   const [aqi, setAqi] = useState<{
@@ -285,7 +286,7 @@ export default function LiveData({ lang }: Props) {
       try {
         // Current weather + 3-day forecast
         const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation,precipitation_probability,weather_code&timezone=auto&forecast_days=3&forecast_hours=72`;
-        const fRes = await fetch(fUrl);
+        const fRes = await fetch(fUrl, { signal: AbortSignal.timeout(15000) });
         const fData = await fRes.json();
         if (!fData?.current || !fData?.daily?.time?.length) return;
 
@@ -294,6 +295,7 @@ export default function LiveData({ lang }: Props) {
         yesterday.setDate(yesterday.getDate() - 1);
         const yDate = yesterday.toISOString().split('T')[0];
 
+        setWeatherError(null);
         setWeather({
           temp: Math.round(c.temperature_2m),
           feelsLike: Math.round(c.apparent_temperature),
@@ -491,7 +493,9 @@ export default function LiveData({ lang }: Props) {
             },
           } : prev);
         }
-      } catch { /* ignore */ }
+      } catch (err) {
+        setWeatherError(err instanceof Error ? err.message : 'Fetch failed');
+      }
     }
 
     const cached = sessionStorage.getItem(cacheKey);
@@ -728,13 +732,23 @@ export default function LiveData({ lang }: Props) {
         const illum = SunCalc.getMoonIllumination(now);
         const phaseIdx = Math.round(illum.phase * 8) % 8;
         const el = (id: string) => document.getElementById(id);
+
+        // SunCalc only searches within the current day. If moon rise/set
+        // falls on the next day, check tomorrow's times as well.
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tmrTimes = SunCalc.getMoonTimes(tomorrow, lat, lng);
+
+        const moonRise = times.rise || (!times.alwaysUp ? tmrTimes.rise : undefined);
+        const moonSet = times.set || (!times.alwaysDown ? tmrTimes.set : undefined);
+
         if (!times.alwaysUp) {
-          el('ld-moon-rise')!.textContent = fmtMoon(times.rise);
+          el('ld-moon-rise')!.textContent = fmtMoon(moonRise);
         } else {
           el('ld-moon-rise')!.textContent = isZh ? '不落' : 'Up all day';
         }
         if (!times.alwaysDown) {
-          el('ld-moon-set')!.textContent = fmtMoon(times.set);
+          el('ld-moon-set')!.textContent = fmtMoon(moonSet);
         } else {
           el('ld-moon-set')!.textContent = isZh ? '不升' : 'None';
         }
@@ -1963,7 +1977,11 @@ export default function LiveData({ lang }: Props) {
                   </div>
                 </>
               ) : (
-                <div className="text-center py-12 opacity-30 text-sm">{isZh ? '加载天气数据…' : 'Loading weather…'}</div>
+                <div className="text-center py-12 opacity-30 text-sm">
+                  {weatherError
+                    ? (isZh ? '⚠ 天气数据暂时不可用' : '⚠ Weather data temporarily unavailable')
+                    : (isZh ? '加载天气数据…' : 'Loading weather…')}
+                </div>
               )}
             </div>
           </div>
