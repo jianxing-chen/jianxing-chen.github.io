@@ -487,21 +487,77 @@ export default function LiveData({ lang }: Props) {
           return preds;
         };
 
-        // Compute glow for forecast days (today+tomorrow) and archive yesterday in parallel
-        const forecastGlowP = fData?.hourly?.time?.length
-          ? computeGlowDates(fData.hourly, (fData.utc_offset_seconds as number) || 0, fData.daily.time)
-          : Promise.resolve([]);
+        // Fetch archive for yesterday AND today so today's morning hours are covered
+        // (forecast hourly data starts from the current hour, missing early morning)
+        const todayStr = new Date().toISOString().split('T')[0];
         const archiveP = fetch(
-          `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${yDate}&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`,
+          `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${todayStr}&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`,
           { signal: AbortSignal.timeout(15000) },
         ).then(r => r.json()).catch(() => null);
 
-        const [forecastPreds, aData] = await Promise.all([forecastGlowP, archiveP]);
+        const aData = await archiveP;
 
-        // Yesterday's glow score from archive hourly data
+        // Merge archive + forecast hourly data so today's sunrise has samples
+        type HourlyT = { time: string[]; cloud_cover?: (number|null)[]; cloud_cover_low?: (number|null)[]; cloud_cover_mid?: (number|null)[]; cloud_cover_high?: (number|null)[]; relative_humidity_2m?: (number|null)[]; visibility?: (number|null)[]; precipitation?: (number|null)[]; precipitation_probability?: (number|null)[] };
+        const hourlyFields = ['cloud_cover','cloud_cover_low','cloud_cover_mid','cloud_cover_high','relative_humidity_2m','visibility','precipitation','precipitation_probability'] as const;
+        const mergeHourly = (aH?: HourlyT, fH?: HourlyT): HourlyT | undefined => {
+          if (!aH?.time?.length) return fH;
+          if (!fH?.time?.length) return aH;
+          const merged: Record<string, any[]> = { time: [] };
+          for (const f of hourlyFields) merged[f] = [];
+          const idxMap = new Map<string, number>();
+          // Archive entries first
+          for (let i = 0; i < aH.time.length; i++) {
+            if (!idxMap.has(aH.time[i])) {
+              idxMap.set(aH.time[i], merged.time.length);
+              merged.time.push(aH.time[i]);
+              for (const f of hourlyFields) merged[f].push((aH as any)[f]?.[i] ?? null);
+            }
+          }
+          // Forecast entries: overwrite duplicates (forecast is fresher)
+          for (let i = 0; i < fH.time.length; i++) {
+            const existing = idxMap.get(fH.time[i]);
+            if (existing !== undefined) {
+              for (const f of hourlyFields) merged[f][existing] = (fH as any)[f]?.[i] ?? null;
+            } else {
+              idxMap.set(fH.time[i], merged.time.length);
+              merged.time.push(fH.time[i]);
+              for (const f of hourlyFields) merged[f].push((fH as any)[f]?.[i] ?? null);
+            }
+          }
+          // Sort chronologically
+          const order = merged.time.map((_: any, i: number) => i);
+          order.sort((a: number, b: number) => merged.time[a].localeCompare(merged.time[b]));
+          const reorder = <T,>(arr: T[]) => order.map(i => arr[i]);
+          const sorted: Record<string, any> = { time: reorder(merged.time) };
+          for (const f of hourlyFields) sorted[f] = reorder(merged[f]);
+          return sorted as HourlyT;
+        };
+
+        const mergedHourly = mergeHourly(aData?.hourly, fData?.hourly);
+        const tzOff = (fData?.utc_offset_seconds as number) || 0;
+
+        // Compute glow for today+tomorrow using merged hourly data
+        const forecastPreds = mergedHourly?.time?.length
+          ? await computeGlowDates(mergedHourly!, tzOff, fData.daily.time)
+          : [];
+
+        // Yesterday's glow from archive-only data (first 24 entries = yesterday)
         let yesterdayPreds: typeof forecastPreds = [];
         if (aData?.hourly?.time?.length) {
-          yesterdayPreds = await computeGlowDates(aData.hourly, (aData.utc_offset_seconds as number) || 0, [yDate]);
+          const aH = aData.hourly as HourlyT;
+          const yIdx = aH.time.reduce<number[]>((acc, t, i) => { if (t.startsWith(yDate)) acc.push(i); return acc; }, []);
+          if (yIdx.length) {
+            const pick = <T,>(arr?: (T|null)[]): (T|null)[] => arr ? yIdx.map(i => arr[i]) : [];
+            const yHourly: HourlyT = {
+              time: yIdx.map(i => aH.time[i]),
+              cloud_cover: pick(aH.cloud_cover), cloud_cover_low: pick(aH.cloud_cover_low),
+              cloud_cover_mid: pick(aH.cloud_cover_mid), cloud_cover_high: pick(aH.cloud_cover_high),
+              relative_humidity_2m: pick(aH.relative_humidity_2m),
+              visibility: pick(aH.visibility), precipitation: pick(aH.precipitation),
+            };
+            yesterdayPreds = await computeGlowDates(yHourly, (aData.utc_offset_seconds as number) || 0, [yDate]);
+          }
         }
 
         setGlowForecast([...yesterdayPreds, ...forecastPreds]);
