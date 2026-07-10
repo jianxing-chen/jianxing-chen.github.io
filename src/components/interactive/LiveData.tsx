@@ -148,8 +148,8 @@ export default function LiveData({ lang }: Props) {
   // ── Glow forecast state (sunrise/sunset glow prediction) ──
   const [glowForecast, setGlowForecast] = useState<Array<{
     date: string;
-    sunrise: { time: string; score: number; detail: { cloud: number; vis: number; hum: number; precip: number; tc: number; aqi: number; cLow: number; cMid: number; cHigh: number; tcVal: number; visKm: number; humVal: number; cloudType: string } } | null;
-    sunset: { time: string; score: number; detail: { cloud: number; vis: number; hum: number; precip: number; tc: number; aqi: number; cLow: number; cMid: number; cHigh: number; tcVal: number; visKm: number; humVal: number; cloudType: string } } | null;
+    sunrise: { time: string; score: number; detail: { cloud: number; vis: number; hum: number; precip: number; tc: number; aqi: number; cLow: number; cMid: number; cHigh: number; tcVal: number; visKm: number; humVal: number; cloudType: string; goldenHour: string; blueHour: string } } | null;
+    sunset: { time: string; score: number; detail: { cloud: number; vis: number; hum: number; precip: number; tc: number; aqi: number; cLow: number; cMid: number; cHigh: number; tcVal: number; visKm: number; humVal: number; cloudType: string; goldenHour: string; blueHour: string } } | null;
   }>>([]);
   const [expandedGlow, setExpandedGlow] = useState<Record<string, boolean>>({});
   const toggleGlow = (key: string) => setExpandedGlow(p => ({ ...p, [key]: !p[key] }));
@@ -463,6 +463,13 @@ export default function LiveData({ lang }: Props) {
               const hhmm = new Intl.DateTimeFormat('en-GB', {
                 timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false,
               }).format(sunTime);
+              // Golden hour & blue hour from SunCalc
+              const timeFmt = (d: Date | undefined) => {
+                if (!d || isNaN(d.getTime())) return '--:--';
+                return new Intl.DateTimeFormat('en-GB', { timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+              };
+              const goldenHour = timeFmt(isSunrise ? times.goldenHourEnd : times.goldenHour);
+              const blueHour = timeFmt(isSunrise ? times.nauticalDawn : times.nauticalDusk);
               return {
                 time: hhmm,
                 score: totalScore,
@@ -471,7 +478,7 @@ export default function LiveData({ lang }: Props) {
                   precip: Math.round(precipScore), tc: tcScore, aqi: aqiScore,
                   cLow: Math.round(cLow), cMid: Math.round(cMid), cHigh: Math.round(cHigh),
                   tcVal: Math.round(tc), visKm: Math.round(visKm * 10) / 10,
-                  humVal: Math.round(hum), cloudType,
+                  humVal: Math.round(hum), cloudType, goldenHour, blueHour,
                 },
               };
             };
@@ -1394,7 +1401,28 @@ export default function LiveData({ lang }: Props) {
                           </button>
                           {isExpanded && (
                             <div className="ml-7 mt-1.5 mb-1 px-3 py-2 rounded-md bg-slate-50/80 dark:bg-slate-700/40 text-[10px] space-y-1.5 animate-in fade-in duration-200">
-                              <div className="text-text-light/50 dark:text-text-dark/50 font-medium mb-1">{d.cloudType}</div>
+                              {/* Recommendation + comparison */}
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-medium" style={{ color: rating.color }}>
+                                  {data.score >= 75 ? (isZh ? '\u5F3A\u70C8\u63A8\u8350\u89C2\u8D4F' : 'Highly recommended') :
+                                   data.score >= 55 ? (isZh ? '\u503C\u5F97\u524D\u5F80' : 'Worth going') :
+                                   data.score >= 35 ? (isZh ? '\u53EF\u4EE5\u78B0\u78B0\u8FD0\u6C14' : 'Give it a try') :
+                                   (isZh ? '\u6761\u4EF6\u4E0D\u4F73' : 'Poor conditions')}
+                                </span>
+                                {i > 0 && glowForecast[0]?.[type] && (
+                                  <span className="text-text-light/40 dark:text-text-dark/40">
+                                    {isZh ? '\u6BD4\u6628\u5929' : 'vs yesterday'}{' '}
+                                    {data.score > glowForecast[0]![type]!.score ? '+' : ''}{data.score - glowForecast[0]![type]!.score}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Golden hour & blue hour */}
+                              <div className="flex gap-3 text-text-light/50 dark:text-text-dark/50">
+                                <span>{isZh ? '\u9EC4\u91D1\u65F6\u523B' : 'Golden'} {d.goldenHour}</span>
+                                <span>{isZh ? '\u84DD\u8C03\u65F6\u523B' : 'Blue'} {d.blueHour}</span>
+                              </div>
+                              <div className="text-text-light/50 dark:text-text-dark/50 font-medium">{d.cloudType}</div>
+                              {/* Factor grid */}
                               <div className="grid grid-cols-3 gap-x-3 gap-y-0.5">
                                 <span className="text-text-light/40 dark:text-text-dark/40">{isZh ? '\u4E91\u578B' : 'Cloud'}</span>
                                 <span className="col-span-2 font-medium" style={{ color: d.cloud > 0 ? '#22c55e' : d.cloud < 0 ? '#ef4444' : 'inherit' }}>{factorFmt(d.cloud, 48)}</span>
