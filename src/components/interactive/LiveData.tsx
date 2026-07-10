@@ -373,9 +373,13 @@ export default function LiveData({ lang }: Props) {
             };
             const computeGlow = (sunTime: Date | undefined, isSunrise: boolean): { time: string; score: number } | null => {
               if (!sunTime || isNaN(sunTime.getTime())) return null;
-              // 3-hour golden window: 1h before to 2h after the event (equal-weighted average)
-              const offsets = [-60, 0, 60, 120];
-              const weights = [0.25, 0.25, 0.25, 0.25];
+              // 2.5-hour golden window weighted toward pre-event hours.
+              // Glow is produced by sunlight passing horizontally through the atmosphere
+              // BEFORE the sun dips below the horizon, so pre-event conditions matter most.
+              // Sunset 19:05 → samples 17:35, 18:20, 19:05, 19:50 (hourly → 18, 18, 19, 20)
+              // Sunrise 05:00 → samples 03:30, 04:15, 05:00, 05:45 (hourly → 04, 04, 05, 06)
+              const offsets = [-90, -45, 0, 45];
+              const weights = [0.35, 0.30, 0.25, 0.10];
               const win = sampleWindow(sunTime, offsets, weights);
               if (!win) return null;
               const cLow = win.cLow, cMid = win.cMid, cHigh = win.cHigh;
@@ -384,11 +388,14 @@ export default function LiveData({ lang }: Props) {
               let score = 0;
 
               // ── Factor 1: Cloud type configuration (max ~48 pts) ──
-              // Based on sunset-prediction v2.0: high clouds (cirrus 5–13 km) are the best
-              // scattering medium for sunset/sunrise colour; not just "some high cloud".
-              const isHighDom = cHigh >= 30 && cLow < 40 && tc <= 80;
+              // High clouds (cirrus 5–13 km) are semi-transparent — even at 90% coverage
+              // they can let golden light through. Don't gate on total cloud; instead
+              // let the total-cloud correction (Factor 5) handle genuine overcast.
+              const isHighDom = cHigh >= 30 && cLow < 40;
               const isLowDom = cLow >= 20 && cLow <= 55 && cHigh < 40 && tc <= 80;
               const isMixed = tc >= 10 && tc <= 75 && !isHighDom && !isLowDom;
+              // Overcast: thick cloud with no dominant high layer (opaque low/mid clouds)
+              const isOvercast = tc > 80 && !isHighDom;
 
               if (isHighDom) {
                 score += 40;
@@ -401,8 +408,8 @@ export default function LiveData({ lang }: Props) {
                 score += 22;
               } else if (tc < 10) {
                 score += 5;  // clear sky — minimal scattering canvas
-              } else if (tc > 80) {
-                score -= 10; // overcast — too thick for light to penetrate
+              } else if (isOvercast) {
+                score -= 10; // opaque overcast — too thick for light to penetrate
               }
 
               // ── Factor 2: Visibility / AOD proxy (max 18 pts) ──
@@ -414,10 +421,11 @@ export default function LiveData({ lang }: Props) {
               else score -= 8;
 
               // ── Factor 3: Relative humidity (max 15 pts) ──
-              // Sweet spot 40–60%: too dry = poor scattering, >85% = haze/fog.
-              if (hum >= 40 && hum <= 60) score += 15;
-              else if ((hum >= 30 && hum < 40) || (hum > 60 && hum <= 75)) score += 8;
-              else if (hum > 75 && hum <= 85) score += 4;
+              // Optimal 40–70%: broadened from 40–60% to accommodate subtropical summers
+              // (e.g. Yangtze Delta July RH typically 65–90%). >85% = fog/haze penalty.
+              if (hum >= 40 && hum <= 70) score += 15;
+              else if ((hum >= 30 && hum < 40) || (hum > 70 && hum <= 80)) score += 8;
+              else if (hum > 80 && hum <= 85) score += 4;
               else if (hum > 85) score -= 10;
               else score += 4; // <30%
 
@@ -437,9 +445,15 @@ export default function LiveData({ lang }: Props) {
               }
 
               // ── Factor 5: Total cloud cover correction (±8 pts) ──
-              // Penalise heavy overcast; reward the 15–60% optimal range.
-              if (tc > 75) score -= Math.round(8 * (tc - 75) / 25);
-              else if (tc >= 15 && tc <= 60) score += 5;
+              // High-dominant overcast is semi-transparent → softer penalty.
+              if (tc > 75) {
+                const penalty = isHighDom
+                  ? Math.round(3 * (tc - 75) / 25)   // gentle for cirrus overcast
+                  : Math.round(8 * (tc - 75) / 25);   // harsh for opaque overcast
+                score -= penalty;
+              } else if (tc >= 15 && tc <= 60) {
+                score += 5;
+              }
 
               // ── Factor 6: AQI (max 5 pts) ──
               if (aqiIdx < 30) score += 5;
