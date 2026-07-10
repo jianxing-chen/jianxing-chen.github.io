@@ -373,13 +373,13 @@ export default function LiveData({ lang }: Props) {
             };
             const computeGlow = (sunTime: Date | undefined, isSunrise: boolean): { time: string; score: number } | null => {
               if (!sunTime || isNaN(sunTime.getTime())) return null;
-              // 2.5-hour golden window weighted toward pre-event hours.
-              // Glow is produced by sunlight passing horizontally through the atmosphere
-              // BEFORE the sun dips below the horizon, so pre-event conditions matter most.
-              // Sunset 19:05 → samples 17:35, 18:20, 19:05, 19:50 (hourly → 18, 18, 19, 20)
-              // Sunrise 05:00 → samples 03:30, 04:15, 05:00, 05:45 (hourly → 04, 04, 05, 06)
-              const offsets = [-90, -45, 0, 45];
-              const weights = [0.35, 0.30, 0.25, 0.10];
+              // 1.3-hour window centred tightly on the event. Glow peaks AT sunset/sunrise
+              // because sunlight traverses the maximum atmospheric path length at the
+              // exact horizon crossing, illuminating high-cloud bases most vividly.
+              // Sunset 19:05 → offsets map to hourly 18(25%), 19(65%), 20(10%)
+              // Sunrise 05:00 → offsets map to hourly 04(25%), 05(65%), 06(10%)
+              const offsets = [-30, 0, 20, 50];
+              const weights = [0.25, 0.40, 0.25, 0.10];
               const win = sampleWindow(sunTime, offsets, weights);
               if (!win) return null;
               const cLow = win.cLow, cMid = win.cMid, cHigh = win.cHigh;
@@ -401,7 +401,8 @@ export default function LiveData({ lang }: Props) {
                 score += 40;
                 // Multi-layer texture bonus: high + some low cloud → richer sky patterns
                 if (cLow > 10) score += 8;
-                else if (cHigh > 40) score += 4; // single-layer cirrus texture
+                else if (cHigh > 60) score += 6; // dense thin cirrus → extensive colour
+                else if (cHigh > 40) score += 4; // moderate cirrus texture
               } else if (isLowDom) {
                 score += 28;
               } else if (isMixed) {
