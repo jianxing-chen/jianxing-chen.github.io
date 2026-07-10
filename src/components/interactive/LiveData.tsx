@@ -285,7 +285,7 @@ export default function LiveData({ lang }: Props) {
     async function fetchWeather() {
       try {
         // Current weather + 3-day forecast
-        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation,precipitation_probability,weather_code&timezone=auto&forecast_days=2&forecast_hours=48`;
+        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation,precipitation_probability,weather_code&timezone=auto&forecast_days=2&forecast_hours=48`;
         const fRes = await fetch(fUrl, { signal: AbortSignal.timeout(15000) });
         const fData = await fRes.json();
         if (!fData?.current || !fData?.daily?.time?.length) return;
@@ -351,7 +351,7 @@ export default function LiveData({ lang }: Props) {
             const times = SC.getTimes(dayDate, lat, lng);
             const sampleWindow = (peak: Date, offsetsMin: number[], weights: number[]) => {
               let wSum = 0;
-              const acc: Record<string, number> = { cLow: 0, cMid: 0, cHigh: 0, hum: 0, vis: 0, precip: 0, precipProb: 0 };
+              const acc: Record<string, number> = { cLow: 0, cMid: 0, cHigh: 0, tc: 0, hum: 0, vis: 0, precip: 0, precipProb: 0 };
               for (let k = 0; k < offsetsMin.length; k++) {
                 const t = new Date(peak.getTime() + offsetsMin[k] * 60000);
                 if (t.getTime() < hourUtc[0].getTime() || t.getTime() > hourUtc[hourUtc.length - 1].getTime()) continue;
@@ -361,6 +361,7 @@ export default function LiveData({ lang }: Props) {
                 acc.cLow += (h.cloud_cover_low?.[idx] ?? 0) * w;
                 acc.cMid += (h.cloud_cover_mid?.[idx] ?? 0) * w;
                 acc.cHigh += (h.cloud_cover_high?.[idx] ?? 0) * w;
+                acc.tc += (h.cloud_cover?.[idx] ?? 0) * w;
                 acc.hum += (h.relative_humidity_2m?.[idx] ?? 50) * w;
                 acc.vis += (h.visibility?.[idx] ?? 10000) * w;
                 acc.precip += (h.precipitation?.[idx] ?? 0) * w;
@@ -372,43 +373,80 @@ export default function LiveData({ lang }: Props) {
             };
             const computeGlow = (sunTime: Date | undefined, isSunrise: boolean): { time: string; score: number } | null => {
               if (!sunTime || isNaN(sunTime.getTime())) return null;
-              const offsets = isSunrise ? [-60, -30, 0, 20] : [-30, 0, 20, 45];
-              const weights = [0.2, 0.3, 0.3, 0.2];
+              // 3-hour golden window: 1h before to 2h after the event (equal-weighted average)
+              const offsets = [-60, 0, 60, 120];
+              const weights = [0.25, 0.25, 0.25, 0.25];
               const win = sampleWindow(sunTime, offsets, weights);
               if (!win) return null;
               const cLow = win.cLow, cMid = win.cMid, cHigh = win.cHigh;
+              const tc = win.tc;
               const hum = win.hum, visKm = win.vis / 1000, precipNow = win.precip;
               let score = 0;
-              const cloudPts = (cover: number, lo: number, hi: number, peak: number, max: number) => {
-                if (cover >= lo && cover <= hi) return max * (1 - Math.abs(cover - peak) / ((hi - lo) / 2) * 0.25);
-                if (cover >= lo * 0.5 && cover <= hi + 20) return max * 0.4 * (1 - Math.abs(cover - peak) / (hi - lo) * 0.5);
-                return Math.max(0, max * 0.1);
-              };
-              score += cloudPts(cHigh, 20, 60, 40, 25);
-              score += cloudPts(cMid, 25, 55, 40, 15);
-              if (cLow < 15) score += 20 - (cLow / 15) * 2;
-              else if (cLow < 40) score += 18 - ((cLow - 15) / 25) * 13;
-              else if (cLow < 70) score += 5 - ((cLow - 40) / 30) * 5;
-              else score += 0;
-              if (visKm >= 20) score += 15;
-              else if (visKm >= 10) score += 5 + (visKm - 10) / 10 * 10;
-              else score += Math.max(0, visKm / 10 * 5);
-              if (hum >= 40 && hum <= 70) score += 10;
-              else if (hum < 40) score += 4 + (hum / 40) * 6;
-              else if (hum <= 85) score += 10 - ((hum - 70) / 15) * 6;
-              else score += Math.max(1, 4 - ((hum - 85) / 15) * 3);
-              if (precipNow > 1) { score += 0; } else {
+
+              // ── Factor 1: Cloud type configuration (max ~48 pts) ──
+              // Based on sunset-prediction v2.0: high clouds (cirrus 5–13 km) are the best
+              // scattering medium for sunset/sunrise colour; not just "some high cloud".
+              const isHighDom = cHigh >= 30 && cLow < 40 && tc <= 80;
+              const isLowDom = cLow >= 20 && cLow <= 55 && cHigh < 40 && tc <= 80;
+              const isMixed = tc >= 10 && tc <= 75 && !isHighDom && !isLowDom;
+
+              if (isHighDom) {
+                score += 40;
+                // Multi-layer texture bonus: high + some low cloud → richer sky patterns
+                if (cLow > 10) score += 8;
+                else if (cHigh > 40) score += 4; // single-layer cirrus texture
+              } else if (isLowDom) {
+                score += 28;
+              } else if (isMixed) {
+                score += 22;
+              } else if (tc < 10) {
+                score += 5;  // clear sky — minimal scattering canvas
+              } else if (tc > 80) {
+                score -= 10; // overcast — too thick for light to penetrate
+              }
+
+              // ── Factor 2: Visibility / AOD proxy (max 18 pts) ──
+              // Visibility inversely proxies Aerosol Optical Depth (Henriksson 2019).
+              // Haze (<6 km) actively penalises — washed-out colours.
+              if (visKm >= 20) score += 18;
+              else if (visKm >= 12) score += 12;
+              else if (visKm >= 6) score += 5;
+              else score -= 8;
+
+              // ── Factor 3: Relative humidity (max 15 pts) ──
+              // Sweet spot 40–60%: too dry = poor scattering, >85% = haze/fog.
+              if (hum >= 40 && hum <= 60) score += 15;
+              else if ((hum >= 30 && hum < 40) || (hum > 60 && hum <= 75)) score += 8;
+              else if (hum > 75 && hum <= 85) score += 4;
+              else if (hum > 85) score -= 10;
+              else score += 4; // <30%
+
+              // ── Factor 4: Precipitation (max 10 pts) ──
+              // High rain probability penalises; but clearing rain (post-frontal) boosts.
+              if (win.precipProb > 50) {
+                score -= 15;
+              } else if (win.precipProb > 25) {
+                score -= 8;
+              } else if (precipNow <= 1) {
+                // Look back ~3h for recent rain that has cleared (post-frontal glow)
                 const peakIdx = findIdx(sunTime);
                 let recentRain = 0;
                 for (let j = Math.max(0, peakIdx - 3); j < peakIdx; j++) recentRain += h.precipitation?.[j] ?? 0;
-                if (recentRain > 0.5) score += 7 + Math.min(3, recentRain);
-                else if (win.precipProb > 40) score += 3;
+                if (recentRain > 0.5) score += 10; // clearing storm → spectacular glow
                 else score += 5;
               }
+
+              // ── Factor 5: Total cloud cover correction (±8 pts) ──
+              // Penalise heavy overcast; reward the 15–60% optimal range.
+              if (tc > 75) score -= Math.round(8 * (tc - 75) / 25);
+              else if (tc >= 15 && tc <= 60) score += 5;
+
+              // ── Factor 6: AQI (max 5 pts) ──
               if (aqiIdx < 30) score += 5;
               else if (aqiIdx < 50) score += 4;
               else if (aqiIdx < 100) score += 2.5;
               else score += 1;
+
               const hhmm = new Intl.DateTimeFormat('en-GB', {
                 timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false,
               }).format(sunTime);
@@ -424,7 +462,7 @@ export default function LiveData({ lang }: Props) {
           ? computeGlowDates(fData.hourly, (fData.utc_offset_seconds as number) || 0, fData.daily.time)
           : Promise.resolve([]);
         const archiveP = fetch(
-          `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${yDate}&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`,
+          `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${yDate}&hourly=cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`,
           { signal: AbortSignal.timeout(15000) },
         ).then(r => r.json()).catch(() => null);
 
