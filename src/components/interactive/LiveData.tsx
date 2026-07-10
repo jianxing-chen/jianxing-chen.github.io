@@ -148,10 +148,11 @@ export default function LiveData({ lang }: Props) {
   // ── Glow forecast state (sunrise/sunset glow prediction) ──
   const [glowForecast, setGlowForecast] = useState<Array<{
     date: string;
-    sunrise: { time: string; score: number } | null;
-    sunset: { time: string; score: number } | null;
+    sunrise: { time: string; score: number; detail: { cloud: number; vis: number; hum: number; precip: number; tc: number; aqi: number; cLow: number; cMid: number; cHigh: number; tcVal: number; visKm: number; humVal: number; cloudType: string } } | null;
+    sunset: { time: string; score: number; detail: { cloud: number; vis: number; hum: number; precip: number; tc: number; aqi: number; cLow: number; cMid: number; cHigh: number; tcVal: number; visKm: number; humVal: number; cloudType: string } } | null;
   }>>([]);
-
+  const [expandedGlow, setExpandedGlow] = useState<Record<string, boolean>>({});
+  const toggleGlow = (key: string) => setExpandedGlow(p => ({ ...p, [key]: !p[key] }));
   // ── Eclipse forecast state (astronomy-engine, dynamic import) ──
   const [eclipseData, setEclipseData] = useState<{
     lunar: { kind: string; peak: Date; obscuration: number; sdPenum: number; sdPartial: number; sdTotal: number;
@@ -371,7 +372,7 @@ export default function LiveData({ lang }: Props) {
               for (const key of Object.keys(acc)) acc[key] /= wSum;
               return acc;
             };
-            const computeGlow = (sunTime: Date | undefined, isSunrise: boolean): { time: string; score: number } | null => {
+            const computeGlow = (sunTime: Date | undefined, isSunrise: boolean): { time: string; score: number; detail: { cloud: number; vis: number; hum: number; precip: number; tc: number; aqi: number; cLow: number; cMid: number; cHigh: number; tcVal: number; visKm: number; humVal: number; cloudType: string } } | null => {
               if (!sunTime || isNaN(sunTime.getTime())) return null;
               // 1.3-hour window centred tightly on the event. Glow peaks AT sunset/sunrise
               // because sunlight traverses the maximum atmospheric path length at the
@@ -385,87 +386,94 @@ export default function LiveData({ lang }: Props) {
               const cLow = win.cLow, cMid = win.cMid, cHigh = win.cHigh;
               const tc = win.tc;
               const hum = win.hum, visKm = win.vis / 1000, precipNow = win.precip;
-              let score = 0;
-
-              // ── Factor 1: Cloud type configuration (max ~48 pts) ──
-              // High clouds (cirrus 5–13 km) are semi-transparent — even at 90% coverage
-              // they can let golden light through. Don't gate on total cloud; instead
-              // let the total-cloud correction (Factor 5) handle genuine overcast.
+              let cloudScore = 0;
+              let cloudType = '';
               const isHighDom = cHigh >= 30 && cLow < 40;
               const isLowDom = cLow >= 20 && cLow <= 55 && cHigh < 40 && tc <= 80;
               const isMixed = tc >= 10 && tc <= 75 && !isHighDom && !isLowDom;
-              // Overcast: thick cloud with no dominant high layer (opaque low/mid clouds)
               const isOvercast = tc > 80 && !isHighDom;
 
               if (isHighDom) {
-                score += 40;
-                // Multi-layer texture bonus: high + some low cloud → richer sky patterns
-                if (cLow > 10) score += 8;
-                else if (cHigh > 60) score += 6; // dense thin cirrus → extensive colour
-                else if (cHigh > 40) score += 4; // moderate cirrus texture
+                cloudScore = 40;
+                if (cLow > 10) { cloudScore += 8; cloudType = isZh ? '\u9AD8\u4E91+\u591A\u5C42' : 'High+multi'; }
+                else if (cHigh > 60) { cloudScore += 6; cloudType = isZh ? '\u5BC6\u96C6\u5377\u4E91' : 'Dense cirrus'; }
+                else if (cHigh > 40) { cloudScore += 4; cloudType = isZh ? '\u5377\u4E91' : 'Cirrus'; }
+                else { cloudType = isZh ? '\u8584\u5377\u4E91' : 'Thin cirrus'; }
               } else if (isLowDom) {
-                score += 28;
+                cloudScore = 28;
+                cloudType = isZh ? '\u4F4E\u4E91\u4E3B\u5BFC' : 'Low-dom';
               } else if (isMixed) {
-                score += 22;
+                cloudScore = 22;
+                cloudType = isZh ? '\u6DF7\u5408\u4E91' : 'Mixed';
               } else if (tc < 10) {
-                score += 5;  // clear sky — minimal scattering canvas
+                cloudScore = 5;
+                cloudType = isZh ? '\u6674\u7A7A' : 'Clear';
               } else if (isOvercast) {
-                score -= 10; // opaque overcast — too thick for light to penetrate
+                cloudScore = -10;
+                cloudType = isZh ? '\u9634\u5929' : 'Overcast';
+              } else {
+                cloudType = isZh ? '\u5176\u4ED6' : 'Other';
               }
 
-              // ── Factor 2: Visibility / AOD proxy (max 18 pts) ──
-              // Visibility inversely proxies Aerosol Optical Depth (Henriksson 2019).
-              // Haze (<6 km) actively penalises — washed-out colours.
-              if (visKm >= 20) score += 18;
-              else if (visKm >= 12) score += 12;
-              else if (visKm >= 6) score += 5;
-              else score -= 8;
+              let visScore = 0;
+              if (visKm >= 20) visScore = 18;
+              else if (visKm >= 12) visScore = 12;
+              else if (visKm >= 6) visScore = 5;
+              else visScore = -8;
 
-              // ── Factor 3: Relative humidity (max 15 pts) ──
-              // Optimal 40–70%: broadened from 40–60% to accommodate subtropical summers
-              // (e.g. Yangtze Delta July RH typically 65–90%). >85% = fog/haze penalty.
-              if (hum >= 40 && hum <= 70) score += 15;
-              else if ((hum >= 30 && hum < 40) || (hum > 70 && hum <= 80)) score += 8;
-              else if (hum > 80 && hum <= 85) score += 4;
-              else if (hum > 85) score -= 10;
-              else score += 4; // <30%
+              let humScore = 0;
+              if (hum >= 40 && hum <= 70) humScore = 15;
+              else if ((hum >= 30 && hum < 40) || (hum > 70 && hum <= 80)) humScore = 8;
+              else if (hum > 80 && hum <= 85) humScore = 4;
+              else if (hum > 85) humScore = -10;
+              else humScore = 4;
 
-              // ── Factor 4: Precipitation (max 10 pts) ──
-              // High rain probability penalises; but clearing rain (post-frontal) boosts.
+              let precipScore = 0;
               if (win.precipProb > 50) {
-                score -= 15;
+                precipScore = -15;
               } else if (win.precipProb > 25) {
-                score -= 8;
+                precipScore = -8;
               } else if (precipNow <= 1) {
-                // Look back ~3h for recent rain that has cleared (post-frontal glow)
                 const peakIdx = findIdx(sunTime);
                 let recentRain = 0;
                 for (let j = Math.max(0, peakIdx - 3); j < peakIdx; j++) recentRain += h.precipitation?.[j] ?? 0;
-                if (recentRain > 0.5) score += 10; // clearing storm → spectacular glow
-                else score += 5;
+                if (recentRain > 0.5) precipScore = 7 + Math.min(3, recentRain);
+                else precipScore = 5;
               }
 
-              // ── Factor 5: Total cloud cover correction (±8 pts) ──
-              // High-dominant overcast is semi-transparent → softer penalty.
+              let tcScore = 0;
               if (tc > 75) {
-                const penalty = isHighDom
-                  ? Math.round(3 * (tc - 75) / 25)   // gentle for cirrus overcast
-                  : Math.round(8 * (tc - 75) / 25);   // harsh for opaque overcast
-                score -= penalty;
+                tcScore = isHighDom
+                  ? -Math.round(3 * (tc - 75) / 25)
+                  : -Math.round(8 * (tc - 75) / 25);
               } else if (tc >= 15 && tc <= 60) {
-                score += 5;
+                tcScore = 5;
               }
 
-              // ── Factor 6: AQI (max 5 pts) ──
-              if (aqiIdx < 30) score += 5;
-              else if (aqiIdx < 50) score += 4;
-              else if (aqiIdx < 100) score += 2.5;
-              else score += 1;
+              let aqiScore = 0;
+              if (aqiIdx < 30) aqiScore = 5;
+              else if (aqiIdx < 50) aqiScore = 4;
+              else if (aqiIdx < 100) aqiScore = 2.5;
+              else aqiScore = 1;
+
+              const totalScore = Math.round(Math.min(100, Math.max(0,
+                cloudScore + visScore + humScore + precipScore + tcScore + aqiScore
+              )));
 
               const hhmm = new Intl.DateTimeFormat('en-GB', {
                 timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false,
               }).format(sunTime);
-              return { time: hhmm, score: Math.round(Math.min(100, Math.max(0, score))) };
+              return {
+                time: hhmm,
+                score: totalScore,
+                detail: {
+                  cloud: Math.round(cloudScore), vis: visScore, hum: humScore,
+                  precip: Math.round(precipScore), tc: tcScore, aqi: aqiScore,
+                  cLow: Math.round(cLow), cMid: Math.round(cMid), cHigh: Math.round(cHigh),
+                  tcVal: Math.round(tc), visKm: Math.round(visKm * 10) / 10,
+                  humVal: Math.round(hum), cloudType,
+                },
+              };
             };
             preds.push({ date: dateStr, sunrise: computeGlow(times.sunrise, true), sunset: computeGlow(times.sunset, false) });
           }
@@ -1340,62 +1348,78 @@ export default function LiveData({ lang }: Props) {
           {glowForecast.length > 0 && (
             <div>
               <p className="text-xs text-text-light/40 dark:text-text-dark/70 mb-1.5 tracking-wide uppercase text-center">
-                {locName} · {isZh ? '朝霞晚霞预报' : 'Sunrise/Sunset Glow'} · Open-Meteo
+                {locName} · {isZh ? '\u671D\u971E\u665A\u971E\u9884\u62A5' : 'Sunrise/Sunset Glow'} · Open-Meteo
               </p>
               <div className="w-full rounded-lg border border-black/[0.06] dark:border-white/[0.08] bg-white/60 dark:bg-slate-800/60 backdrop-blur px-4 py-4">
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {glowForecast.map((day, i) => {
                     const dayLabel = i === 0
-                      ? (isZh ? '昨天' : 'Yesterday')
+                      ? (isZh ? '\u6628\u5929' : 'Yesterday')
                       : i === 1
-                        ? (isZh ? '今天' : 'Today')
-                        : (isZh ? '明天' : 'Tomorrow');
+                        ? (isZh ? '\u4ECA\u5929' : 'Today')
+                        : (isZh ? '\u660E\u5929' : 'Tomorrow');
 
-                    // YlOrRd sequential color scale (ColorBrewer): warm sunset tones.
-                    // Poor→Excellent maps light-yellow → gold → orange → red.
                     const glowRating = (s: number) =>
-                      s >= 75 ? { label: isZh ? '极佳' : 'Excellent', color: '#e31a1c' }
-                      : s >= 55 ? { label: isZh ? '良好' : 'Good', color: '#fd8d3c' }
-                      : s >= 35 ? { label: isZh ? '一般' : 'Fair', color: '#fed976' }
-                      : { label: isZh ? '较差' : 'Poor', color: '#f0c860' };
+                      s >= 75 ? { label: isZh ? '\u6781\u4F73' : 'Excellent', color: '#e31a1c' }
+                      : s >= 55 ? { label: isZh ? '\u826F\u597D' : 'Good', color: '#fd8d3c' }
+                      : s >= 35 ? { label: isZh ? '\u4E00\u822C' : 'Fair', color: '#fed976' }
+                      : { label: isZh ? '\u8F83\u5DEE' : 'Poor', color: '#f0c860' };
 
-                    const renderRow = (type: 'sunrise' | 'sunset', data: { time: string; score: number } | null) => {
+                    const renderRow = (type: 'sunrise' | 'sunset', data: NonNullable<typeof day.sunrise>) => {
                       if (!data) return null;
                       const rating = glowRating(data.score);
+                      const d = data.detail;
+                      const expandKey = `${day.date}-${type}`;
+                      const isExpanded = !!expandedGlow[expandKey];
+                      const factorFmt = (val: number, max: number) => `${val > 0 ? '+' : ''}${val}/${max}`;
                       return (
-                        <div className="flex items-center gap-2">
-                          <span className="text-base flex-shrink-0">{type === 'sunrise' ? '🌅' : '🌇'}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-0.5">
+                        <div>
+                          <button
+                            onClick={() => toggleGlow(expandKey)}
+                            className="flex items-center gap-2 w-full text-left hover:opacity-80 transition-opacity"
+                          >
+                            <span className="text-base flex-shrink-0">{type === 'sunrise' ? '\uD83C\uDF05' : '\uD83C\uDF07'}</span>
+                            <div className="flex-1 min-w-0 flex items-center justify-between">
                               <span className="text-xs font-medium text-text-light/80 dark:text-text-dark/80">
                                 {dayLabel} {data.time}
                               </span>
-                              <span className="text-xs font-medium" style={{ color: rating.color }}>
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                style={{ color: rating.color, backgroundColor: rating.color + '18' }}
+                              >
                                 {rating.label} {data.score}
                               </span>
                             </div>
-                            <div className="relative h-1.5 rounded-full bg-slate-200/50 dark:bg-white/10 overflow-hidden">
-                              {/* Colorbar: the gradient spans the FULL track width (backgroundSize
-                                  pinned to the track, not the fill), and the fill width = score clips
-                                  it from the left. So a 44-score bar shows only gray→yellow (the left
-                                  44% of the colorbar), while an 85-score bar reaches orange. The same
-                                  horizontal position is always the same color. */}
-                              <div
-                                className="h-full rounded-l-full transition-all duration-500"
-                                style={{
-                                  width: `${data.score}%`,
-                                  background: `linear-gradient(90deg, #f0c860 0%, #fed976 33%, #fd8d3c 67%, #e31a1c 100%)`,
-                                  backgroundSize: `${100 / Math.max(data.score, 1) * 100}% 100%`,
-                                }}
-                              />
+                            <span className={`text-[10px] text-text-light/30 dark:text-text-dark/30 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>{'\u25B6'}</span>
+                          </button>
+                          {isExpanded && (
+                            <div className="ml-7 mt-1.5 mb-1 px-3 py-2 rounded-md bg-slate-50/80 dark:bg-slate-700/40 text-[10px] space-y-1.5 animate-in fade-in duration-200">
+                              <div className="text-text-light/50 dark:text-text-dark/50 font-medium mb-1">{d.cloudType}</div>
+                              <div className="grid grid-cols-3 gap-x-3 gap-y-0.5">
+                                <span className="text-text-light/40 dark:text-text-dark/40">{isZh ? '\u4E91\u578B' : 'Cloud'}</span>
+                                <span className="col-span-2 font-medium" style={{ color: d.cloud > 0 ? '#22c55e' : d.cloud < 0 ? '#ef4444' : 'inherit' }}>{factorFmt(d.cloud, 48)}</span>
+                                <span className="text-text-light/40 dark:text-text-dark/40">{isZh ? '\u80FD\u89C1\u5EA6' : 'Vis'}</span>
+                                <span className="col-span-2 font-medium" style={{ color: d.vis > 0 ? '#22c55e' : d.vis < 0 ? '#ef4444' : 'inherit' }}>{factorFmt(d.vis, 18)} ({d.visKm}km)</span>
+                                <span className="text-text-light/40 dark:text-text-dark/40">{isZh ? '\u6E7F\u5EA6' : 'Hum'}</span>
+                                <span className="col-span-2 font-medium" style={{ color: d.hum > 0 ? '#22c55e' : d.hum < 0 ? '#ef4444' : 'inherit' }}>{factorFmt(d.hum, 15)} ({d.humVal}%)</span>
+                                <span className="text-text-light/40 dark:text-text-dark/40">{isZh ? '\u964D\u6C34' : 'Precip'}</span>
+                                <span className="col-span-2 font-medium" style={{ color: d.precip > 0 ? '#22c55e' : d.precip < 0 ? '#ef4444' : 'inherit' }}>{factorFmt(d.precip, 10)}</span>
+                                <span className="text-text-light/40 dark:text-text-dark/40">{isZh ? '\u603B\u4E91\u91CF' : 'Total'}</span>
+                                <span className="col-span-2 font-medium" style={{ color: d.tc > 0 ? '#22c55e' : d.tc < 0 ? '#ef4444' : 'inherit' }}>{factorFmt(d.tc, 5)} ({d.tcVal}%)</span>
+                                <span className="text-text-light/40 dark:text-text-dark/40">AQI</span>
+                                <span className="col-span-2 font-medium" style={{ color: '#22c55e' }}>{factorFmt(d.aqi, 5)}</span>
+                              </div>
+                              <div className="pt-1 border-t border-slate-200/50 dark:border-white/10 text-text-light/40 dark:text-text-dark/40">
+                                {isZh ? '\u9AD8' : 'H'}:{d.cHigh}% {'\u00B7'} {isZh ? '\u4E2D' : 'M'}:{d.cMid}% {'\u00B7'} {isZh ? '\u4F4E' : 'L'}:{d.cLow}%
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     };
 
                     return (
-                      <div key={day.date} className="space-y-2">
+                      <div key={day.date} className="space-y-1.5">
                         {renderRow('sunrise', day.sunrise)}
                         {renderRow('sunset', day.sunset)}
                       </div>
@@ -1403,7 +1427,7 @@ export default function LiveData({ lang }: Props) {
                   })}
                 </div>
                 <p className="text-[10px] text-text-light/30 dark:text-text-dark/30 mt-3 text-center">
-                  {isZh ? '基于高/中/低云层、能见度、湿度、降水与 AQI 综合评分' : 'Scored by high/mid/low cloud, visibility, humidity, precipitation & AQI'}
+                  {isZh ? '\u70B9\u51FB\u8BC4\u5206\u67E5\u770B\u5404\u56E0\u5B50\u660E\u7EC6' : 'Click score for factor breakdown'}
                 </p>
               </div>
             </div>
