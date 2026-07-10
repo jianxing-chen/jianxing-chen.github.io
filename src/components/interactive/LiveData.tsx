@@ -285,7 +285,7 @@ export default function LiveData({ lang }: Props) {
     async function fetchWeather() {
       try {
         // Current weather + 3-day forecast
-        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation,precipitation_probability,weather_code&timezone=auto&forecast_days=3&forecast_hours=72`;
+        const fUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,visibility,uv_index,dew_point_2m,cloud_cover,wind_gusts_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation,precipitation_probability,weather_code&timezone=auto&forecast_days=2&forecast_hours=48`;
         const fRes = await fetch(fUrl, { signal: AbortSignal.timeout(15000) });
         const fData = await fRes.json();
         if (!fData?.current || !fData?.daily?.time?.length) return;
@@ -321,31 +321,20 @@ export default function LiveData({ lang }: Props) {
           yesterday: null,
         });
 
-        // ── Glow forecast computation (cloud layers + SunCalc sunrise/sunset) ──
-        if (fData?.hourly?.time?.length) {
-          const h = fData.hourly;
-          const aqiIdx = aqi ? aqi.index : 50; // fallback if AQI not yet loaded
-
-          // Open-Meteo hourly.time strings are LOCAL wall-clock times with no offset
-          // suffix (e.g. "2026-06-29T06:00"). Parsing with `new Date(str)` would
-          // interpret them in the *browser's* timezone, misaligning them from
-          // SunCalc's UTC Date objects. Convert each to a true UTC moment using the
-          // response's utc_offset_seconds so both reference frames agree.
-          //   parsed = wallclock - browser_offset_east
-          //   location_utc = wallclock - location_offset_east
-          //   => location_utc = parsed + browser_offset_east - location_offset_east
-          // where *_offset_east is positive east of UTC:
-          //   browser_offset_east = -getTimezoneOffset()*60  (getTimezoneOffset is UTC-local)
-          //   location_offset_east = utc_offset_seconds (POSIX convention, e.g. NY=-14400, Beijing=+28800)
-          const tzOffsetSec = (fData.utc_offset_seconds as number) || 0;
+        // ── Glow computation helper (works for both forecast and archive hourly data) ──
+        const computeGlowDates = async (
+          hourlyData: { time: string[]; cloud_cover_low?: (number|null)[]; cloud_cover_mid?: (number|null)[]; cloud_cover_high?: (number|null)[]; relative_humidity_2m?: (number|null)[]; visibility?: (number|null)[]; precipitation?: (number|null)[]; precipitation_probability?: (number|null)[] },
+          tzOffSec: number,
+          dates: string[],
+        ) => {
+          const h = hourlyData;
+          const aqiIdx = aqi ? aqi.index : 50;
           const browserOffsetEastMs = -new Date().getTimezoneOffset() * 60000;
           const toUtc = (s: string): Date => {
-            const local = new Date(s); // parsed as browser-local → stored as UTC
-            return new Date(local.getTime() + browserOffsetEastMs - tzOffsetSec * 1000);
+            const local = new Date(s);
+            return new Date(local.getTime() + browserOffsetEastMs - tzOffSec * 1000);
           };
           const hourUtc = (h.time as string[]).map(toUtc);
-
-          // Find the hourly index whose UTC instant is closest to `target` (a UTC Date).
           const findIdx = (target: Date): number => {
             const t = target.getTime();
             let bestIdx = 0, bestDiff = Infinity;
@@ -355,133 +344,101 @@ export default function LiveData({ lang }: Props) {
             }
             return bestIdx;
           };
-
-          import('suncalc').then((SC: any) => {
-            const predictions: Array<{ date: string; sunrise: { time: string; score: number } | null; sunset: { time: string; score: number } | null }> = [];
-
-            for (let d = 0; d < Math.min(fData.daily.time.length, 3); d++) {
-              const dateStr = fData.daily.time[d];
-              // Build the day's local noon as a true UTC Date (same conversion).
-              const dayDate = toUtc(dateStr + 'T12:00:00');
-              const times = SC.getTimes(dayDate, lat, lng);
-
-              // Weighted multi-point sampling across the glow "golden window".
-              // Samples closer to peak glow carry more weight so a transient
-              // cloud hole far from the peak doesn't dominate. Returns weighted
-              // averages of the relevant hourly fields.
-              const sampleWindow = (peak: Date, offsetsMin: number[], weights: number[]) => {
-                let wSum = 0;
-                const acc: Record<string, number> = { cLow: 0, cMid: 0, cHigh: 0, hum: 0, vis: 0, precip: 0, precipProb: 0 };
-                for (let k = 0; k < offsetsMin.length; k++) {
-                  const t = new Date(peak.getTime() + offsetsMin[k] * 60000);
-                  if (t.getTime() < hourUtc[0].getTime() || t.getTime() > hourUtc[hourUtc.length - 1].getTime()) continue;
-                  const idx = findIdx(t);
-                  const w = weights[k];
-                  wSum += w;
-                  acc.cLow += (h.cloud_cover_low?.[idx] ?? 0) * w;
-                  acc.cMid += (h.cloud_cover_mid?.[idx] ?? 0) * w;
-                  acc.cHigh += (h.cloud_cover_high?.[idx] ?? 0) * w;
-                  acc.hum += (h.relative_humidity_2m?.[idx] ?? 50) * w;
-                  acc.vis += (h.visibility?.[idx] ?? 10000) * w;
-                  acc.precip += (h.precipitation?.[idx] ?? 0) * w;
-                  acc.precipProb += (h.precipitation_probability?.[idx] ?? 0) * w;
-                }
-                if (wSum === 0) return null;
-                for (const key of Object.keys(acc)) acc[key] /= wSum;
-                return acc;
+          const SC: any = await import('suncalc');
+          const preds: Array<{ date: string; sunrise: { time: string; score: number } | null; sunset: { time: string; score: number } | null }> = [];
+          for (const dateStr of dates) {
+            const dayDate = toUtc(dateStr + 'T12:00:00');
+            const times = SC.getTimes(dayDate, lat, lng);
+            const sampleWindow = (peak: Date, offsetsMin: number[], weights: number[]) => {
+              let wSum = 0;
+              const acc: Record<string, number> = { cLow: 0, cMid: 0, cHigh: 0, hum: 0, vis: 0, precip: 0, precipProb: 0 };
+              for (let k = 0; k < offsetsMin.length; k++) {
+                const t = new Date(peak.getTime() + offsetsMin[k] * 60000);
+                if (t.getTime() < hourUtc[0].getTime() || t.getTime() > hourUtc[hourUtc.length - 1].getTime()) continue;
+                const idx = findIdx(t);
+                const w = weights[k];
+                wSum += w;
+                acc.cLow += (h.cloud_cover_low?.[idx] ?? 0) * w;
+                acc.cMid += (h.cloud_cover_mid?.[idx] ?? 0) * w;
+                acc.cHigh += (h.cloud_cover_high?.[idx] ?? 0) * w;
+                acc.hum += (h.relative_humidity_2m?.[idx] ?? 50) * w;
+                acc.vis += (h.visibility?.[idx] ?? 10000) * w;
+                acc.precip += (h.precipitation?.[idx] ?? 0) * w;
+                acc.precipProb += (h.precipitation_probability?.[idx] ?? 0) * w;
+              }
+              if (wSum === 0) return null;
+              for (const key of Object.keys(acc)) acc[key] /= wSum;
+              return acc;
+            };
+            const computeGlow = (sunTime: Date | undefined, isSunrise: boolean): { time: string; score: number } | null => {
+              if (!sunTime || isNaN(sunTime.getTime())) return null;
+              const offsets = isSunrise ? [-60, -30, 0, 20] : [-30, 0, 20, 45];
+              const weights = [0.2, 0.3, 0.3, 0.2];
+              const win = sampleWindow(sunTime, offsets, weights);
+              if (!win) return null;
+              const cLow = win.cLow, cMid = win.cMid, cHigh = win.cHigh;
+              const hum = win.hum, visKm = win.vis / 1000, precipNow = win.precip;
+              let score = 0;
+              const cloudPts = (cover: number, lo: number, hi: number, peak: number, max: number) => {
+                if (cover >= lo && cover <= hi) return max * (1 - Math.abs(cover - peak) / ((hi - lo) / 2) * 0.25);
+                if (cover >= lo * 0.5 && cover <= hi + 20) return max * 0.4 * (1 - Math.abs(cover - peak) / (hi - lo) * 0.5);
+                return Math.max(0, max * 0.1);
               };
+              score += cloudPts(cHigh, 20, 60, 40, 25);
+              score += cloudPts(cMid, 25, 55, 40, 15);
+              if (cLow < 15) score += 20 - (cLow / 15) * 2;
+              else if (cLow < 40) score += 18 - ((cLow - 15) / 25) * 13;
+              else if (cLow < 70) score += 5 - ((cLow - 40) / 30) * 5;
+              else score += 0;
+              if (visKm >= 20) score += 15;
+              else if (visKm >= 10) score += 5 + (visKm - 10) / 10 * 10;
+              else score += Math.max(0, visKm / 10 * 5);
+              if (hum >= 40 && hum <= 70) score += 10;
+              else if (hum < 40) score += 4 + (hum / 40) * 6;
+              else if (hum <= 85) score += 10 - ((hum - 70) / 15) * 6;
+              else score += Math.max(1, 4 - ((hum - 85) / 15) * 3);
+              if (precipNow > 1) { score += 0; } else {
+                const peakIdx = findIdx(sunTime);
+                let recentRain = 0;
+                for (let j = Math.max(0, peakIdx - 3); j < peakIdx; j++) recentRain += h.precipitation?.[j] ?? 0;
+                if (recentRain > 0.5) score += 7 + Math.min(3, recentRain);
+                else if (win.precipProb > 40) score += 3;
+                else score += 5;
+              }
+              if (aqiIdx < 30) score += 5;
+              else if (aqiIdx < 50) score += 4;
+              else if (aqiIdx < 100) score += 2.5;
+              else score += 1;
+              const hhmm = new Intl.DateTimeFormat('en-GB', {
+                timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false,
+              }).format(sunTime);
+              return { time: hhmm, score: Math.round(Math.min(100, Math.max(0, score))) };
+            };
+            preds.push({ date: dateStr, sunrise: computeGlow(times.sunrise, true), sunset: computeGlow(times.sunset, false) });
+          }
+          return preds;
+        };
 
-              const computeGlow = (sunTime: Date | undefined, isSunrise: boolean): { time: string; score: number } | null => {
-                if (!sunTime || isNaN(sunTime.getTime())) return null;
+        // Compute glow for forecast days (today+tomorrow) and archive yesterday in parallel
+        const forecastGlowP = fData?.hourly?.time?.length
+          ? computeGlowDates(fData.hourly, (fData.utc_offset_seconds as number) || 0, fData.daily.time)
+          : Promise.resolve([]);
+        const archiveP = fetch(
+          `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${yDate}&hourly=cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility,precipitation&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`,
+          { signal: AbortSignal.timeout(15000) },
+        ).then(r => r.json()).catch(() => null);
 
-                // Golden window offsets (minutes relative to sunrise/sunset), peak-weighted.
-                // Sunrise glow builds before sunrise; sunset glow peaks after sunset.
-                const offsets = isSunrise
-                  ? [-60, -30, 0, 20]
-                  : [-30, 0, 20, 45];
-                const weights = [0.2, 0.3, 0.3, 0.2];
-                const win = sampleWindow(sunTime, offsets, weights);
-                if (!win) return null;
+        const [forecastPreds, aData] = await Promise.all([forecastGlowP, archiveP]);
 
-                const cLow = win.cLow, cMid = win.cMid, cHigh = win.cHigh;
-                const hum = win.hum, visKm = win.vis / 1000;
-                const precipNow = win.precip;
-
-                let score = 0;
-
-                // High cloud cHigh (25 pts) — cirrus ice clouds are the best glow canvas.
-                // Ideal 20–60%, peak ~40%.
-                const cloudPts = (cover: number, lo: number, hi: number, peak: number, max: number) => {
-                  if (cover >= lo && cover <= hi) return max * (1 - Math.abs(cover - peak) / ((hi - lo) / 2) * 0.25);
-                  if (cover >= lo * 0.5 && cover <= hi + 20) return max * 0.4 * (1 - Math.abs(cover - peak) / (hi - lo) * 0.5);
-                  return Math.max(0, max * 0.1);
-                };
-                score += cloudPts(cHigh, 20, 60, 40, 25);
-
-                // Mid cloud cMid (15 pts) — altostratus, secondary canvas. Ideal 25–55%.
-                score += cloudPts(cMid, 25, 55, 40, 15);
-
-                // Low cloud cLow (20 pts) — clear horizon is essential. Smooth decay.
-                if (cLow < 15) score += 20 - (cLow / 15) * 2;
-                else if (cLow < 40) score += 18 - ((cLow - 15) / 25) * 13;
-                else if (cLow < 70) score += 5 - ((cLow - 40) / 30) * 5;
-                else score += 0;
-
-                // Visibility (15 pts) — higher is better, full mark at >=20km.
-                if (visKm >= 20) score += 15;
-                else if (visKm >= 10) score += 5 + (visKm - 10) / 10 * 10;
-                else score += Math.max(0, visKm / 10 * 5);
-
-                // Humidity (10 pts) — 40–70% ideal; >85% (fog) decays fast.
-                if (hum >= 40 && hum <= 70) score += 10;
-                else if (hum < 40) score += 4 + (hum / 40) * 6;
-                else if (hum <= 85) score += 10 - ((hum - 70) / 15) * 6;
-                else score += Math.max(1, 4 - ((hum - 85) / 15) * 3);
-
-                // Precipitation context (10 pts) — clearing rain (post-frontal) boosts glow.
-                if (precipNow > 1) {
-                  score += 0; // heavy rain ongoing → clouds pressing the horizon
-                } else {
-                  // Look back ~3h for recent rain that has cleared.
-                  const peakIdx = findIdx(sunTime);
-                  let recentRain = 0;
-                  for (let j = Math.max(0, peakIdx - 3); j < peakIdx; j++) {
-                    recentRain += h.precipitation?.[j] ?? 0;
-                  }
-                  if (recentRain > 0.5) score += 7 + Math.min(3, recentRain); // clearing storm glow
-                  else if (win.precipProb > 40) score += 3; // unstable, some chance
-                  else score += 5; // stable clear-ish
-                }
-
-                // AQI (5 pts) — current value as an auxiliary factor (not time-matched to future days).
-                if (aqiIdx < 30) score += 5;
-                else if (aqiIdx < 50) score += 4;
-                else if (aqiIdx < 100) score += 2.5;
-                else score += 1;
-
-                // Display the sunrise/sunset time in the *location's* timezone,
-                // consistent with the rest of the card (not the browser timezone).
-                const hhmm = new Intl.DateTimeFormat('en-GB', {
-                  timeZone: location.tz, hour: '2-digit', minute: '2-digit', hour12: false,
-                }).format(sunTime);
-                return { time: hhmm, score: Math.round(Math.min(100, Math.max(0, score))) };
-              };
-
-              predictions.push({
-                date: dateStr,
-                sunrise: computeGlow(times.sunrise, true),
-                sunset: computeGlow(times.sunset, false),
-              });
-            }
-
-            setGlowForecast(predictions);
-          }).catch(() => {});
+        // Yesterday's glow score from archive hourly data
+        let yesterdayPreds: typeof forecastPreds = [];
+        if (aData?.hourly?.time?.length) {
+          yesterdayPreds = await computeGlowDates(aData.hourly, (aData.utc_offset_seconds as number) || 0, [yDate]);
         }
 
-        // Fetch yesterday's weather from archive
-        const aUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${yDate}&end_date=${yDate}&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum&timezone=auto`;
-        const aRes = await fetch(aUrl);
-        const aData = await aRes.json();
+        setGlowForecast([...yesterdayPreds, ...forecastPreds]);
+
+        // Yesterday's daily summary for weather card
         if (aData?.daily?.time?.length) {
           setWeather(prev => prev ? {
             ...prev,
@@ -1336,10 +1293,10 @@ export default function LiveData({ lang }: Props) {
                 <div className="space-y-3">
                   {glowForecast.map((day, i) => {
                     const dayLabel = i === 0
-                      ? (isZh ? '今天' : 'Today')
+                      ? (isZh ? '昨天' : 'Yesterday')
                       : i === 1
-                        ? (isZh ? '明天' : 'Tomorrow')
-                        : (() => { const d = new Date(day.date + 'T12:00:00'); return d.toLocaleDateString(isZh ? 'zh-CN' : 'en-US', { weekday: 'short' }); })();
+                        ? (isZh ? '今天' : 'Today')
+                        : (isZh ? '明天' : 'Tomorrow');
 
                     // YlOrRd sequential color scale (ColorBrewer): warm sunset tones.
                     // Poor→Excellent maps light-yellow → gold → orange → red.
