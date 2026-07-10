@@ -2142,7 +2142,7 @@ export default function LiveData({ lang }: Props) {
       </div>
 
       {/* ── Right sidebar: Quick Links (fixed in right margin on xl+) ── */}
-      <div className="mt-8 xl:mt-0 xl:fixed xl:right-[calc(50%_-_38.5rem)] xl:top-32 xl:w-40 xl:z-10">
+      <div className="mt-8 xl:mt-0 xl:fixed xl:right-[calc(50%_-_38.5rem)] xl:top-32 xl:w-40 xl:z-10 xl:max-h-[calc(100vh-9rem)] xl:overflow-y-auto">
         <h3 className="text-lg font-semibold text-heading-light dark:text-heading-dark mb-3">
           {isZh ? '常用链接' : 'Quick Links'}
         </h3>
