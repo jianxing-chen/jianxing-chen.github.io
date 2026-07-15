@@ -84,7 +84,7 @@ if (isHomepage) {
   headerMinDeg = (now.getUTCMinutes() * 6).toFixed(1);
 
   // 月相（共享模块 @/utils/moon.ts + SunCalc）
-  const { getMoonIllumination, getMoonPosition } = await import('suncalc');
+  const { getMoonIllumination } = await import('suncalc');
   const {
     MOON_PHASE_NAMES_ZH,
     MOON_PHASE_NAMES_EN,
@@ -93,23 +93,26 @@ if (isHomepage) {
   } = await import('@/utils/moon');
   // SunCalc 使用绝对 UTC 时刻
   const moonIllum = getMoonIllumination(now);
-  const moonPos = getMoonPosition(now, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng);
-  // 北京当天零点 = 最近的 UTC 16:00
-  const utc16 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 16, 0, 0);
-  const bjMidnight = new Date(now.getTime() >= utc16 ? utc16 : utc16 - 86_400_000);
-  // 搜索当天 tilt 真实极值（每30秒采样，从北京零点开始）
-  let _minT = Infinity, _maxT = -Infinity;
-  for (let _m = 0; _m < 2880; _m++) {
-    const _d = new Date(bjMidnight.getTime() + _m * 30_000);
-    const _t = getMoonIllumination(_d).angle - getMoonPosition(_d, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng).parallacticAngle;
-    if (_t < _minT) _minT = _t;
-    if (_t > _maxT) _maxT = _t;
-  }
-  const tiltAstroNow = moonIllum.angle - moonPos.parallacticAngle;
-  const tiltRange = _maxT - _minT;
-  const totalSwing = 360 - 2 * Math.abs(_minT);
-  const scaleR = tiltRange !== 0 ? totalSwing / tiltRange : 1;
-  headerMoonTiltDeg = (_minT - (tiltAstroNow - _minT) * scaleR).toFixed(2);
+  // [DISABLED] 每日 tilt 旋转（parallactic angle 导致的上下摆动）在月周期内表现不正确，已注释
+  // const { getMoonPosition } = await import('suncalc');
+  // const moonPos = getMoonPosition(now, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng);
+  // // 北京当天零点 = 最近的 UTC 16:00
+  // const utc16 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 16, 0, 0);
+  // const bjMidnight = new Date(now.getTime() >= utc16 ? utc16 : utc16 - 86_400_000);
+  // // 搜索当天 tilt 真实极值（每30秒采样，从北京零点开始）
+  // let _minT = Infinity, _maxT = -Infinity;
+  // for (let _m = 0; _m < 2880; _m++) {
+  //   const _d = new Date(bjMidnight.getTime() + _m * 30_000);
+  //   const _t = getMoonIllumination(_d).angle - getMoonPosition(_d, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng).parallacticAngle;
+  //   if (_t < _minT) _minT = _t;
+  //   if (_t > _maxT) _maxT = _t;
+  // }
+  // const tiltAstroNow = moonIllum.angle - moonPos.parallacticAngle;
+  // const tiltRange = _maxT - _minT;
+  // const totalSwing = 360 - 2 * Math.abs(_minT);
+  // const scaleR = tiltRange !== 0 ? totalSwing / tiltRange : 1;
+  // headerMoonTiltDeg = (_minT - (tiltAstroNow - _minT) * scaleR).toFixed(2);
+  headerMoonTiltDeg = '0';
   const moonIdx = moonPhaseNameIndex(moonIllum.phase);
   headerMoonName =
     lang === 'zh'

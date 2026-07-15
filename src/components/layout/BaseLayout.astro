@@ -39,26 +39,27 @@ const socialLinks = Object.values(SITE_CONFIG.social).filter(
 const umamiWebsiteId = import.meta.env.PUBLIC_UMAMI_WEBSITE_ID || '';
 const umamiScriptUrl = import.meta.env.PUBLIC_UMAMI_SCRIPT_URL || 'https://cloud.umami.is/script.js';
 
-// SSR 月相 favicon（SunCalc + 倾角旋转，与首页算法一致）
-const { getMoonIllumination: favMoonIllum, getMoonPosition: favMoonPos } = await import('suncalc');
+// SSR 月相 favicon（SunCalc，仅显示月相盈亏，不旋转）
+const { getMoonIllumination: favMoonIllum } = await import('suncalc');
 const _now = new Date();
 const _il = favMoonIllum(_now);
-const _pos = favMoonPos(_now, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng);
-// 北京当天零点 = 最近的 UTC 16:00
-const _utc16 = Date.UTC(_now.getUTCFullYear(), _now.getUTCMonth(), _now.getUTCDate(), 16, 0, 0);
-const _bjMid = new Date(_now.getTime() >= _utc16 ? _utc16 : _utc16 - 86_400_000);
-let _tMin = Infinity, _tMax = -Infinity;
-for (let _m = 0; _m < 24; _m++) { // 每小时采样（SSR 仅占位，客户端 SunCalc 秒级覆盖）
-  const _d = new Date(_bjMid.getTime() + _m * 3_600_000);
-  const _t = favMoonIllum(_d).angle - favMoonPos(_d, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng).parallacticAngle;
-  if (_t < _tMin) _tMin = _t;
-  if (_t > _tMax) _tMax = _t;
-}
-const _tNow = _il.angle - _pos.parallacticAngle;
-const _swing = 360 - 2 * Math.abs(_tMin);
-const _range = _tMax - _tMin;
-const _sr = _range !== 0 ? _swing / _range : 1;
-const _rot = (_tMin - (_tNow - _tMin) * _sr).toFixed(2);
+// [DISABLED] 每日 tilt 旋转（parallactic angle 导致的上下摆动）在月周期内表现不正确，已注释
+// const { getMoonPosition: favMoonPos } = await import('suncalc');
+// const _pos = favMoonPos(_now, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng);
+// const _utc16 = Date.UTC(_now.getUTCFullYear(), _now.getUTCMonth(), _now.getUTCDate(), 16, 0, 0);
+// const _bjMid = new Date(_now.getTime() >= _utc16 ? _utc16 : _utc16 - 86_400_000);
+// let _tMin = Infinity, _tMax = -Infinity;
+// for (let _m = 0; _m < 24; _m++) {
+//   const _d = new Date(_bjMid.getTime() + _m * 3_600_000);
+//   const _t = favMoonIllum(_d).angle - favMoonPos(_d, SITE_CONFIG.location.lat, SITE_CONFIG.location.lng).parallacticAngle;
+//   if (_t < _tMin) _tMin = _t;
+//   if (_t > _tMax) _tMax = _t;
+// }
+// const _tNow = _il.angle - _pos.parallacticAngle;
+// const _swing = 360 - 2 * Math.abs(_tMin);
+// const _range = _tMax - _tMin;
+// const _sr = _range !== 0 ? _swing / _range : 1;
+// const _rot = (_tMin - (_tNow - _tMin) * _sr).toFixed(2);
 
 function favMoonPath(fraction: number, waxing: boolean, r = 10) {
   const rx = Math.max(Math.abs(r * (1 - 2 * fraction)), 0.000001);
@@ -67,11 +68,12 @@ function favMoonPath(fraction: number, waxing: boolean, r = 10) {
   return `M 12 ${12 - r} A ${r} ${r} 0 0 ${cs} 12 ${12 + r} A ${rx} ${r} 0 0 ${ts} 12 ${12 - r} Z`;
 }
 const _fPath = favMoonPath(_il.fraction, _il.waxing);
+// [DISABLED] tilt rotation removed — only mirror flip remains for correct waxing/waning display
 const faviconDataUri = 'data:image/svg+xml,' + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
   '<rect width="24" height="24" fill="transparent"/>' +
   '<circle cx="12" cy="12" r="10.5" fill="#0E3F75"/>' +
-  '<g transform="rotate(' + (Number(_rot) + 180).toFixed(2) + ',12,12) matrix(-1,0,0,1,24,0)">' +
+  '<g transform="matrix(-1,0,0,1,24,0)">' +
   '<path d="' + _fPath + '" fill="white" stroke="none"/>' +
   '</g></svg>'
 );
@@ -93,18 +95,20 @@ const faviconDataUri = 'data:image/svg+xml,' + encodeURIComponent(
         function pt(f,w,r){r=r||10;var x=Math.max(Math.abs(r*(1-2*f)),0.000001);var c=w?0:1;var t=w?(f<0.5?1:0):(f<0.5?0:1);return'M 12 '+(12-r)+' A '+r+' '+r+' 0 0 '+c+' 12 '+(12+r)+' A '+x+' '+r+' 0 0 '+t+' 12 '+(12-r)+' Z'}
         var cached;
         function u(){
-          var d=new Date(),i=m.getMoonIllumination(d),p=m.getMoonPosition(d,LOCATION.lat,LOCATION.lng);
-          var utc16=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),16,0,0);
-          var bjMid=new Date(d.getTime()>=utc16?utc16:utc16-86400000);
-          var key=bjMid.toISOString().slice(0,10);
-          if(!cached||cached.key!==key){
-            var tMin=Infinity,tMax=-Infinity;
-            for(var _m=0;_m<288;_m++){var _d=new Date(bjMid.getTime()+_m*300000);var _t=m.getMoonIllumination(_d).angle-m.getMoonPosition(_d,LOCATION.lat,LOCATION.lng).parallacticAngle;if(_t<tMin)tMin=_t;if(_t>tMax)tMax=_t;}
-            cached={key:key,min:tMin,max:tMax,range:tMax-tMin};
-          }
-          var tNow=i.angle-p.parallacticAngle,swing=360-2*Math.abs(cached.min),sr=cached.range?swing/cached.range:1;
-          var rot=(cached.min-(tNow-cached.min)*sr+180).toFixed(2);
-          favicon.href='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" fill="transparent"/><circle cx="12" cy="12" r="10.5" fill="#0E3F75"/><g transform="rotate('+rot+',12,12) matrix(-1,0,0,1,24,0)"><path d="'+pt(i.fraction,i.waxing)+'" fill="white" stroke="none"/></g></svg>');
+          var d=new Date(),i=m.getMoonIllumination(d);
+          // [DISABLED] 每日 tilt 旋转在月周期内表现不正确，已注释，仅保留月相盈亏
+          // var p=m.getMoonPosition(d,LOCATION.lat,LOCATION.lng);
+          // var utc16=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),16,0,0);
+          // var bjMid=new Date(d.getTime()>=utc16?utc16:utc16-86400000);
+          // var key=bjMid.toISOString().slice(0,10);
+          // if(!cached||cached.key!==key){
+          //   var tMin=Infinity,tMax=-Infinity;
+          //   for(var _m=0;_m<288;_m++){var _d=new Date(bjMid.getTime()+_m*300000);var _t=m.getMoonIllumination(_d).angle-m.getMoonPosition(_d,LOCATION.lat,LOCATION.lng).parallacticAngle;if(_t<tMin)tMin=_t;if(_t>tMax)tMax=_t;}
+          //   cached={key:key,min:tMin,max:tMax,range:tMax-tMin};
+          // }
+          // var tNow=i.angle-p.parallacticAngle,swing=360-2*Math.abs(cached.min),sr=cached.range?swing/cached.range:1;
+          // var rot=(cached.min-(tNow-cached.min)*sr+180).toFixed(2);
+          favicon.href='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" fill="transparent"/><circle cx="12" cy="12" r="10.5" fill="#0E3F75"/><g transform="matrix(-1,0,0,1,24,0)"><path d="'+pt(i.fraction,i.waxing)+'" fill="white" stroke="none"/></g></svg>');
         }
         u();setInterval(u,3600000);
       })();
