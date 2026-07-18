@@ -158,10 +158,10 @@ if (isHomepage) {
         <span class="flex items-center gap-0.5 shrink-0">
           <svg class="bj-clock-icon shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
             <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
-            <g id="bj-hour-hand-m" class="bj-clock-hand" style="transform: rotate({headerHourDeg}deg)">
+            <g id="bj-hour-hand-m" class="bj-clock-hand" style={'transform: rotate(' + headerHourDeg + 'deg)'}>
               <path d="M12 12V7" stroke-width="1.8" stroke-linecap="round"/>
             </g>
-            <g id="bj-minute-hand-m" class="bj-clock-hand" style="transform: rotate({headerMinDeg}deg)">
+            <g id="bj-minute-hand-m" class="bj-clock-hand" style={'transform: rotate(' + headerMinDeg + 'deg)'}>
               <path d="M12 12V3.5" stroke-width="1.1" stroke-linecap="round"/>
             </g>
           </svg>
@@ -169,7 +169,7 @@ if (isHomepage) {
           <svg id="bj-moon-svg-m" class="bj-moon-svg shrink-0" viewBox="0 0 24 24" width="0.9rem" height="0.9rem"
                role="img" aria-label={headerMoonName}>
             <title>{headerMoonName}</title>
-                  <g style={`transform: rotate(${Number(headerMoonTiltDeg)}deg); transform-origin: 12px 12px;`}>
+                  <g style={'transform: rotate(' + Number(headerMoonTiltDeg) + 'deg); transform-origin: 12px 12px;'}>
               <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
               <path id="bj-moon-lit-m" d={headerMoonLitPath} fill="rgba(255,255,255,0.95)" stroke="none"/>
             </g>

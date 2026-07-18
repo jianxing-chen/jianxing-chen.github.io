@@ -149,10 +149,10 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
     aria-hidden="true"
   >
     <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
-    <g id="bj-hour-hand" class="bj-clock-hand" style="transform: rotate({initialHourDeg}deg)">
+    <g id="bj-hour-hand" class="bj-clock-hand" style={'transform: rotate(' + initialHourDeg + 'deg)'}>
       <path d="M12 12V7" stroke-width="1.8" stroke-linecap="round"/>
     </g>
-    <g id="bj-minute-hand" class="bj-clock-hand" style="transform: rotate({initialMinDeg}deg)">
+    <g id="bj-minute-hand" class="bj-clock-hand" style={'transform: rotate(' + initialMinDeg + 'deg)'}>
       <path d="M12 12V3.5" stroke-width="1.1" stroke-linecap="round"/>
     </g>
   </svg>
@@ -160,7 +160,7 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
   <svg id="bj-moon-svg" class="bj-moon-svg" viewBox="0 0 24 24" width="0.95rem" height="0.95rem"
        role="img" aria-label={initialMoonName}>
     <title>{initialMoonName}</title>
-          <g style={`transform: rotate(${Number(initialMoonTiltDeg)}deg); transform-origin: 12px 12px;`}>
+          <g style={'transform: rotate(' + Number(initialMoonTiltDeg) + 'deg); transform-origin: 12px 12px;'}>
               <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
               <path id="bj-moon-lit" d={initialMoonLitPath} fill="rgba(255,255,255,0.95)" stroke="none"/>
             </g>

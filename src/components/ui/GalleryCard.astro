@@ -38,7 +38,7 @@ const ariaLabel = `${titleText} — ${regionText}`;
     loading="lazy"
     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
     class="gallery-card__image"
-    style={`aspect-ratio:${photo.width}/${photo.height}`}
+    style={'aspect-ratio:' + photo.width + '/' + photo.height}
   />
   <div class="gallery-card__overlay">
     <p class="gallery-card__eyebrow">{regionText}</p>
