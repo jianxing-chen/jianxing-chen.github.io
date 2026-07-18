@@ -160,10 +160,12 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
   <svg id="bj-moon-svg" class="bj-moon-svg" viewBox="0 0 24 24" width="0.95rem" height="0.95rem"
        role="img" aria-label={initialMoonName}>
     <title>{initialMoonName}</title>
-          <g style={'transform: rotate(' + Number(initialMoonTiltDeg) + 'deg); transform-origin: 12px 12px;'}>
+          <g transform="matrix(-1 0 0 1 24 0)">
+            <g style={'transform: rotate(' + Number(initialMoonTiltDeg) + 'deg); transform-origin: 12px 12px;'}>
               <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.5)" stroke-width="0.6"/>
               <path id="bj-moon-lit" d={initialMoonLitPath} fill="rgba(255,255,255,0.95)" stroke="none"/>
             </g>
+          </g>
   </svg>
 </div>
 
@@ -257,7 +259,7 @@ const initialMoonLitPath = moonPhaseLitPath(moonIllum.fraction, moonIllum.waxing
       moonLits.forEach(el => el.setAttribute('d', path));
       moonSvgs.forEach(svg => {
         svg.setAttribute('aria-label', name);
-        const g = svg.querySelector('g');
+        const g = svg.querySelector('g > g');
         if (g) { g.style.transform = `rotate(${rotation.toFixed(2)}deg)`; g.style.transformOrigin = '12px 12px'; }
       });
       moonTitles.forEach(el => el.textContent = name);
